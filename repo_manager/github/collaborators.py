@@ -1,4 +1,3 @@
-import json
 from typing import Any
 from actions_toolkit import core as actions_toolkit
 
