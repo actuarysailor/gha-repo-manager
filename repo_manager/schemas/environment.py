@@ -1,5 +1,4 @@
-from typing import Optional
-from typing_extensions import Self
+from typing import Optional, Self
 
 from github import Github
 
