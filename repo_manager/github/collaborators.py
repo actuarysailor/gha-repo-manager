@@ -21,7 +21,8 @@ def update_team_permissions(repo: Repository, team: Collaborator) -> None:
     )
     if status not in {204}:
         raise Exception(
-            f"Unable to update team {team.name} for organization: {repo.organization.name}. Status: {status}. Error: {json.loads(raw_data)['message']}"
+            f"Unable to update team {team.name} for organization: {repo.organization.name}. "
+                + "Status: {status}. Error: {json.loads(raw_data)['message']}"
         )
     pass
 
@@ -38,7 +39,8 @@ def remove_team_permissions(repo: Repository, team: Collaborator) -> None:
     )
     if status not in {204}:
         raise Exception(
-            f"Unable to update team {team.name} for organization: {repo.organization.name}. Status: {status}. Error: {json.loads(raw_data)['message']}"
+            f"Unable to update team {team.name} for organization: {repo.organization.name}. "
+                + "Status: {status}. Error: {json.loads(raw_data)['message']}"
         )
     pass
 
