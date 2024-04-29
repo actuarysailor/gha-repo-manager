@@ -31,7 +31,8 @@ def __get_environment_deployment_branch_policies(
     )
     if status != 200:
         raise Exception(
-            f"Unable to list deployment branch policies for environment: {environment}. Status: {status}. Error: {json.loads(raw_data)['message']}"
+            f"Unable to list deployment branch policies for environment: {environment}. "
+                + "Status: {status}. Error: {json.loads(raw_data)['message']}"
         )
 
     try:
@@ -67,7 +68,8 @@ def __create_environment_branch_policy(
     )
     if status not in {200}:
         raise Exception(
-            f"Unable to create deployment branch policy for environment {environment_name} with branch pattern {branch_name_pattern}. Status: {status}. Error: {json.loads(data)['message']}"
+            f"Unable to create deployment branch policy for environment {environment_name} "
+                + "with branch pattern {branch_name_pattern}. Status: {status}. Error: {json.loads(data)['message']}"
         )
 
     return True
@@ -76,7 +78,8 @@ def __create_environment_branch_policy(
 def __delete_environment_branch_policy(
     repo: Repository, environment_name: str, branch_name_pattern: str
 ) -> bool:
-    """:calls: `DELETE /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies/{branch_name_pattern}
+    """:calls: 
+    `DELETE /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies/{branch_name_pattern}
     <https://docs.github.com/en/rest/deployments/branch-policies?apiVersion=2022-11-28#delete-a-branch-protection-policy>`_
 
     :param environment_name: string
@@ -87,7 +90,8 @@ def __delete_environment_branch_policy(
     )
     if status != 200:
         raise Exception(
-            f"Unable to list deployment branch policies for environment: {environment_name}. Status: {status}. Error: {json.loads(raw_data)['message']}"
+            f"Unable to list deployment branch policies for environment: {environment_name}. "
+                + "Status: {status}. Error: {json.loads(raw_data)['message']}"
         )
 
     try:
@@ -109,7 +113,8 @@ def __delete_environment_branch_policy(
     )
     if status not in {204}:
         raise Exception(
-            f"Unable to delete deployment branch policy for environment {environment_name} with branch policy id {branch_policy_id}. Status: {status}. Error: {json.loads(data)['message']}"
+            f"Unable to delete deployment branch policy for environment {environment_name} "
+                + "with branch policy id {branch_policy_id}. Status: {status}. Error: {json.loads(data)['message']}"
         )
 
     return True
