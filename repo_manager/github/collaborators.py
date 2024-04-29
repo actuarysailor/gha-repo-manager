@@ -6,6 +6,7 @@ from github.Repository import Repository
 
 from repo_manager.schemas.collaborator import Collaborator
 
+
 def update_team_permissions(repo: Repository, team: Collaborator) -> None:
     """Updates a team's permissions on a repo
 
@@ -14,15 +15,16 @@ def update_team_permissions(repo: Repository, team: Collaborator) -> None:
         team (str): [description]
         permission (str): [description]
     """
-    put_parameters = {
-        "permission": team.permission
-    }
+    put_parameters = {"permission": team.permission}
     status, headers, raw_data = repo._requester.requestJson(
         "PUT", f"{team.repositories_url}/{repo.full_name}", input=put_parameters
     )
     if status not in {204}:
-        raise Exception(f"Unable to update team {team.name} for organization: {repo.organization.name}. Status: {status}. Error: {json.loads(raw_data)['message']}")
+        raise Exception(
+            f"Unable to update team {team.name} for organization: {repo.organization.name}. Status: {status}. Error: {json.loads(raw_data)['message']}"
+        )
     pass
+
 
 def remove_team_permissions(repo: Repository, team: Collaborator) -> None:
     """Removes a team's permissions on a repo
@@ -35,8 +37,11 @@ def remove_team_permissions(repo: Repository, team: Collaborator) -> None:
         "DELETE", f"{team.repositories_url}/{repo.full_name}"
     )
     if status not in {204}:
-        raise Exception(f"Unable to update team {team.name} for organization: {repo.organization.name}. Status: {status}. Error: {json.loads(raw_data)['message']}")
+        raise Exception(
+            f"Unable to update team {team.name} for organization: {repo.organization.name}. Status: {status}. Error: {json.loads(raw_data)['message']}"
+        )
     pass
+
 
 def diff_option(key: str, expected: Any, repo_value: Any) -> str | None:
     if expected is not None:
@@ -44,7 +49,10 @@ def diff_option(key: str, expected: Any, repo_value: Any) -> str | None:
             return f"{key} -- Expected: {expected} Found: {repo_value}"
     return None
 
-def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
+
+def check_collaborators(
+    repo: Repository, collaborators: list[Collaborator]
+) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
     """Checks a repo's environments vs our expected settings
 
     Args:
@@ -57,10 +65,22 @@ def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> 
 
     diff = {}
 
-    expected_collab_usernames = {collaborator.name for collaborator in filter(lambda collaborator: collaborator.type == "User" and collaborator.exists, collaborators)}
-    expected_collab_teamnames = {collaborator.name for collaborator in filter(lambda collaborator: collaborator.type == "Team" and collaborator.exists, collaborators)}
+    expected_collab_usernames = {
+        collaborator.name
+        for collaborator in filter(
+            lambda collaborator: collaborator.type == "User" and collaborator.exists,
+            collaborators,
+        )
+    }
+    expected_collab_teamnames = {
+        collaborator.name
+        for collaborator in filter(
+            lambda collaborator: collaborator.type == "Team" and collaborator.exists,
+            collaborators,
+        )
+    }
     repo_collab_users = repo.get_collaborators()
-    repo_collab_teams = repo.get_teams() # __get_teams__(repo)
+    repo_collab_teams = repo.get_teams()  # __get_teams__(repo)
     repo_collab_usernames = {collaborator.login for collaborator in repo_collab_users}
     repo_collab_teamnames = {collaborator.slug for collaborator in repo_collab_teams}
 
@@ -73,8 +93,26 @@ def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> 
         if len(missing_teams) > 0:
             diff["missing"]["Teams"] = missing_teams
 
-    extra_users = list(repo_collab_usernames.intersection(collaborator.name for collaborator in filter(lambda collaborator: collaborator.type == "User" and not collaborator.exists, collaborators)))
-    extra_teams = list(repo_collab_teamnames.intersection(collaborator.name for collaborator in filter(lambda collaborator: collaborator.type == "Team" and not collaborator.exists, collaborators)))
+    extra_users = list(
+        repo_collab_usernames.intersection(
+            collaborator.name
+            for collaborator in filter(
+                lambda collaborator: collaborator.type == "User"
+                and not collaborator.exists,
+                collaborators,
+            )
+        )
+    )
+    extra_teams = list(
+        repo_collab_teamnames.intersection(
+            collaborator.name
+            for collaborator in filter(
+                lambda collaborator: collaborator.type == "Team"
+                and not collaborator.exists,
+                collaborators,
+            )
+        )
+    )
     if len(extra_users) + len(extra_teams) > 0:
         diff["extra"] = {}
         if len(extra_users) > 0:
@@ -83,25 +121,40 @@ def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> 
             diff["extra"]["Teams"] = extra_teams
 
     collaborators_to_check_values_on = {}
-    collaborators_to_check_values_on['Users'] = list(expected_collab_usernames.intersection(repo_collab_usernames))
-    collaborators_to_check_values_on['Teams'] = list(expected_collab_teamnames.intersection(repo_collab_teamnames))
-    config_collaborator_dict = {collaborator.name: collaborator for collaborator in collaborators}
-    repo_collab_dict = {
-        "Users": {},
-        "Teams": {}
+    collaborators_to_check_values_on["Users"] = list(
+        expected_collab_usernames.intersection(repo_collab_usernames)
+    )
+    collaborators_to_check_values_on["Teams"] = list(
+        expected_collab_teamnames.intersection(repo_collab_teamnames)
+    )
+    config_collaborator_dict = {
+        collaborator.name: collaborator for collaborator in collaborators
     }
-    repo_collab_dict["Users"] = {collaborator.login: collaborator for collaborator in repo_collab_users}
-    repo_collab_dict["Teams"] = {collaborator.slug: collaborator for collaborator in repo_collab_teams}
-    perm_diffs = {
-        "Users": {},
-        "Teams": {}
+    repo_collab_dict = {"Users": {}, "Teams": {}}
+    repo_collab_dict["Users"] = {
+        collaborator.login: collaborator for collaborator in repo_collab_users
     }
+    repo_collab_dict["Teams"] = {
+        collaborator.slug: collaborator for collaborator in repo_collab_teams
+    }
+    perm_diffs = {"Users": {}, "Teams": {}}
     for collaborator_type in collaborators_to_check_values_on.keys():
         for collaborator_name in collaborators_to_check_values_on[collaborator_type]:
             if collaborator_type == "Users":
-                repo_value = getattr(repo_collab_dict[collaborator_type][collaborator_name].permissions, config_collaborator_dict[collaborator_name].permission, None)
+                repo_value = getattr(
+                    repo_collab_dict[collaborator_type][collaborator_name].permissions,
+                    config_collaborator_dict[collaborator_name].permission,
+                    None,
+                )
             else:
-                repo_value = getattr(repo_collab_dict[collaborator_type][collaborator_name], "permission", None) == config_collaborator_dict[collaborator_name].permission
+                repo_value = (
+                    getattr(
+                        repo_collab_dict[collaborator_type][collaborator_name],
+                        "permission",
+                        None,
+                    )
+                    == config_collaborator_dict[collaborator_name].permission
+                )
             if repo_value is not True:
                 perm_diffs[collaborator_type][collaborator_name] = diff_option(
                     config_collaborator_dict[collaborator_name].permission,
@@ -123,7 +176,10 @@ def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> 
 
     return True, None
 
-def update_collaborators(repo: Repository, collaborators: list[Collaborator], diffs: dict[str, Any]) -> set[str]:
+
+def update_collaborators(
+    repo: Repository, collaborators: list[Collaborator], diffs: dict[str, Any]
+) -> set[str]:
     """Updates a repo's environments to match the expected settings
 
     Args:
@@ -135,8 +191,20 @@ def update_collaborators(repo: Repository, collaborators: list[Collaborator], di
         set[str]: [description]
     """
     errors = []
-    users_dict = {collaborator.name: collaborator for collaborator in filter(lambda collaborator: collaborator.type == "User" and collaborator.name, collaborators)}
-    teams_dict = {collaborator.name: collaborator for collaborator in filter(lambda collaborator: collaborator.type == "Team" and collaborator.name, collaborators)}
+    users_dict = {
+        collaborator.name: collaborator
+        for collaborator in filter(
+            lambda collaborator: collaborator.type == "User" and collaborator.name,
+            collaborators,
+        )
+    }
+    teams_dict = {
+        collaborator.name: collaborator
+        for collaborator in filter(
+            lambda collaborator: collaborator.type == "Team" and collaborator.name,
+            collaborators,
+        )
+    }
 
     def switch(collaborator: Collaborator, diff_type: str) -> None:
         if diff_type == "missing":
@@ -144,14 +212,18 @@ def update_collaborators(repo: Repository, collaborators: list[Collaborator], di
                 repo.add_to_collaborators(collaborator.name, collaborator.permission)
             elif collaborator.type == "Team":
                 update_team_permissions(repo, collaborator)
-            actions_toolkit.info(f"Added collaborator {collaborator.name} with permission {collaborator.permission}.")
+            actions_toolkit.info(
+                f"Added collaborator {collaborator.name} with permission {collaborator.permission}."
+            )
         elif diff_type == "extra":
             if collaborator.type == "User":
                 repo.remove_from_collaborators(collaborator.name)
             elif collaborator.type == "Team":
                 remove_team_permissions(repo, collaborator)
             else:
-                raise Exception(f"Modifying collaborators of type {collaborator.type} not currently supported")
+                raise Exception(
+                    f"Modifying collaborators of type {collaborator.type} not currently supported"
+                )
             actions_toolkit.info(f"Removed collaborator {collaborator.name}.")
         elif diff_type == "diff":
             if collaborator.type == "User":
@@ -159,10 +231,16 @@ def update_collaborators(repo: Repository, collaborators: list[Collaborator], di
             elif collaborator.type == "Team":
                 update_team_permissions(repo, collaborator)
             else:
-                raise Exception(f"Modifying collaborators of type {collaborator.type} not currently supported")
-            actions_toolkit.info(f"Updated collaborator {collaborator.name} with permission {collaborator.permission}.")
+                raise Exception(
+                    f"Modifying collaborators of type {collaborator.type} not currently supported"
+                )
+            actions_toolkit.info(
+                f"Updated collaborator {collaborator.name} with permission {collaborator.permission}."
+            )
         else:
-            errors.append(f"Collaborator {collaborator} not found in expected collaborators")
+            errors.append(
+                f"Collaborator {collaborator} not found in expected collaborators"
+            )
 
     for diff_type in diffs.keys():
         for collaborator_type in diffs[diff_type]:
@@ -172,6 +250,8 @@ def update_collaborators(repo: Repository, collaborators: list[Collaborator], di
                 elif collaborator_type == "Teams":
                     switch(teams_dict[collaborator], diff_type)
                 else:
-                    raise Exception(f"Modifying collaborators of type {collaborator_type} not currently supported")
+                    raise Exception(
+                        f"Modifying collaborators of type {collaborator_type} not currently supported"
+                    )
 
     return errors
