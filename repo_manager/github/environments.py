@@ -78,7 +78,7 @@ def __create_environment_branch_policy(
 def __delete_environment_branch_policy(
     repo: Repository, environment_name: str, branch_name_pattern: str
 ) -> bool:
-    """:calls: 
+    """:calls:
     `DELETE /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies/{branch_name_pattern}
     <https://docs.github.com/en/rest/deployments/branch-policies?apiVersion=2022-11-28#delete-a-branch-protection-policy>`_
 
@@ -403,7 +403,10 @@ def update_environments(
                                     env_component
                                 ][branch_policy_issue_type]:
                                     pErrors.append(
-                                        f"Unable to link deployment environment {env_name} to branches {branch_name_pattern}. Currently the GitHub API does not support creating branch policies for environments; get error 404..."
+                                        f"Unable to link deployment environment {env_name} "
+                                            + f"to branches {branch_name_pattern}. "
+                                            + "Currently the GitHub API does not support "
+                                            + "creating branch policies for environments; get error 404..."
                                     )
                                     # __create_environment_branch_policy(repo, env_name, branch_name_pattern)
                             if branch_policy_issue_type == "extra":
