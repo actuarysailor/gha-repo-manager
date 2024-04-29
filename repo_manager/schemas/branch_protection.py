@@ -1,5 +1,5 @@
 from pydantic import BaseModel  # pylint: disable=E0611
-from typing_extensions import Annotated
+from typing import Annotated
 from pydantic import Field
 
 OptBool = bool | None
