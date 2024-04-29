@@ -1,6 +1,4 @@
-import os
-from typing import Optional
-from typing_extensions import Self
+from typing import Optional, Self
 
 from github import Github
 
@@ -78,7 +76,8 @@ class environment(BaseModel):
         strict=True,
         ge=0,
         le=43200,
-        description="The amount of time to delay a job after the job is initially triggered. The time (in minutes) must be an integer between 0 and 43,200 (30 days)",
+        description="The amount of time to delay a job after the job is initially triggered. "
+            + "The time (in minutes) must be an integer between 0 and 43,200 (30 days)",
     )
     prevent_self_review: bool = Field(
         True,
@@ -86,15 +85,20 @@ class environment(BaseModel):
     )
     reviewers: list[Reviewer] = Field(
         [],
-        description="The people or teams that may review jobs that reference the environment. You can list up to six users or teams as reviewers. The reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
+        description="The people or teams that may review jobs that reference the environment. "
+            + "You can list up to six users or teams as reviewers. "
+            + "The reviewers must have at least read access to the repository. "
+            + "Only one of the required reviewers needs to approve the job for it to proceed.",
     )
-    deployment_branch_policy: Optional[DeploymentBranchPolicy] = Field(
+    deployment_branch_policy: DeploymentBranchPolicy | None = Field(
         None,
-        description="The type of deployment branch policy for this environment. To allow all branches to deploy, set to null.",
+        description="The type of deployment branch policy for this environment. "
+            + "To allow all branches to deploy, set to null.",
     )
     branch_name_patterns: set[str] = Field(
         [],
-        description="A list of branch name patterns that the deployments to the specified environment are restricted to; if list is empty the restriction is either None or protected branches.",
+        description="List of branch name patterns deployments to this environment are restricted to; "
+            + "if list is empty the restriction is either None or protected branches.",
     )
 
     @model_validator(mode="after")
