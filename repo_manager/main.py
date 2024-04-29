@@ -51,11 +51,11 @@ def main():  # noqa: C901
             config.branch_protections,
         ),
         check_repo_environments: (
-            "environments", 
+            "environments",
             config.environments
         ),
         check_collaborators: (
-            "collaborators", 
+            "collaborators",
             config.collaborators
         ),
     }.items():
@@ -89,12 +89,12 @@ def main():  # noqa: C901
             # ),
             update_variables: ("variables", config.variables, diffs.get("variables", None)),
             update_environments: (
-                "environments", 
+                "environments",
                 config.environments,
                 diffs.get("environments", None)
             ),
             update_collaborators: (
-                "collaborators", 
+                "collaborators",
                 config.collaborators,
                 diffs.get("collaborators", None)
             ),
