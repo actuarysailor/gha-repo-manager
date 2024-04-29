@@ -1,4 +1,4 @@
-from typing import Self
+from typing_extensions import Self
 
 from github import Github
 
@@ -7,15 +7,27 @@ from repo_manager.utils import get_inputs
 from pydantic import BaseModel  # pylint: disable=E0611
 from pydantic import Field, field_validator, model_validator
 
+
 class Collaborator(BaseModel):
     type: str = Field("team", description="Type of reviewer, can be `user` or `team`")
-    name: str = Field("andrewthetechie", description="Name of the reviewer, either a user or team name")
-    permission: str = Field("pull", description="Permission level of the reviewer, can be `pull` `triage`, `push`, `maintain`, `admin`, or custom roles defined in the repo/org")
-    exists: bool = Field(True, description="Whether the collaborator should exist in the repo; mark as false to remove the collaborator from the repo")
+    name: str = Field(
+        "andrewthetechie",
+        description="Name of the reviewer, either a user or team name",
+    )
+    permission: str = Field(
+        "pull",
+        description="Permission level of the reviewer, can be `pull` `triage`, `push`, `maintain`, `admin`, or custom roles defined in the repo/org",
+    )
+    exists: bool = Field(
+        True,
+        description="Whether the collaborator should exist in the repo; mark as false to remove the collaborator from the repo",
+    )
     id: int = Field(0, description="ID of the reviewer, either a user or team ID")
-    repositories_url: str = Field(None, description="URL to modify team permissions, only applicable for teams")
+    repositories_url: str = Field(
+        None, description="URL to modify team permissions, only applicable for teams"
+    )
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def initialize_id(self) -> Self:
         inputs = get_inputs()
         client: Github = inputs["api_client"]
