@@ -18,12 +18,21 @@ def get_public_key(repo: Repository, secret_type: str = "actions") -> PublicKey:
     # can only access dependabot secrets with admin:org scope
     # https://docs.github.com/en/rest/dependabot/secrets?apiVersion=2022-11-28
     if "admin:org" not in repo._requester.oauth_scopes and secret_type == "dependabot":
-        raise Exception("dependabot secrets require admin:org scope for the token used to access them.")
-    headers, data = repo._requester.requestJsonAndCheck("GET", f"{repo.url}/{secret_type}/secrets/public-key")
+        raise Exception(
+            "dependabot secrets require admin:org scope for the token used to access them."
+        )
+    headers, data = repo._requester.requestJsonAndCheck(
+        "GET", f"{repo.url}/{secret_type}/secrets/public-key"
+    )
     return PublicKey(repo._requester, headers, data, completed=True)
 
 
-def create_secret(repo: Repository, secret_name: str, unencrypted_value: str, secret_type: str = "actions") -> bool:
+def create_secret(
+    repo: Repository,
+    secret_name: str,
+    unencrypted_value: str,
+    secret_type: str = "actions",
+) -> bool:
     """
     :calls: `PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}
     <https://docs.github.com/en/rest/reference/actions#get-a-repository-secret>`_
@@ -43,7 +52,9 @@ def create_secret(repo: Repository, secret_name: str, unencrypted_value: str, se
     # can only access dependabot secrets with admin:org scope
     # https://docs.github.com/en/rest/dependabot/secrets?apiVersion=2022-11-28
     if "admin:org" not in repo._requester.oauth_scopes and secret_type == "dependabot":
-        raise Exception("dependabot secrets require admin:org scope for the token used to access them.")
+        raise Exception(
+            "dependabot secrets require admin:org scope for the token used to access them."
+        )
     status, headers, data = repo._requester.requestJson(
         "PUT", f"{repo.url}/{secret_type}/secrets/{secret_name}", input=put_parameters
     )
@@ -52,7 +63,9 @@ def create_secret(repo: Repository, secret_name: str, unencrypted_value: str, se
     return True
 
 
-def delete_secret(repo: Repository, secret_name: str, secret_type: str = "actions") -> bool:
+def delete_secret(
+    repo: Repository, secret_name: str, secret_type: str = "actions"
+) -> bool:
     """
     Copied from https://github.com/PyGithub/PyGithub/blob/master/github/Repository.py#L1448
     to add support for dependabot
@@ -64,12 +77,18 @@ def delete_secret(repo: Repository, secret_name: str, secret_type: str = "action
     # can only access dependabot secrets with admin:org scope
     # https://docs.github.com/en/rest/dependabot/secrets?apiVersion=2022-11-28
     if "admin:org" not in repo._requester.oauth_scopes and secret_type == "dependabot":
-        raise Exception("dependabot secrets require admin:org scope for the token used to access them.")
-    status, headers, data = repo._requester.requestJson("DELETE", f"{repo.url}/{secret_type}/secrets/{secret_name}")
+        raise Exception(
+            "dependabot secrets require admin:org scope for the token used to access them."
+        )
+    status, headers, data = repo._requester.requestJson(
+        "DELETE", f"{repo.url}/{secret_type}/secrets/{secret_name}"
+    )
     return status == 204
 
 
-def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
+def check_repo_secrets(
+    repo: Repository, secrets: list[Secret]
+) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
     """Checks a repo's secrets vs our expected settings
 
     Args:
@@ -85,17 +104,33 @@ def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, d
         repo_secret_names.update(_get_repo_secret_names(repo))
     if any(filter(lambda secret: secret.type == "dependabot", secrets)):
         repo_secret_names.update(_get_repo_secret_names(repo, "dependabot"))
-    if any(filter(lambda secret: secret.type not in {"actions","dependabot"}, secrets)):
-        first_secret = next(filter(lambda secret: secret.type not in {"actions", "dependabot"}, secrets), None)
+    if any(
+        filter(lambda secret: secret.type not in {"actions", "dependabot"}, secrets)
+    ):
+        first_secret = next(
+            filter(
+                lambda secret: secret.type not in {"actions", "dependabot"}, secrets
+            ),
+            None,
+        )
         if first_secret is not None:
             repo_secret_names.update(_get_repo_secret_names(repo, first_secret.type))
 
-    expected_secrets_names = {secret.key for secret in filter(lambda secret: secret.exists, secrets)}
+    expected_secrets_names = {
+        secret.key for secret in filter(lambda secret: secret.exists, secrets)
+    }
     diff = {
         "missing": list(expected_secrets_names - repo_secret_names),
-        "extra": repo_secret_names.intersection({secret.key for secret in filter(lambda secret: secret.exists is False, secrets)}),
+        "extra": repo_secret_names.intersection(
+            {
+                secret.key
+                for secret in filter(lambda secret: secret.exists is False, secrets)
+            }
+        ),
         # Because we cannot diff secret values, we assume they are different if they exist
-        "diff": repo_secret_names.intersection({secret.key for secret in filter(lambda secret: secret.exists, secrets)})
+        "diff": repo_secret_names.intersection(
+            {secret.key for secret in filter(lambda secret: secret.exists, secrets)}
+        ),
     }
 
     if len(diff["missing"]) + len(diff["extra"]) > 0:
@@ -107,7 +142,9 @@ def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, d
 def _get_repo_secret_names(repo: Repository, type: str = "actions") -> set[str]:
     if "admin:org" not in repo._requester.oauth_scopes and type == "dependabot":
         return set()
-    status, headers, raw_data = repo._requester.requestJson("GET", f"{repo.url}/{type}/secrets")
+    status, headers, raw_data = repo._requester.requestJson(
+        "GET", f"{repo.url}/{type}/secrets"
+    )
     if status != 200:
         raise Exception(f"Unable to get repo's secrets {status}")
     try:
@@ -116,6 +153,7 @@ def _get_repo_secret_names(repo: Repository, type: str = "actions") -> set[str]:
         raise Exception(f"Github apu returned invalid json {exc}")
 
     return {secret["name"] for secret in secret_data["secrets"]}
+
 
 def update_secrets(repo: Repository, secrets: list[Secret]) -> set[str]:
     """Updates a repo's secrets to match the expected settings
