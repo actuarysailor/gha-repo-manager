@@ -1,4 +1,4 @@
-from typing_extensions import Self
+from typing import Self
 
 from github import Github
 
@@ -16,11 +16,13 @@ class Collaborator(BaseModel):
     )
     permission: str = Field(
         "pull",
-        description="Permission level of the reviewer, can be `pull` `triage`, `push`, `maintain`, `admin`, or custom roles defined in the repo/org",
+        description="Permission level of the reviewer, can be `pull` `triage`, "
+            + "`push`, `maintain`, `admin`, or custom roles defined in the repo/org",
     )
     exists: bool = Field(
         True,
-        description="Whether the collaborator should exist in the repo; mark as false to remove the collaborator from the repo",
+        description="Whether the collaborator should exist in the repo; "
+            + "mark as false to remove the collaborator from the repo",
     )
     id: int = Field(0, description="ID of the reviewer, either a user or team ID")
     repositories_url: str = Field(
