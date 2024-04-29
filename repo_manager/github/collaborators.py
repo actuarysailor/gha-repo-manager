@@ -102,7 +102,7 @@ def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> 
                 repo_value = getattr(repo_collab_dict[collaborator_type][collaborator_name].permissions, config_collaborator_dict[collaborator_name].permission, None)
             else:
                 repo_value = getattr(repo_collab_dict[collaborator_type][collaborator_name], "permission", None) == config_collaborator_dict[collaborator_name].permission
-            if repo_value != True:
+            if repo_value is not True:
                 perm_diffs[collaborator_type][collaborator_name] = diff_option(
                     config_collaborator_dict[collaborator_name].permission,
                     True,
@@ -120,7 +120,7 @@ def check_collaborators(repo: Repository, collaborators: list[Collaborator]) -> 
 
     if len(diff) > 0:
         return False, diff
-    
+
     return True, None
 
 def update_collaborators(repo: Repository, collaborators: list[Collaborator], diffs: dict[str, Any]) -> set[str]:
@@ -173,5 +173,5 @@ def update_collaborators(repo: Repository, collaborators: list[Collaborator], di
                     switch(teams_dict[collaborator], diff_type)
                 else:
                     raise Exception(f"Modifying collaborators of type {collaborator_type} not currently supported")
-    
+
     return errors
