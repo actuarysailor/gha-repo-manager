@@ -64,12 +64,12 @@ def __delete_environment_branch_policy(repo: Repository, environment_name: str, 
     )
     if status != 200:
         raise Exception(f"Unable to list deployment branch policies for environment: {environment_name}. Status: {status}. Error: {json.loads(raw_data)['message']}")
-    
+
     try:
         deployment_branch_policies_data = json.loads(raw_data)
     except json.JSONDecodeError as exc:
         raise Exception(f"Github apu returned invalid json {exc}")
-    
+
     branch_policy_id = [branch_policy['id'] for branch_policy in filter(lambda branch_policy: branch_policy['name'] == branch_name_pattern, deployment_branch_policies_data["branch_policies"])][0]
 
     status, headers, data = repo._requester.requestJson(
@@ -208,7 +208,7 @@ def check_repo_environments(repo: Repository, environments: list[environment]) -
     """
 
     repo_environments = repo.get_environments()
-    repo_environment_names = {environment.name for environment in repo_environments}    
+    repo_environment_names = {environment.name for environment in repo_environments}
 
     expected_environment_names = {environment.name for environment in filter(lambda environment: environment.exists, environments)}
     diff = {}
