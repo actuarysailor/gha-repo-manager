@@ -3,7 +3,6 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
-from github.PublicKey import PublicKey
 from github.Repository import Repository
 
 from repo_manager.schemas.secret import Secret
@@ -111,7 +110,7 @@ def check_variables(repo: Repository, variables: list[Secret]) -> tuple[bool, di
     expected_variables_names = {variable.key for variable in filter(lambda variable: variable.exists, variables)}
     diff = {
         "missing": list(expected_variables_names - repo_variable_names),
-        "extra": list(repo_variable_names.intersection({variable.key for variable in filter(lambda variable: variable.exists == False, variables)})),
+        "extra": list(repo_variable_names.intersection({variable.key for variable in filter(lambda variable: variable.exists is False, variables)})),
         "diff": {}
     }
 
