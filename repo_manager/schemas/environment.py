@@ -60,7 +60,7 @@ class environment(BaseModel):
     wait_timer: OptInt = Field(None, strict=True, ge=0, le=43200, description="The amount of time to delay a job after the job is initially triggered. The time (in minutes) must be an integer between 0 and 43,200 (30 days)")
     prevent_self_review : bool = Field(True, description="Whether or not a user who created the job is prevented from approving their own job.")
     reviewers: list[Reviewer] = Field([], description="The people or teams that may review jobs that reference the environment. You can list up to six users or teams as reviewers. The reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.")
-    deployment_branch_policy: Optional[DeploymentBranchPolicy] = Field(None, description="The type of deployment branch policy for this environment. To allow all branches to deploy, set to null.")
+    deployment_branch_policy: DeploymentBranchPolicy | None = Field(None, description="The type of deployment branch policy for this environment. To allow all branches to deploy, set to null.")
     branch_name_patterns: set[str] = Field([], description="A list of branch name patterns that the deployments to the specified environment are restricted to; if list is empty the restriction is either None or protected branches.")
 
     @model_validator(mode='after')
