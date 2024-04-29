@@ -8,15 +8,21 @@ OptBool = Optional[bool]
 OptStr = Optional[str]
 
 
-class SecretEnvError(Exception):
-    ...
+class SecretEnvError(Exception): ...
 
 
 class Secret(BaseModel):
-    type: str = Field("actions", description="Type of secret, can be `dependabot` or `actions` or an `environment` path")
+    type: str = Field(
+        "actions",
+        description="Type of secret, can be `dependabot` or `actions` or an `environment` path",
+    )
     key: str = Field(None, description="Secret's name.")
-    env: OptStr = Field(None, description="Environment variable to pull the secret from")
-    value: OptStr = Field(None, description="Value to set this secret to", validate_default = True)
+    env: OptStr = Field(
+        None, description="Environment variable to pull the secret from"
+    )
+    value: OptStr = Field(
+        None, description="Value to set this secret to", validate_default=True
+    )
     required: OptBool = Field(
         True,
         description="Setting a value as not required allows you to not pass in an env var without causing an error",
@@ -29,7 +35,9 @@ class Secret(BaseModel):
             return None
 
         if values.data["env"] is not None:
-            raise ValueError("Cannot set an env and a value in the same secret, remove one.")
+            raise ValueError(
+                "Cannot set an env and a value in the same secret, remove one."
+            )
 
         return v
 
