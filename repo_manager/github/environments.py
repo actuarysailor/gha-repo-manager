@@ -1,5 +1,4 @@
 import json
-from copy import deepcopy
 from typing import Any
 
 from actions_toolkit import core as actions_toolkit
@@ -19,18 +18,18 @@ def __get_environment_deployment_branch_policies(repo: Repository, environment: 
 
     :param repo: Repository
     """
-    
+
     status, headers, raw_data = repo._requester.requestJson(
         "GET", f"{repo.url}/environments/{environment}/deployment-branch-policies"
     )
     if status != 200:
         raise Exception(f"Unable to list deployment branch policies for environment: {environment}. Status: {status}. Error: {json.loads(raw_data)['message']}")
-    
+
     try:
         deployment_branch_policies_data = json.loads(raw_data)
     except json.JSONDecodeError as exc:
         raise Exception(f"Github apu returned invalid json {exc}")
-    
+
     return {policy['name'] for policy in deployment_branch_policies_data["branch_policies"]} if deployment_branch_policies_data["branch_policies"] else set()
 
 def __create_environment_branch_policy(repo: Repository, environment_name: str, branch_name_pattern: str) -> bool:
@@ -40,7 +39,7 @@ def __create_environment_branch_policy(repo: Repository, environment_name: str, 
     :param environment_name: string
     :rtype: bool
     """
-        
+
     put_parameters = {
         "name": branch_name_pattern,
         "type": "branch"
@@ -105,7 +104,7 @@ def create_environment(repo: Repository, env: environment) -> bool:
     put_parameters = {
         # "prevent_self_review": env.prevent_self_review, # GitHub docs list this, but error says it is invalid...
         "reviewers": [{"type": reviewer.type, "id": reviewer.id} for reviewer in env.reviewers] if len(env.reviewers) > 0 else None,
-        "deployment_branch_policy": {"protected_branches": env.deployment_branch_policy.protected_branches, "custom_branch_policies": 
+        "deployment_branch_policy": {"protected_branches": env.deployment_branch_policy.protected_branches, "custom_branch_policies":
                                      env.deployment_branch_policy.custom_branch_policies} if env.deployment_branch_policy is not None else None
     }
     if env.wait_timer is not None:
@@ -153,7 +152,7 @@ def check_environment_settings(repo: Repository, config_env: environment) -> tup
         elif protection_rule == "branch_policy":
             config_value = config_env.deployment_branch_policy
             repo_value = DeploymentBranchPolicy(
-                protected_branches=repo_env.deployment_branch_policy.protected_branches, 
+                protected_branches=repo_env.deployment_branch_policy.protected_branches,
                 custom_branch_policies=repo_env.deployment_branch_policy.custom_branch_policies
             ) if repo_env.deployment_branch_policy is not None else None
             if config_value != repo_value:
@@ -172,12 +171,12 @@ def check_environment_settings(repo: Repository, config_env: environment) -> tup
                         repo_value
                     )
 
-        if diffs[protection_rule] == None or len(diffs[protection_rule]) == 0:
+        if diffs[protection_rule] is None or len(diffs[protection_rule]) == 0:
             diffs.pop(protection_rule)
 
     if len(diffs) > 0:
         return False, diffs
-    
+
     return True, None
 
 def check_branch_policies(repo: Repository, env: environment) -> tuple[bool, dict[str, Any]]:
@@ -207,7 +206,7 @@ def check_repo_environments(repo: Repository, environments: list[environment]) -
     Returns:
         Tuple[bool, Optional[List[str]]]: [description]
     """
-    
+
     repo_environments = repo.get_environments()
     repo_environment_names = {environment.name for environment in repo_environments}    
 
@@ -216,7 +215,7 @@ def check_repo_environments(repo: Repository, environments: list[environment]) -
     if len(expected_environment_names - repo_environment_names) > 0:
         diff["missing"] = list(expected_environment_names - repo_environment_names)
     if len(repo_environment_names - expected_environment_names) > 0:
-        diff["extra"] = list(repo_environment_names.intersection({environment.name for environment in filter(lambda environment: environment.exists == False, environments)}))
+        diff["extra"] = list(repo_environment_names.intersection({environment.name for environment in filter(lambda environment: environment.exists is False, environments)}))
 
     environments_to_check_values_on = list(expected_environment_names.intersection(repo_environment_names))
     config_env_dict = {environment.name: environment for environment in environments}
@@ -246,7 +245,7 @@ def check_repo_environments(repo: Repository, environments: list[environment]) -
 
     if len(diff) > 0:
         return False, diff
-    
+
     return True, None
 
 
