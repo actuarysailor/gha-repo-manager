@@ -14,6 +14,7 @@ from ._inputs import INPUTS
 
 VALID_ACTIONS = {"validate": None, "check": None, "apply": None}
 
+
 def __get_inputs__() -> dict:
     """Get inputs from our workflow, valudate them, and return as a dict
     Reads inputs from the dict INPUTS. This dict is generated from the actions.yml file.
@@ -41,6 +42,7 @@ def __get_inputs__() -> dict:
                     actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
     return parsed_inputs
 
+
 def __get_api_url__() -> str:
     global parsed_inputs
     parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
@@ -51,6 +53,7 @@ def __get_api_url__() -> str:
         api_url = parsed_inputs["github_server_url"] + "/api/v3"
     actions_toolkit.debug(f"api_url: {api_url}")
     return api_url
+
 
 def get_client() -> Github:
     global parsed_inputs
@@ -63,6 +66,7 @@ def get_client() -> Github:
         actions_toolkit.set_failed(f"Error while retrieving GitHub REST API Client from {api_url}. {exc}")
     return client
 
+
 def get_repo() -> Repository:
     global parsed_inputs
     parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
@@ -72,6 +76,7 @@ def get_repo() -> Repository:
     except Exception as exc:  # this should be tighter
         actions_toolkit.set_failed(f"Error while retrieving {parsed_inputs['repo']} from Github. {exc}")
     return repo
+
 
 def get_organization() -> Organization:
     global parsed_inputs
