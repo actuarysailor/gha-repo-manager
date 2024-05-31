@@ -3,7 +3,7 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
-from github import Github, Repository
+from github import Github, Repository, Organization
 
 # Needed to handle extracting certain attributes/fields from nested objects and lists
 from itertools import repeat
@@ -70,8 +70,18 @@ def get_repo() -> Repository:
     try:
         repo = client.get_repo(parsed_inputs["repo"])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retriving {parsed_inputs['repo']} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {parsed_inputs['repo']} from Github. {exc}")
     return repo
+
+def get_organization() -> Organization:
+    global parsed_inputs
+    parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
+    client = get_client()
+    try:
+        org = client.get_organization(parsed_inputs["repo"].split("/")[0])
+    except Exception as exc:  # this should be tighter
+        actions_toolkit.set_failed(f"Error while retrieving {parsed_inputs['repo'].split('/')[0]} from Github. {exc}")
+    return org
 
 
 def get_inputs() -> dict[str, Any]:
