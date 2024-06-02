@@ -4,6 +4,9 @@
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 <!-- action-docs-description source="action.yml" -->
+### Description
+
+Manage all Github repo settings from a YAML file, enabling greater change control, transparency, and auditability.
 <!-- action-docs-description source="action.yml" -->
 
 ## Usage
@@ -68,12 +71,30 @@ jobs:
 ```
 
 <!-- action-docs-inputs source="action.yml" -->
+### Inputs
+
+| name | description | required | default |
+| --- | --- | --- | --- |
+| `action` | <p>What action to take with this action. One of validate, check, or apply. Validate will validate your settings file, but not touch your repo. Check will check your repo with your settings file and output a report of any drift. Apply will apply the settings in your settings file to your repo</p> | `false` | `check` |
+| `settings_file` | <p>What yaml file to use as your settings. This is local to runner running this action.</p> | `false` | `.github/settings.yml` |
+| `repo` | <p>What repo to perform this action on. Default is self, as in the repo this action is running in</p> | `false` | `self` |
+| `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `none` |
+| `token` | <p>What github token to use with this action.</p> | `true` | `""` |
 <!-- action-docs-inputs source="action.yml" -->
 
 <!-- action-docs-outputs source="action.yml" -->
+### Outputs
+
+| name | description |
+| --- | --- |
+| `result` | <p>Result of the action</p> |
+| `diff` | <p>Diff of this action, dumped to a json string</p> |
 <!-- action-docs-outputs source="action.yml" -->
 
 <!-- action-docs-runs source="action.yml" -->
+### Runs
+
+This action is a `docker` action.
 <!-- action-docs-runs source="action.yml" -->
 
 ## Contributors
