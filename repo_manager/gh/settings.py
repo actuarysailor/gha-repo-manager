@@ -17,7 +17,7 @@ def update_settings(repo: Repository, settings: Settings):
     attr_to_kwarg("has_issues", settings, kwargs)
     attr_to_kwarg("has_projects", settings, kwargs)
     attr_to_kwarg("has_wiki", settings, kwargs)
-    attr_to_kwarg("has_downloads", settings, kwargs)
+    # attr_to_kwarg("has_downloads", settings, kwargs) -- this was removed from the schema
     attr_to_kwarg("default_branch", settings, kwargs)
     attr_to_kwarg("allow_squash_merge", settings, kwargs)
     attr_to_kwarg("allow_merge_commit", settings, kwargs)
@@ -65,22 +65,24 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
 
     drift = []
     checked = True
-    for setting_name in settings.dict().keys():
+    for setting_name in settings.model_dump().keys():
         repo_value = get_repo_value(setting_name, repo)
         settings_value = getattr(settings, setting_name)
+        # These are dependabot settings and access to them needs to be modified; not part of settings
+        if setting_name in ["enable_automated_security_fixes", "enable_vulnerability_alerts"]:
+            continue
+        # TODO: Unresolved issues when new Fine Grain Tokens have OAUTH SCOPE of none...
         if setting_name in [
             "allow_squash_merge",
             "allow_merge_commit",
             "allow_rebase_merge",
             "delete_branch_on_merge",
-            "enable_automated_security_fixes",
-            "enable_vulnerability_alerts",
         ]:
             if repo._requester.oauth_scopes is None:
                 continue
             elif repo_value is None:
                 actions_toolkit.info(f"Unable to access {setting_name} with OAUTH of {repo._requester.oauth_scopes}")
-        # We don't want to flag description being different if the YAML is None
+        # We don't want to flag differences omitted in the YAML file
         if settings_value is None:
             continue
         if repo_value != settings_value:
@@ -150,7 +152,7 @@ SETTINGS = {
     "has_issues": {},
     "has_projects": {},
     "has_wiki": {},
-    "has_downloads": {},
+    # "has_downloads": {},
     "default_branch": {},
     "allow_squash_merge": {},
     "allow_merge_commit": {},

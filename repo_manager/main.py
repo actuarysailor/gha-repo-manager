@@ -2,7 +2,10 @@ import json
 import sys
 
 from actions_toolkit import core as actions_toolkit
+from pydantic import ValidationError
+from yaml import YAMLError
 
+from repo_manager.gh import GithubException, UnknownObjectException
 from repo_manager.gh.branch_protections import check_repo_branch_protections
 from repo_manager.gh.branch_protections import update_branch_protection
 from repo_manager.gh.files import copy_file
@@ -20,9 +23,6 @@ from repo_manager.gh.settings import check_repo_settings
 from repo_manager.gh.settings import update_settings
 from repo_manager.schemas import load_config
 from repo_manager.utils import get_inputs
-from yaml import YAMLError
-from pydantic import ValidationError
-from repo_manager.gh import GithubException, UnknownObjectException
 
 
 def main():  # noqa: C901
