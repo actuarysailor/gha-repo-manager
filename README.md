@@ -6,7 +6,11 @@
 <!-- action-docs-description -->
 ## Description
 
-Manage Administrative Repository Settings from within a repository!
+<!-- action-docs-description -->
+
+## Usage
+
+Manage Administrative Repository Settings from within a repository - via a YAML file!
 
 **Why would you want to do this?**
 * Adhere to principal of least-privilegas for developers and other contributors.
@@ -18,12 +22,7 @@ Manage Administrative Repository Settings from within a repository!
     * Make directories containing standardized example workflows and use the file-copy to maintain all CI/CD workflows matching a given regex pattern for repo names
     * Similary, add a settings.yml file to that directory to standardize variables, secrets, access control lists, etc.
 
-
-<!-- action-docs-description -->
-
-## Usage
-
-This action manages your repo from a yaml file. You can manage:
+**What Items You May Manage:**
 
 * repos *configure external repos*
 * repo settings
