@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '.github/workflows/action-integration.yml'
+      - 'action.yml'
+
   pull_request_target:
 jobs:
   action-integration-testing:

@@ -27,7 +27,7 @@ settings:
   has_wiki: false
 
   # Either `true` to enable downloads for this repository, `false` to disable them.
-  has_downloads: false
+  # has_downloads: false
 
   # Set the default branch for this repository.
   default_branch: main
