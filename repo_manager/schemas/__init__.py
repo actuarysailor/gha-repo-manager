@@ -51,7 +51,6 @@ class RepoManagerConfig(BaseModel):
         )
 
     @property
-    
     def collaborators_dict(self):
         return (
             {collaborator.name: collaborator for collaborator in self.collaborators}
