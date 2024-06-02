@@ -86,7 +86,7 @@ branch_protections:
         strict: true
         # The list of status checks to require in order to merge into this branch
         checks:
-          - Python CI
+          - pre-commit 3.11 / ubuntu-latest
           - Action Integration Testing
           - Generate Docs
       # Enforce all configured restrictions for administrators. Set to true to enforce required status checks for repository administrators. Set to null to disable.
