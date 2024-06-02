@@ -6,7 +6,7 @@ settings:
   # A short description of the repository that will show up on GitHub. Set to an empty string to clear.
   description: Manage your Github repo(s) settings and secrets using Github Actions and a yaml file
   # A URL with more information about the repository. Set to an empty string to clear.
-  homepage: https://github.com/andrewthetechie/gha-repo-manager
+  homepage: https://github.com/actuarysailor/gha-repo-manager
 
   # A list of strings to apply as topics on the repo. Set to an empty string to clear topics. Omit or set to null to leave what repo already has
   topics:
