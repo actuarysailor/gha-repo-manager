@@ -4,8 +4,6 @@
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 <!-- action-docs-description -->
-## Description
-
 <!-- action-docs-description -->
 
 ## Usage
@@ -70,38 +68,12 @@ jobs:
 ```
 
 <!-- action-docs-inputs -->
-## Inputs
-
-| parameter | description | required | default |
-| - | - | - | - |
-| action | What action to take with this action. One of validate, check, or apply. Validate will validate your settings file, but not touch your repo. Check will check your repo with your settings file and output a report of any drift. Apply will apply the settings in your settings file to your repo | `false` | check |
-| settings_file | What yaml file to use as your settings. This is local to runner running this action. | `false` | .github/settings.yml |
-| repo | What repo to perform this action on. Default is self, as in the repo this action is running in | `false` | self |
-| github_server_url | Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB_SERVER_URL if left at default | `false` | none |
-| token | What github token to use with this action. | `true` |  |
-
-
-
 <!-- action-docs-inputs -->
 
 <!-- action-docs-outputs -->
-## Outputs
-
-| parameter | description |
-| - | - |
-| result | Result of the action |
-| diff | Diff of this action, dumped to a json string |
-
-
-
 <!-- action-docs-outputs -->
 
 <!-- action-docs-runs -->
-## Runs
-
-This action is a `docker` action.
-
-
 <!-- action-docs-runs -->
 
 ## Contributors
