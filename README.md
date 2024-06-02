@@ -3,8 +3,8 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-<!-- action-docs-description -->
-<!-- action-docs-description -->
+<!-- action-docs-description source="action.yml" -->
+<!-- action-docs-description source="action.yml" -->
 
 ## Usage
 
@@ -67,14 +67,14 @@ jobs:
 
 ```
 
-<!-- action-docs-inputs -->
-<!-- action-docs-inputs -->
+<!-- action-docs-inputs source="action.yml" -->
+<!-- action-docs-inputs source="action.yml" -->
 
-<!-- action-docs-outputs -->
-<!-- action-docs-outputs -->
+<!-- action-docs-outputs source="action.yml" -->
+<!-- action-docs-outputs source="action.yml" -->
 
-<!-- action-docs-runs -->
-<!-- action-docs-runs -->
+<!-- action-docs-runs source="action.yml" -->
+<!-- action-docs-runs source="action.yml" -->
 
 ## Contributors
 
