@@ -11,6 +11,7 @@ on:
       - 'package-requirements.txt'
       - 'pyproject.toml'
       - '**/*.py'
+      - '**/*.md'
   pull_request:
     paths:
       - '.github/workflows/python-ci.yml'
@@ -19,6 +20,7 @@ on:
       - 'package-requirements.txt'
       - 'pyproject.toml'
       - '**/*.py'
+      - '**/*.md'
 
 jobs:
   python-ci:
