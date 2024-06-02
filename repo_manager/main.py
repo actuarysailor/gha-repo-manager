@@ -65,7 +65,7 @@ def main():  # noqa: C901
             if this_diffs is not None:
                 diffs[check_name] = this_diffs
 
-    actions_toolkit.debug(json_diff := json.dumps({}))
+    actions_toolkit.debug(json_diff := json.dumps(diffs))
     actions_toolkit.set_output("diff", json_diff)
 
     if inputs["action"] == "check":
