@@ -27,7 +27,7 @@ jobs:
         uses: ./
         with:
           token: ${{ secrets.THIS_PAT || github.token }}
-          action: "check"
+          action: "apply"
       - name: Check outputs
         run: |
           test "${{ steps.test-action.outputs.result }}" == "Check passed"
