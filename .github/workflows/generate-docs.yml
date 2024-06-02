@@ -25,11 +25,13 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4.1.6
-        # https://github.com/stefanzweifel/git-auto-commit-action#commits-made-by-this-action-do-not-trigger-new-workflow-runs
+        with:
+          token: ${{ secrets.THIS_PAT }}
 
       - name: Run doc generation
         uses: npalm/action-docs-action@v3.1.1
 
+      # https://github.com/stefanzweifel/git-auto-commit-action#commits-made-by-this-action-do-not-trigger-new-workflow-runs
       - name: Commit doc changes
         uses: stefanzweifel/git-auto-commit-action@v5.0.1
         with:
