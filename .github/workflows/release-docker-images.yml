@@ -4,6 +4,11 @@ name: Release Docker Images
 on:
   release:
     types: [released]
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release-docker-images.yml'
 
 jobs:
   build-and-push-dockerimage:
@@ -11,7 +16,11 @@ jobs:
     if: github.repository_owner == 'actuarysailor'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4.1.6
+        with:
+          token: ${{ secrets.THIS_PAT }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
