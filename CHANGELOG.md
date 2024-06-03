@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.9.0](https://github.com/actuarysailor/gha-repo-manager/compare/v1.8.0...v1.9.0) (2024-06-02)
+## [1.9.0](https://github.com/actuarysailor/gha-repo-manager/compare/v1.8.0...v1.9.0) (2024-06-03)
 
 
 ### Features
