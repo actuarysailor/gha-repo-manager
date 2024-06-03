@@ -11,7 +11,6 @@ on:
       - 'package-requirements.txt'
       - 'pyproject.toml'
       - '**/*.py'
-      - '**/*.md'
   pull_request:
     paths:
       - '.github/workflows/python-ci.yml'
@@ -20,7 +19,6 @@ on:
       - 'package-requirements.txt'
       - 'pyproject.toml'
       - '**/*.py'
-      - '**/*.md'
 
 jobs:
   python-ci:
@@ -42,7 +40,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v3.3.0
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4.5.0

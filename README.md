@@ -54,9 +54,8 @@ jobs:
   repo-manager:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4.1.6
-
+    - uses: actions/checkout@v3
+    name: Checkout
     - name: Run RepoManager
       # you should always reference a version tag to ensure that your use of an action never changes until you update it
       uses: actuarysailor/gha-repo-manager@v1.9.0
