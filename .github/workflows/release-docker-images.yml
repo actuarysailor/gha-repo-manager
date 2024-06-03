@@ -62,3 +62,4 @@ jobs:
           # https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#registry-cache
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          github-token: ${{ secrets.THIS_PAT }}
