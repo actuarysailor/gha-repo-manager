@@ -51,7 +51,7 @@ jobs:
             type=sha,format=long,prefix=
       - name: Build and push
         id: docker_build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5.3.0
         with:
           context: .
           file: Dockerfile
