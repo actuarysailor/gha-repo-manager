@@ -43,11 +43,13 @@ def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, d
     expected_secrets_names = {secret.key for secret in filter(lambda secret: secret.exists, secrets)}
     diff = {
         "missing": list(expected_secrets_names - repo_secret_names),
-        "extra": list(repo_secret_names.intersection(
+        "extra": list(
+            repo_secret_names.intersection(
             {secret.key for secret in filter(lambda secret: secret.exists is False, secrets)}
         )),
         # Because we cannot diff secret values, we assume they are different if they exist
-        "diff": list(repo_secret_names.intersection(
+        "diff": list(
+            repo_secret_names.intersection(
             {secret.key for secret in filter(lambda secret: secret.exists, secrets)}
         )),
     }
