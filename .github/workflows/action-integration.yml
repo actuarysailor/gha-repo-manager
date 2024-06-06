@@ -46,6 +46,8 @@ jobs:
         with:
           token: ${{ secrets.THIS_PAT || github.token }}
           action: "check"
+        env: 
+          SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
       - name: Check outputs
         run: |
