@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/actuarysailor/gha-repo-manager/compare/v1.9.0...v1.9.1) (2024-06-06)
+
+
+### Bug Fixes
+
+* Required Reviewer Count Boundaries ([#30](https://github.com/actuarysailor/gha-repo-manager/issues/30)) ([e3a240e](https://github.com/actuarysailor/gha-repo-manager/commit/e3a240e8b0e45bb8b13c488f5b8e2ed8120b5bee))
+
 ## [1.8.0](https://github.com/andrewthetechie/gha-repo-manager/compare/v1.7.2...v1.8.0) (2024-06-02)
 
 
