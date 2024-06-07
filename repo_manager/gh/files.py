@@ -6,7 +6,7 @@ from typing import Any
 from git import Repo, Commit
 
 from actions_toolkit import core as actions_toolkit
-from github.GithubException import UnknownObjectException
+from github.GithubException import GithubException
 from github.Repository import Repository
 
 from repo_manager.schemas import FileConfig
@@ -43,7 +43,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     target_branch = files[0].target_branch if files[0].target_branch is not None else repo.default_branch
     
     if inputs["repo"] == "self":
-        repo_dir = Repo.init(".")
+        repo_dir = Repo(".")
     else:
         # clone the repo
         repo_dir = __clone_repo__(repo, target_branch)
@@ -60,25 +60,40 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
             raise ValueError("All files must have the same target_branch")
         oldPath = Path(repo_dir.working_tree_dir) / file_config.src_file
         newPath = Path(repo_dir.working_tree_dir) / file_config.dest_file
+        # prior method used source if move was true, dest if not
         if not file_config.exists:
-            if newPath.exists():
-                os.remove(newPath)
-                extra.add(str(file_config.dest_file))
-            if oldPath.exists():
-                os.remove(oldPath)
-                if file_config.dest_file not in extra:
-                    extra.add(str(file_config.src_file))
+            fileToDelete = oldPath if file_config.move else newPath
+            if fileToDelete.exists():
+                os.remove(fileToDelete)
+                extra.add(str(fileToDelete))
+                actions_toolkit.info(f"Deleted {str(fileToDelete.relative_to(repo_dir.working_tree_dir))}")
+            else:
+                actions_toolkit.warning(
+                    f"{str(fileToDelete)} does not exist in {target_branch} branch."
+                    + "Because this is a delete, not failing run"
+                )
         else:
+            if file_config.exists and file_config.remote_src and not oldPath.exists():
+                raise RemoteSrcNotFoundError(f"File {file_config.src_file} does not exist in {repo}")
             if not (oldPath.exists() or newPath.exists()):
                 missing.add(str(file_config.dest_file))
+            if oldPath == newPath:
+                continue # Nothing to do
             if file_config.move:
-                if oldPath == newPath:
-                    continue # file does not move
                 if not oldPath.exists():
-                    actions_toolkit.debug(f"File {file_config.src_file} does not exist in {repo}; nothing to move")
+                    actions_toolkit.warning(
+                        f"{str(file_config.src_file)} does not exist in {target_branch} branch."
+                        + "Because this is not a remote file, not failing run as it may be created later"
+                    )
                 else:
                     os.rename(oldPath, newPath)
                     moved += str(file_config.src_file)
+                    actions_toolkit.info(f"Moved {str(file_config.src_file)} to {str(file_config.dest_file)}")
+            elif file_config.remote_src:
+                shutil.copyfile(oldPath, newPath)
+                actions_toolkit.info(
+                    f"Copied {str(file_config.src_file)} to {str(file_config.dest_file)}"
+                )
     
     # we commit these changes so that deleted files and renamed files are accounted for
     global commitCleanup
@@ -87,7 +102,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
         commitCleanup = None
         actions_toolkit.debug("No files to delete or move")
     else:
-        commitCleanup = repo_dir.index.commit("chore(repo_manager): File cleanup and migration")
+        commitCleanup = repo_dir.index.commit("chore(repo_manager): Internal File Maintenance")
 
     if len(extra) > 0:
         diffs["extra"] = list(extra)
@@ -97,7 +112,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     
     # now we handle file content changes
     for file_config in files:
-        if not file_config.exists:
+        if not file_config.exists or file_config.remote_src:
             continue # we already handled this file
         srcPath = file_config.src_file
         destPath = Path(repo_dir.working_tree_dir) / file_config.dest_file
@@ -105,6 +120,9 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
             if newPath.exists():
                 os.remove(newPath) # Delete the file
             shutil.copyfile(srcPath, destPath)
+            actions_toolkit.info(
+                f"Copied {str(file_config.src_file)} to {str(file_config.dest_file)}"
+            )
 
     # we commit the file updates (e.g. content changes)
     global commitChanges
@@ -128,61 +146,47 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
 
     if len(diffs) > 0:
         return False, diffs
-    
+    # actions_toolkit.info("Commit SHAs: " + ",".join(commits))
     # Default to no differences
     return True, None
 
-def copy_file(repo: Repository, file_config: FileConfig) -> str:
-    """Copy files to a repository using the BLOB API
-    Files can be sourced from a local file or a remote repository
-    """
-    target_branch = file_config.target_branch if file_config.target_branch is not None else repo.default_branch
-    try:
-        file_contents = (
-            file_config.src_file_contents
-            if not file_config.remote_src
-            else get_remote_file_contents(repo, file_config.src_file, target_branch)
-        )
-    except UnknownObjectException:
-        raise RemoteSrcNotFoundError(f"Remote file {file_config.src_file} not found in {target_branch}")
-
-    try:
-        dest_contents = repo.get_contents(str(file_config.dest_file), ref=target_branch)
-        result = repo.update_file(
-            str(file_config.dest_file.relative_to(".")),
-            file_config.commit_msg,
-            file_contents,
-            sha=dest_contents.sha,
-            branch=target_branch,
-        )
-    except UnknownObjectException:
-        # if dest_contents are unknown, this is a new file
-        result = repo.create_file(
-            str(file_config.dest_file.relative_to(".")), file_config.commit_msg, file_contents, branch=target_branch
-        )
-
-    return result["commit"].sha
-
-
-def get_remote_file_contents(repo: Repository, path: Path, target_branch: str) -> str:
-    """Get the contents of a file from a remote repository"""
-    contents = repo.get_contents(str(path.relative_to(".")), ref=target_branch)
-    return contents.decoded_content.decode("utf-8")
-
-
-def move_file(repo: Repository, file_config: FileConfig) -> tuple[str, str]:
-    """Move a file from a repository"""
-    return copy_file(repo, file_config), delete_file(repo, file_config)
-
-
-def delete_file(
+def update_files(
     repo: Repository,
-    file_config: FileConfig,
-) -> str:
-    """Delete a file from a repository"""
-    # if we're doing a delete for a move, delete the src_file rather than the dest_file
-    to_delete = file_config.src_file if file_config.move else file_config.dest_file
-    target_branch = file_config.target_branch if file_config.target_branch is not None else repo.default_branch
-    contents = repo.get_contents(str(to_delete.relative_to(".")), ref=target_branch)
-    result = repo.delete_file(contents.path, file_config.commit_msg, contents.sha, branch=target_branch)
-    return result["commit"].sha
+    files: list[FileConfig],
+    diffs: tuple[dict[str, list[str] | dict[str, Any]]]
+) -> set[str]:
+    """Update files in a repository"""
+    errors = set[str]()
+    if diffs is None:
+        return errors
+    inputs = get_inputs()
+    target_branch = files[0].target_branch if files[0].target_branch is not None else repo.default_branch
+    
+    if inputs["repo"] == "self":
+        repo_dir = Repo.init(".")
+    else:
+        repoPath = Path(inputs["workspace_path"]) / repo.name
+        if not repoPath.exists:
+            raise FileExistsError(f"Directory {repoPath} does not exist!")
+        if not repoPath.is_dir():
+            raise NotADirectoryError(f"{repoPath} is not a directory!")
+        repo_dir = Repo(repoPath)
+
+    if repo_dir.active_branch.name != target_branch:
+        raise ValueError("Target branch does not match active branch")
+    
+    origin = repo_dir.remote()
+    pushInfo = origin.push()
+
+    if pushInfo.error is not None:
+        for info in pushInfo:
+            if info.ERROR:
+                errors.append(
+                    {
+                        "type": "file-update",
+                        "key": info.local_ref.commit.hexsha,
+                        "error": f"{GithubException(info.ERROR, message = info.summary)}",
+                    }
+                )
+
+    return errors
