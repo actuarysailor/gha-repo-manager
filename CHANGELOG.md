@@ -1,5 +1,69 @@
 # Changelog
 
+## [1.10.0](https://github.com/actuarysailor/gha-repo-manager/compare/v1.9.2...v1.10.0) (2024-06-07)
+
+
+### Features
+
+* Ability to configure deployment environments (including their secrets/variables) ([#20](https://github.com/actuarysailor/gha-repo-manager/issues/20)) ([5499a84](https://github.com/actuarysailor/gha-repo-manager/commit/5499a84c9691f7d3d19f0895cacbd865ebfc6c8c))
+* Ability to configure repo Collaborators (teams + users) ([#18](https://github.com/actuarysailor/gha-repo-manager/issues/18)) ([19b7dbc](https://github.com/actuarysailor/gha-repo-manager/commit/19b7dbcf2bef348226efa95f394a645c14a91f2e))
+* Ability to configure repo Collaborators (teams + users) ([#232](https://github.com/actuarysailor/gha-repo-manager/issues/232)) ([1bd6d38](https://github.com/actuarysailor/gha-repo-manager/commit/1bd6d382c795e30990b71a202981e40c4cde323a))
+* Ability to configure repo Variables ([#19](https://github.com/actuarysailor/gha-repo-manager/issues/19)) ([29ea9a8](https://github.com/actuarysailor/gha-repo-manager/commit/29ea9a8646761be6d238b18d8c77b741636e7403))
+* Add dependabot secrets ([#12](https://github.com/actuarysailor/gha-repo-manager/issues/12)) ([ea030b4](https://github.com/actuarysailor/gha-repo-manager/commit/ea030b45eb46c57d4df4544ccd42f7d6306b637f))
+* add file management ([#9](https://github.com/actuarysailor/gha-repo-manager/issues/9)) ([eaf30de](https://github.com/actuarysailor/gha-repo-manager/commit/eaf30de62c1070cacf2144d2ad4e2360138fe271))
+* Adjust repo for self-management ([#16](https://github.com/actuarysailor/gha-repo-manager/issues/16)) ([61853a2](https://github.com/actuarysailor/gha-repo-manager/commit/61853a2861df6ff3084e45e9fef5b67de5a7969d))
+* ghe support ([#23](https://github.com/actuarysailor/gha-repo-manager/issues/23)) ([60e128a](https://github.com/actuarysailor/gha-repo-manager/commit/60e128a42d6a1da90ee5defc9a2b71d1024b4189))
+* mostly working branch protections ([3210f2f](https://github.com/actuarysailor/gha-repo-manager/commit/3210f2f67c9df9328fc20fa4a319e37c2526d7c3))
+* move to python 3.11 ([#13](https://github.com/actuarysailor/gha-repo-manager/issues/13)) ([a19cbfa](https://github.com/actuarysailor/gha-repo-manager/commit/a19cbfaa864b3f41b5943c3853042796821713ce))
+* **new_bp_comparisons:** New Branch Protection Comparisons previously omitted ([#43](https://github.com/actuarysailor/gha-repo-manager/issues/43)) ([ef6dad4](https://github.com/actuarysailor/gha-repo-manager/commit/ef6dad4f17703353eab5cda8dc3a2c59fa4602e9))
+* Poetry rework ([#19](https://github.com/actuarysailor/gha-repo-manager/issues/19)) ([2f41b7b](https://github.com/actuarysailor/gha-repo-manager/commit/2f41b7be4186ae1ffb7865838191234a1df11748))
+* Pydantic 2.7.1 PR ([#225](https://github.com/actuarysailor/gha-repo-manager/issues/225)) ([c1e014a](https://github.com/actuarysailor/gha-repo-manager/commit/c1e014adcf31bafbcd7b29087ebd4e4a4b052ee0))
+* scratch docker image ([#15](https://github.com/actuarysailor/gha-repo-manager/issues/15)) ([03d1230](https://github.com/actuarysailor/gha-repo-manager/commit/03d1230ff1269d64027c9c2bf89672d326ae4caa))
+* **settings.py:** Now compares all settings ([#41](https://github.com/actuarysailor/gha-repo-manager/issues/41)) ([441b8e4](https://github.com/actuarysailor/gha-repo-manager/commit/441b8e49c8ce09a74dc525e2808a5a74db0dd459))
+* support applying labels ([ac96daa](https://github.com/actuarysailor/gha-repo-manager/commit/ac96daad2ea13191a3277685fb7f096a0cb41308))
+* update poetry ([#25](https://github.com/actuarysailor/gha-repo-manager/issues/25)) ([7983a04](https://github.com/actuarysailor/gha-repo-manager/commit/7983a049789d053d343ee4c6465a5227e5995b6c))
+* update repo settings ([73c7650](https://github.com/actuarysailor/gha-repo-manager/commit/73c7650300d18e046e4ae9be433b6fed2b0b640e))
+* updates for applying secret changes ([775f5fd](https://github.com/actuarysailor/gha-repo-manager/commit/775f5fdfd83674b0b31e0b4591fe75ebf13d660d))
+
+
+### Bug Fixes
+
+* add debug logging of diff ([#46](https://github.com/actuarysailor/gha-repo-manager/issues/46)) ([ad86b78](https://github.com/actuarysailor/gha-repo-manager/commit/ad86b7813217db76d997ab704607bc9d930599fb))
+* add input generator ([7089beb](https://github.com/actuarysailor/gha-repo-manager/commit/7089bebd73909c42f68b06ef7d85391aa707fde2))
+* add more debug ([54028f8](https://github.com/actuarysailor/gha-repo-manager/commit/54028f894bf18a4847c04e99322bfba238e72ee0))
+* Auto Docs action-docs-action workflow ([#21](https://github.com/actuarysailor/gha-repo-manager/issues/21)) ([156e9e7](https://github.com/actuarysailor/gha-repo-manager/commit/156e9e78b3f33aa0e895e87653ba7fedb042e3ff))
+* **branch_protection:** fix false to False ([c4a164d](https://github.com/actuarysailor/gha-repo-manager/commit/c4a164d99755b865d3b58f1fbff322fdb2b9947a))
+* **branch_protections.py:** Sort Required Status Checks ([#38](https://github.com/actuarysailor/gha-repo-manager/issues/38)) ([4d4c44f](https://github.com/actuarysailor/gha-repo-manager/commit/4d4c44fd10847c7ecc8539e6b84701d7ddd2e439))
+* **branch_protections.py:** Working Status Check Reqs ([#42](https://github.com/actuarysailor/gha-repo-manager/issues/42)) ([33090f5](https://github.com/actuarysailor/gha-repo-manager/commit/33090f570282feb6866c73f41ab2a90ac6556d43))
+* delete files in the wrong place ([af25f15](https://github.com/actuarysailor/gha-repo-manager/commit/af25f15296cb104f5b9f0f237c79682830a3142a))
+* fix bugs from pr 43 ([#45](https://github.com/actuarysailor/gha-repo-manager/issues/45)) ([b21e432](https://github.com/actuarysailor/gha-repo-manager/commit/b21e4323ff9409093c0f559dc508232903f538fa))
+* fix dependabot secrets ([c3f3531](https://github.com/actuarysailor/gha-repo-manager/commit/c3f35314433dd5dce9c536bc0f585d59c775fb97))
+* fix integration test ([a08a37d](https://github.com/actuarysailor/gha-repo-manager/commit/a08a37da8c4b1625d631900288b1f287ca236315))
+* **github_nulls:** Better handling of Nulls in GitHub API ([#39](https://github.com/actuarysailor/gha-repo-manager/issues/39)) ([6744d11](https://github.com/actuarysailor/gha-repo-manager/commit/6744d11f832826994b3eafb4bb59a0d546a3ac74))
+* JSON issue with dumping differences ([#36](https://github.com/actuarysailor/gha-repo-manager/issues/36)) ([ea14c1e](https://github.com/actuarysailor/gha-repo-manager/commit/ea14c1ef05a9c137e18954ebf28f72bac61c0185))
+* **nulls:** Minor fixes to address null values ([#52](https://github.com/actuarysailor/gha-repo-manager/issues/52)) ([ec5c9be](https://github.com/actuarysailor/gha-repo-manager/commit/ec5c9be75600f37953800dc8a4d2ad25d1099521))
+* pin to bullseye docker image ([#69](https://github.com/actuarysailor/gha-repo-manager/issues/69)) ([863bf6b](https://github.com/actuarysailor/gha-repo-manager/commit/863bf6b257c6b32cb1284f19f604102d45abc499))
+* pydantic 2 fixes ([#237](https://github.com/actuarysailor/gha-repo-manager/issues/237)) ([252c43a](https://github.com/actuarysailor/gha-repo-manager/commit/252c43af4de68f15ebfb70ef7292bd10b4cc0b6c))
+* Required Reviewer Count Boundaries ([#30](https://github.com/actuarysailor/gha-repo-manager/issues/30)) ([e3a240e](https://github.com/actuarysailor/gha-repo-manager/commit/e3a240e8b0e45bb8b13c488f5b8e2ed8120b5bee))
+* simplify bp logic ([3438faf](https://github.com/actuarysailor/gha-repo-manager/commit/3438fafd3b39cdcdfe37f76ebecba904e9a3410f))
+* stub out update_branch_protection ([360cbe0](https://github.com/actuarysailor/gha-repo-manager/commit/360cbe06fcebf492e923aaf12ffd2de596070bcb))
+* sync up integration test ([5597abe](https://github.com/actuarysailor/gha-repo-manager/commit/5597abece3ffb5ab9060d660961e670fe2d95e14))
+* update acceptable status codes ([bf7960c](https://github.com/actuarysailor/gha-repo-manager/commit/bf7960c5c50b7f8c8059b61a6b695b176571680c))
+
+
+### Documentation
+
+* add actuarysailor as a contributor for bug, and code ([#48](https://github.com/actuarysailor/gha-repo-manager/issues/48)) ([8fe0593](https://github.com/actuarysailor/gha-repo-manager/commit/8fe059387b5b99e6938bc7f254d8c4b4e2414ffd))
+* add andrewthetechie as a contributor for ideas, test, and code ([#22](https://github.com/actuarysailor/gha-repo-manager/issues/22)) ([12c75d2](https://github.com/actuarysailor/gha-repo-manager/commit/12c75d2d5f24df9d9ca88031a1f5565870301d51))
+* automated doc update ([7567b6a](https://github.com/actuarysailor/gha-repo-manager/commit/7567b6a00c07c2976582af89923deec4b4bf8db1))
+* automated doc update ([f5e6383](https://github.com/actuarysailor/gha-repo-manager/commit/f5e6383ecf0568c9b03c691217558230e6d3596e))
+* cleanup badges ([7fdc028](https://github.com/actuarysailor/gha-repo-manager/commit/7fdc028972a6d686392fce64491029f099483ab6))
+* Simplify local development ([9bab2f2](https://github.com/actuarysailor/gha-repo-manager/commit/9bab2f23c757446ffc742a361bed50a1d936bbfb))
+* update developer setup guide ([ebc13fa](https://github.com/actuarysailor/gha-repo-manager/commit/ebc13fa21ee6f4f66b4ad69fdaa35be9df71cdf7))
+* update readme ([946d18b](https://github.com/actuarysailor/gha-repo-manager/commit/946d18b9203bbd4901779611d6197166eaf4e53e))
+* Update Readme ([3b8ee6e](https://github.com/actuarysailor/gha-repo-manager/commit/3b8ee6eb48373ae615718c6a1199e697c1e11052))
+* Update Tips for Local Debugging ([eb49f51](https://github.com/actuarysailor/gha-repo-manager/commit/eb49f51e1285d5e4bf672bf4e2fa2b57f83b6df2))
+
 ## [1.9.2](https://github.com/actuarysailor/gha-repo-manager/compare/v1.9.1...v1.9.2) (2024-06-06)
 
 
