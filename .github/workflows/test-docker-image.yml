@@ -6,11 +6,13 @@ on:
       - main
     paths:
       - 'Dockerfile'
+      - pyproject.toml
       - '.github/scripts/replace_inputs.sh'
       - '**/*.py'
   pull_request:
     paths:
       - 'Dockerfile'
+      - pyproject.toml
       - '.github/scripts/replace_inputs.sh'
       - '**/*.py'
 
