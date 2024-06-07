@@ -33,10 +33,10 @@
 
   // set default package release-type to "python"
   // absence defaults to "node"
-  "release-type": "python",
+  // "release-type": "python",
 
   // list the files to update as part of the release
-  "extra-files": "action.yml",
+  // "extra-files": "action.yml",
 
   // manually set next version to be "1.2.3" ignoring conventional commits.
   // absence defaults to conventional commits derived next version.
