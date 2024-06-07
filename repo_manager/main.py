@@ -10,6 +10,7 @@ from yaml import YAMLError
 from repo_manager.gh import GithubException, UnknownObjectException
 from repo_manager.gh.branch_protections import check_repo_branch_protections
 from repo_manager.gh.branch_protections import update_branch_protection
+from repo_manager.gh.files import check_files
 from repo_manager.gh.files import copy_file
 from repo_manager.gh.files import delete_file
 from repo_manager.gh.files import move_file
@@ -57,6 +58,7 @@ def main():  # noqa: C901
     check_result = True
     diffs = {}
     for check, to_check in {
+        check_files: ("files", config.files),
         check_repo_settings: ("settings", config.settings),
         check_repo_secrets: ("secrets", config.secrets),
         check_variables: ("variables", config.variables),
