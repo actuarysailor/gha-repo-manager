@@ -5,6 +5,8 @@
   "extra-files": "action.yml",
   "tag-separator": "@",
   "include-v-in-tag": true,
-  "packages": {},
+  "packages": {
+    "action.yml": {}
+  },
   "plugins": []
 }
