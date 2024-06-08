@@ -23,8 +23,9 @@ def test_copy_file_new_local_to_dest(mocker):
     mock_repo.create_file = mocker.MagicMock(return_value={"commit": mocker.MagicMock(sha="1234")})
     mock_repo.create_git_blob = mocker.MagicMock(return_value=MockBlob())
     this_config = list(FileConfig(**VALID_CONFIG, target_branch="test"))
-    result = check_files(mock_repo, this_config)
-    # assert result == "1234"
+    result, diffs = check_files(mock_repo, this_config)
+    assert result == False
+    assert diffs == {"diffs": ["test"]}
     assert mock_repo.get_contents.call_count == 1
     assert mock_repo.create_file.call_count == 1
 
@@ -44,8 +45,9 @@ def test_copy_file_update_remote_file(mocker):
     mock_repo.update_file = mocker.MagicMock(return_value={"commit": mocker.MagicMock(sha="1234")})
     mock_repo.create_git_blob = mocker.MagicMock(return_value=MockBlob())
     this_config = list(FileConfig(**VALID_CONFIG, remote_src=True))
-    result = check_files(mock_repo, this_config)
-    # assert result == "1234"
+    result, diffs = check_files(mock_repo, this_config)
+    assert result == False
+    assert diffs == {"diffs": ["test"]}
     assert mock_repo.get_contents.call_count == 1
     assert mock_repo.update_file.call_count == 1
 
@@ -53,16 +55,17 @@ def test_copy_file_update_remote_file(mocker):
 def test_move_file(mocker):
     files.copy_file = mocker.MagicMock(return_value="1234")
     files.delete_file = mocker.MagicMock(return_value="1234")
-    this_config = FileConfig(**VALID_CONFIG, target_branch="test")
-    copy, delete = files.move_file(mocker.MagicMock(), this_config)
-    assert copy == "1234"
-    assert delete == "1234"
+    this_config = list(FileConfig(**VALID_CONFIG, target_branch="test"))
+    result, diffs = check_files(mocker.MagicMock(), this_config)
+    assert result == False
+    assert diffs == {"diffs": ["test"]}
 
 
 def test_delete_file(mocker):
     mock_repo = mocker.MagicMock()
     mock_repo.get_contents = mocker.MagicMock(return_value=mocker.MagicMock(sha="1234"))
     mock_repo.delete_file = mocker.MagicMock(return_value={"commit": mocker.MagicMock(sha="1234")})
-    this_config = FileConfig(**VALID_CONFIG, target_branch="test")
-    result = files.delete_file(mock_repo, this_config)
-    assert result == "1234"
+    this_config = list(FileConfig(**VALID_CONFIG, target_branch="test"))
+    result, diffs = check_files(mock_repo, this_config)
+    assert result == False
+    assert diffs == {"diffs": ["test"]}
