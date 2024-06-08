@@ -1,8 +1,11 @@
 FROM python:3.11-slim-bullseye AS builder
 WORKDIR /app
 
-# install build requirements
-RUN apt-get update && apt-get install -y binutils patchelf build-essential scons upx git-all
+# install build requirements # https://git-scm.com/download/linux
+RUN apt-get update && apt-get install -y binutils patchelf build-essential scons upx git
+
+# verify git is installed
+RUN git --version
 
 # copy the app
 COPY ./ /app
