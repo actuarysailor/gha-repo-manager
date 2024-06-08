@@ -59,7 +59,7 @@ jobs:
 
     - name: Run RepoManager
       # you should always reference a version tag to ensure that your use of an action never changes until you update it
-      uses: actuarysailor/gha-repo-manager@v1.9.2
+      uses: actuarysailor/gha-repo-manager@v2.0.0
       with:
         # Apply your settings to the repo, can also be check to just check repo settings vs your file or validate, to validate your
         # file is valid

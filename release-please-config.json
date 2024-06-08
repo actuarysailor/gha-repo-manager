@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "bootstrap-sha": "918ae52382091486f0beb324e4a136e194489a72",
+  "bootstrap-sha": "8aafa47556684f87448e48b8bf701d8e8c5b2a96",
   "release-search-depth": 400,
   "group-pull-request-title-pattern": "chore${scope}: release ${component} v${version}",
   "pull-request-title-pattern": "chore${scope}: release ${component} v${version}",
