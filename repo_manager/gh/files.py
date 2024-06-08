@@ -13,10 +13,9 @@ from repo_manager.schemas import FileConfig
 from repo_manager.utils import get_inputs
 
 
-class RemoteSrcNotFoundError(Exception): ...
-
 commitChanges: Commit = None
 commitCleanup: Commit = None
+
 
 def __clone_repo__(repo: Repository, branch: str) -> Repo:
     """Clone a repository to the local filesystem"""
@@ -27,9 +26,6 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     cloned_repo = Repo.clone_from(repo.clone_url, str(repo_dir))
     cloned_repo.git.checkout(branch)
     return cloned_repo
-
-
-
 
 
 def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
@@ -47,7 +43,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     else:
         # clone the repo
         repo_dir = __clone_repo__(repo, target_branch)
-    
+
     diffs = {}
     extra = set[str]()
     missing = set[str]()
@@ -74,11 +70,11 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
                 )
         else:
             if file_config.exists and file_config.remote_src and not oldPath.exists():
-                raise RemoteSrcNotFoundError(f"File {file_config.src_file} does not exist in {repo}")
+                raise FileNotFoundError(f"File {file_config.src_file} does not exist in {repo}")
             if not (oldPath.exists() or newPath.exists()):
                 missing.add(str(file_config.dest_file))
             if oldPath == newPath:
-                continue # Nothing to do
+                continue  # Nothing to do
             if file_config.move:
                 if not oldPath.exists():
                     actions_toolkit.warning(
@@ -91,9 +87,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
                     actions_toolkit.info(f"Moved {str(file_config.src_file)} to {str(file_config.dest_file)}")
             elif file_config.remote_src:
                 shutil.copyfile(oldPath, newPath)
-                actions_toolkit.info(
-                    f"Copied {str(file_config.src_file)} to {str(file_config.dest_file)}"
-                )
+                actions_toolkit.info("Copied {str(file_config.src_file)} to {str(file_config.dest_file)}")
     
     # we commit these changes so that deleted files and renamed files are accounted for
     global commitCleanup
@@ -113,16 +107,14 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     # now we handle file content changes
     for file_config in files:
         if not file_config.exists or file_config.remote_src:
-            continue # we already handled this file
+            continue  # we already handled this file
         srcPath = file_config.src_file
         destPath = Path(repo_dir.working_tree_dir) / file_config.dest_file
         if file_config.exists:
             if newPath.exists():
-                os.remove(newPath) # Delete the file
+                os.remove(newPath)  # Delete the file
             shutil.copyfile(srcPath, destPath)
-            actions_toolkit.info(
-                f"Copied {str(file_config.src_file)} to {str(file_config.dest_file)}"
-            )
+            actions_toolkit.info(f"Copied {str(file_config.src_file)} to {str(file_config.dest_file)}")
 
     # we commit the file updates (e.g. content changes)
     global commitChanges
@@ -132,7 +124,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
         actions_toolkit.debug("No files changed")
     else:
         commitChanges = repo_dir.index.commit("chore(repo_manager): File updates")
-    
+
     # get the list of files that changed content
     if commitChanges is not None:
         for file in commitChanges.stats.files:
@@ -150,11 +142,8 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     # Default to no differences
     return True, None
 
-def update_files(
-    repo: Repository,
-    files: list[FileConfig],
-    diffs: tuple[dict[str, list[str] | dict[str, Any]]]
-) -> set[str]:
+
+def update_files(repo: Repository, files: list[FileConfig], diffs: tuple[dict[str, list[str] | dict[str, Any]]]) -> set[str]:
     """Update files in a repository"""
     errors = set[str]()
     if diffs is None:

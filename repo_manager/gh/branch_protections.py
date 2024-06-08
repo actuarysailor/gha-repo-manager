@@ -432,7 +432,7 @@ def check_repo_branch_protections(
                 dismissal_teams = objary_to_list("slug", this_protection.required_pull_request_reviews.dismissal_teams)
             else:
                 dismissal_teams = []
-            
+
             if this_protection.required_pull_request_reviews.dismissal_users is not None:
                 dismissal_users = objary_to_list("name", this_protection.required_pull_request_reviews.dismissal_users)
             else:
