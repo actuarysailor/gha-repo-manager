@@ -3,7 +3,6 @@ from github.GithubException import UnknownObjectException
 
 from repo_manager.gh import files
 from repo_manager.gh.files import check_files
-from repo_manager.gh.files import RemoteSrcNotFoundError
 from repo_manager.schemas import FileConfig
 
 VALID_CONFIG = {
