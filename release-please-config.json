@@ -1,8 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "python",
+  "bootstrap-sha": "70fff24cb35636af4f8d0501cb3600e9e2739363",
   "release-search-depth": 400,
-  "extra-files": "action.yml",
+  "extra-files": [
+    "action.yml"
+  ],
   "tag-separator": "@",
   "include-v-in-tag": true,
   "packages": {
