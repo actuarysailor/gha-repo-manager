@@ -18,7 +18,7 @@
       "exclude-paths": [".github"],
       "include-component-in-tag": false,
       "extra-files": ["action.yml"]
-  }
+    }
   },
   "plugins": []
 }
