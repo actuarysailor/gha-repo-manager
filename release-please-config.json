@@ -4,7 +4,7 @@
   "release-search-depth": 400,
   "packages": {
     ".": {
-      "pull-request-title-pattern": "chore(${branch}): Release ${version} of ${component} with scope ${scope}",
+      "pull-request-title-pattern": "chore${scope}: release v${version}",
       "tag-separator": "@",
       "include-v-in-tag": true,
       "changelog-path": "CHANGELOG.md",
