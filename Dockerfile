@@ -1,11 +1,8 @@
-FROM python:3.11-slim-bullseye AS builder
+FROM python:3.12-slim-bullseye AS builder
 WORKDIR /app
 
 # install build requirements # https://git-scm.com/download/linux
-RUN apt-get update && apt-get install -y binutils patchelf build-essential scons upx git
-
-# verify git is installed
-RUN git --version
+RUN apt-get update && apt-get install -y binutils patchelf build-essential scons upx
 
 # copy the app
 COPY ./ /app
@@ -31,6 +28,10 @@ RUN mkdir /app/tmp
 FROM scratch
 
 ENTRYPOINT ["/repo-manager"]
+
+# install git # https://git-scm.com/download/linux
+RUN apt-get update && apt-get install -y git
+RUN git --version
 
 COPY --from=builder /app/dist/repo-manager-static /repo-manager
 COPY --from=builder /app/tmp /tmp
