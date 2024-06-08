@@ -6,7 +6,7 @@
   "tag-separator": "@",
   "include-v-in-tag": true,
   "packages": {
-    "action.yml": {}
+    ".": {}
   },
   "plugins": []
 }
