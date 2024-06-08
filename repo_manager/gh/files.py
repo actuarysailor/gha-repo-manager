@@ -34,10 +34,10 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     # if no files are provided, return True
     if files is None:
         return True, None
-    
+
     inputs = get_inputs()
     target_branch = files[0].target_branch if files[0].target_branch is not None else repo.default_branch
-    
+
     if inputs["repo"] == "self":
         repo_dir = Repo(".")
     else:
@@ -88,7 +88,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
             elif file_config.remote_src:
                 shutil.copyfile(oldPath, newPath)
                 actions_toolkit.info("Copied {str(file_config.src_file)} to {str(file_config.dest_file)}")
-    
+
     # we commit these changes so that deleted files and renamed files are accounted for
     global commitCleanup
     repo_dir.git.add("-A")
@@ -103,7 +103,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
 
     if len(missing) > 0:
         diffs["missing"] = list(missing)
-    
+
     # now we handle file content changes
     for file_config in files:
         if not file_config.exists or file_config.remote_src:
@@ -132,7 +132,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
                 changed.add(str(Path(file)))
 
     changed.update(moved)
-        
+
     if len(changed) > 0:
         diffs["diff"] = list(changed)
 
@@ -143,14 +143,16 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     return True, None
 
 
-def update_files(repo: Repository, files: list[FileConfig], diffs: tuple[dict[str, list[str] | dict[str, Any]]]) -> set[str]:
+def update_files(
+    repo: Repository, files: list[FileConfig], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
+) -> set[str]:
     """Update files in a repository"""
     errors = set[str]()
     if diffs is None:
         return errors
     inputs = get_inputs()
     target_branch = files[0].target_branch if files[0].target_branch is not None else repo.default_branch
-    
+
     if inputs["repo"] == "self":
         repo_dir = Repo.init(".")
     else:
@@ -163,7 +165,7 @@ def update_files(repo: Repository, files: list[FileConfig], diffs: tuple[dict[st
 
     if repo_dir.active_branch.name != target_branch:
         raise ValueError("Target branch does not match active branch")
-    
+
     origin = repo_dir.remote()
     pushInfo = origin.push()
 
