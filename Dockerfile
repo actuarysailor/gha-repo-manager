@@ -32,3 +32,7 @@ ENTRYPOINT ["/repo-manager"]
 COPY --from=builder /app/dist/repo-manager-static /repo-manager
 COPY --from=builder /app/tmp /tmp
 COPY --from=builder /usr/bin/git /usr/bin/git
+
+ENV PATH "$PATH:/bin"
+# check the git version
+RUN git --version
