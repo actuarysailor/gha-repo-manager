@@ -35,4 +35,4 @@ COPY --from=builder /usr/bin/git /usr/bin/git
 
 ENV PATH "$PATH:/bin"
 # check the git version
-RUN git --version
+RUN ls -l /usr/bin/git
