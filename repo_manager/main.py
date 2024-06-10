@@ -3,7 +3,6 @@ import json
 import pandas as pd
 
 from actions_toolkit import core as actions_toolkit
-from actions_toolkit.file_command import issue_file_command
 
 from pydantic import ValidationError
 
@@ -93,7 +92,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            issue_file_command("SUMMARY", __markdown_summary__(diffs))
+            os.environ["GITHUB_SUMMARY"] = __markdown_summary__(diffs)
             actions_toolkit.set_output("result", "Check failed, diff detected")
             actions_toolkit.set_failed("Diff detected")
         actions_toolkit.set_output("result", "Check passed")
