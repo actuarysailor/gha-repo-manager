@@ -13,7 +13,7 @@ from repo_manager.utils import get_inputs
 from repo_manager.gh.branch_protections import check_repo_branch_protections
 from repo_manager.gh.branch_protections import update_branch_protection
 from repo_manager.gh.files import check_files, update_files
-from repo_manager.gh.labels import check_repo_labels, update_label
+from repo_manager.gh.labels import check_repo_labels, update_labels
 from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.collaborators import check_collaborators, update_collaborators
@@ -81,9 +81,9 @@ def main():  # noqa: C901
     if inputs["action"] == "apply":
         errors = []
         for update, to_update in {
+            update_settings: ("settings", config.settings, diffs.get("settings", None)),
+            update_labels: ("labels", config.labels, diffs.get("labels", None)),
             # TODO: Implement these functions to reduce length and complexity of code
-            # update_settings: ("settings", config.settings, diffs.get("settings", None)),
-            # check_repo_labels: ("labels", config.labels, diffs.get("labels", None)),
             # check_repo_branch_protections: (
             #     "branch_protections",
             #     config.branch_protections,
@@ -106,39 +106,7 @@ def main():  # noqa: C901
                 except Exception as exc:
                     errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
 
-        labels_diff = diffs.get("labels", None)
-        if labels_diff is not None:
-            for label_name in labels_diff["extra"]:
-                try:
-                    this_label = inputs["repo_object"].get_label(label_name)
-                    this_label.delete()
-                    actions_toolkit.info(f"Deleted {label_name}")
-                except Exception as exc:  # this should be tighter
-                    errors.append({"type": "label-delete", "name": label_name, "error": f"{exc}"})
-            for label_name in labels_diff["missing"]:
-                label_object = config.labels_dict[label_name]
-                if label_object.name != label_object.expected_name:
-                    update_label(inputs["repo_object"], label_object)
-                    actions_toolkit.info(f"Renamed {label_object.name} to {label_object.expected_name}")
-                else:
-                    try:
-                        inputs["repo_object"].create_label(
-                            label_object.expected_name,
-                            label_object.color_no_hash,
-                            label_object.description,
-                        )
-                        actions_toolkit.info(f"Created label {label_name}")
-                    except Exception as exc:  # this should be tighter
-                        errors.append(
-                            {
-                                "type": "label-create",
-                                "name": label_name,
-                                "error": f"{exc}",
-                            }
-                        )
-            for label_name in labels_diff["diffs"].keys():
-                update_label(inputs["repo_object"], config.labels_dict[label_name])
-                actions_toolkit.info(f"Updated label {label_name}")
+        
 
         bp_diff = diffs.get("branch_protections", None)
         if bp_diff is not None:
@@ -184,13 +152,6 @@ def main():  # noqa: C901
                         )
                 except Exception as exc:  # this should be tighter
                     errors.append({"type": "bp-update", "name": branch_name, "error": f"{exc}"})
-
-        if config.settings is not None:
-            try:
-                update_settings(inputs["repo_object"], config.settings)
-                actions_toolkit.info("Synced Settings")
-            except Exception as exc:
-                errors.append({"type": "settings-update", "error": f"{exc}"})
 
         if len(errors) > 0:
             actions_toolkit.error(json.dumps(errors))

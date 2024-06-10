@@ -1,16 +1,10 @@
 from copy import deepcopy
 from typing import Any
 
+from actions_toolkit import core as actions_toolkit
 from github.Repository import Repository
 
 from repo_manager.schemas.label import Label
-
-
-def update_label(repo: Repository, label: Label):
-    this_label = repo.get_label(label.name)
-    color = this_label.color if label.color_no_hash is None else label.color_no_hash
-    description = this_label.description if label.description is None else label.description
-    this_label.edit(label.expected_name, color, description)
 
 
 def check_repo_labels(
@@ -24,35 +18,101 @@ def check_repo_labels(
 
     """
     repo_labels = {label.name: label for label in repo.get_labels()}
+    config_label_dict = {label.expected_name: label for label in config_labels}
+    config_label_dict.update({label.name: label for label in config_labels if label.expected_name != label.name})
 
-    missing_labels = []
-    extra_labels = []
-    diff_labels = {}
+    diffs = {}
 
-    for config_label in config_labels:
-        repo_label = repo_labels.get(config_label.expected_name, None)
-        if repo_label is None and config_label.exists:
-            missing_labels.append(config_label.expected_name)
-            continue
-        if not config_label.exists and repo_label is not None:
-            extra_labels.append(config_label.expected_name)
-            continue
+    missing = list(repo_labels.keys() - {label.expected_name for label in filter(lambda label: label.exists, config_labels)})
+    missing = list(missing - {label.name for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)})
+    if len(missing) > 0:
+        diffs["missing"] = missing
 
-        diffs = []
-        if config_label.color is not None:
-            if config_label.color_no_hash.lower() != repo_label.color.lower():
-                diffs.append(f"Expected color '{config_label.color_no_hash}'. Repo has color '{repo_label.color}'")
+    extra = list(repo_labels.keys() - {label.expected_name for label in filter(lambda label: not label.exists, config_labels)})
+    if len(extra) > 0:
+        diffs["extra"] = extra
 
-        if config_label.description is not None:
-            if config_label.description != repo_label.description:
-                diffs.append(
-                    f"Expected description '{config_label.description}'. Repo description '{repo_label.description}"
-                )
-        if len(diffs) > 0:
-            diff_labels[config_label.expected_name] = deepcopy(diffs)
+    diff = {}
+    labels_to_check = set(repo_labels.keys()).intersection({label.expected_name for label in filter(lambda label: label.exists, config_labels)})
+    labels_to_check.update(set(repo_labels.keys()).intersection({label.name for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)}))
+    for label_name in labels_to_check:
+        if config_label_dict[label_name].expected_name != label_name:
+            diff[label_name] = {
+                "name": f"Expected {config_label_dict[label_name].expected_name} found {label_name}"
+            }
+        if config_label_dict[label_name].color is not None:
+            if config_label_dict[label_name].color_no_hash.lower() != repo_labels[label_name].color.lower():
+                diff[label_name] = {
+                    "color": f"Expected {config_label_dict[label_name].color} found {repo_labels[label_name].color}"
+                }
+        if config_label_dict[label_name].description is not None:
+            if config_label_dict[label_name].description != repo_labels[label_name].description:
+                diff[label_name] = {
+                    "description": f"Expected {config_label_dict[label_name].description} found {repo_labels[label_name].description}"
+                }
+        
+    if len(diff) > 0:
+        diffs["diffs"] = diff
 
-    return len(missing_labels) == 0 & len(extra_labels) == 0 & len(diff_labels.keys()) == 0, {
-        "missing": missing_labels,
-        "extra": extra_labels,
-        "diffs": diff_labels,
-    }
+    if len(diffs) > 0:
+        return False, diffs
+    
+    return True, None
+
+
+def update_labels(repo: Repository, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]) -> set[str]:
+    """Updates a repo's labels to match the expected settings
+
+    Args:
+        repo (Repository): [description]
+        labels (List[Label]): [description]
+
+    Returns:
+        set[str]: [description]
+    """
+    errors = []
+    label_dict = {label.name: label for label in labels}
+    for issue_type in diffs.keys():
+        label_names = diffs[issue_type] if issue_type != "diffs" else diffs[issue_type].keys()
+        for label_name in label_names:
+            if issue_type == "extra":
+                try:
+                    this_label = repo.get_label(label_name)
+                    this_label.delete()
+                    actions_toolkit.info(f"Deleted {label_name}")
+                except Exception as exc:  # this should be tighter
+                    errors.append({"type": "label-delete", "name": label_name, "error": f"{exc}"})
+            elif issue_type == "missing":
+                try:
+                    repo.create_label(
+                        label_dict[label_name].expected_name,
+                        label_dict[label_name].color_no_hash,
+                        label_dict[label_name].description,
+                    )
+                    actions_toolkit.info(f"Created label {label_name}")
+                except Exception as exc:  # this should be tighter
+                    errors.append(
+                        {
+                            "type": "label-create",
+                            "name": label_name,
+                            "error": f"{exc}",
+                        }
+                    )
+            elif issue_type == "diffs":
+                try:
+                    this_label = repo.get_label(label_name)
+                    this_label.edit(
+                        label_dict[label_name].expected_name,
+                        this_label.color if label_dict[label_name].color_no_hash is None else label_dict[label_name].color_no_hash,
+                        this_label.description if label_dict[label_name].description is None else label_dict[label_name].description
+                    )
+                    actions_toolkit.info(f"Updated label {label_name}")
+                except Exception as exc:  # this should be tighter
+                    errors.append(
+                        {
+                            "type": "label-update",
+                            "name": label_name,
+                            "error": f"{exc}",
+                        }
+                    )
+    return errors

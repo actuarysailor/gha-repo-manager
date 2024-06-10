@@ -8,39 +8,6 @@ from repo_manager.schemas.settings import Settings
 from repo_manager.utils import attr_to_kwarg
 
 
-def update_settings(repo: Repository, settings: Settings):
-    kwargs = {"name": None}
-
-    attr_to_kwarg("description", settings, kwargs)
-    attr_to_kwarg("homepage", settings, kwargs)
-    attr_to_kwarg("private", settings, kwargs)
-    attr_to_kwarg("has_issues", settings, kwargs)
-    attr_to_kwarg("has_projects", settings, kwargs)
-    attr_to_kwarg("has_wiki", settings, kwargs)
-    # attr_to_kwarg("has_downloads", settings, kwargs) -- this was removed from the schema
-    attr_to_kwarg("default_branch", settings, kwargs)
-    attr_to_kwarg("allow_squash_merge", settings, kwargs)
-    attr_to_kwarg("allow_merge_commit", settings, kwargs)
-    attr_to_kwarg("allow_rebase_merge", settings, kwargs)
-    attr_to_kwarg("delete_branch_on_merge", settings, kwargs)
-    repo.edit(**kwargs)
-
-    if settings.enable_automated_security_fixes is not None:
-        if settings.enable_automated_security_fixes:
-            repo.enable_automated_security_fixes()
-        else:
-            repo.disable_automated_security_fixes()
-
-    if settings.enable_vulnerability_alerts is not None:
-        if settings.enable_vulnerability_alerts:
-            repo.enable_vulnerability_alert()
-        else:
-            repo.disable_vulnerability_alert()
-
-    if settings.topics is not None:
-        repo.replace_topics(settings.topics)
-
-
 def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, list[str | None]]:
     """Checks a repo's settings vs our expected settings
 
@@ -88,7 +55,44 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
         if repo_value != settings_value:
             drift.append(f"{setting_name} -- Expected: '{settings_value}' Found: '{repo_value}'")
             checked &= False if (settings_value is not None) else True
-    return checked, drift
+    
+    if len(drift) > 0:
+        return checked, drift
+    
+    return checked, None
+
+
+def update_settings(repo: Repository, settings: Settings):
+    kwargs = {"name": None}
+
+    attr_to_kwarg("description", settings, kwargs)
+    attr_to_kwarg("homepage", settings, kwargs)
+    attr_to_kwarg("private", settings, kwargs)
+    attr_to_kwarg("has_issues", settings, kwargs)
+    attr_to_kwarg("has_projects", settings, kwargs)
+    attr_to_kwarg("has_wiki", settings, kwargs)
+    # attr_to_kwarg("has_downloads", settings, kwargs) -- this was removed from the schema
+    attr_to_kwarg("default_branch", settings, kwargs)
+    attr_to_kwarg("allow_squash_merge", settings, kwargs)
+    attr_to_kwarg("allow_merge_commit", settings, kwargs)
+    attr_to_kwarg("allow_rebase_merge", settings, kwargs)
+    attr_to_kwarg("delete_branch_on_merge", settings, kwargs)
+    repo.edit(**kwargs)
+
+    if settings.enable_automated_security_fixes is not None:
+        if settings.enable_automated_security_fixes:
+            repo.enable_automated_security_fixes()
+        else:
+            repo.disable_automated_security_fixes()
+
+    if settings.enable_vulnerability_alerts is not None:
+        if settings.enable_vulnerability_alerts:
+            repo.enable_vulnerability_alert()
+        else:
+            repo.disable_vulnerability_alert()
+
+    if settings.topics is not None:
+        repo.replace_topics(settings.topics)
 
 
 def update(repo: Repository, setting_name: str, new_value: Any):
