@@ -11,3 +11,5 @@ coverage.xml
 __pycache__/
 .idea
 .vscode
+.env
+test.py
