@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.2...v2.0.3) (2024-06-10)
+
+
+### Bug Fixes
+
+* Standardize checks and updates ([#50](https://github.com/actuarysailor/gha-repo-manager/issues/50)) ([0dbcc69](https://github.com/actuarysailor/gha-repo-manager/commit/0dbcc69301ea1e9abbcfa97feb3e029fab52500f))
+
 ## [2.0.2](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.1...v2.0.2) (2024-06-10)
 
 
