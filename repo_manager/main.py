@@ -7,11 +7,9 @@ from pydantic import ValidationError
 
 from yaml import YAMLError
 
-from repo_manager.gh import GithubException
 from repo_manager.schemas import load_config
 from repo_manager.utils import get_inputs
-from repo_manager.gh.branch_protections import check_repo_branch_protections
-from repo_manager.gh.branch_protections import __update_branch_protection__
+from repo_manager.gh.branch_protections import check_repo_branch_protections, update_branch_protections
 from repo_manager.gh.files import check_files, update_files
 from repo_manager.gh.labels import check_repo_labels, update_labels
 from repo_manager.gh.secrets import check_repo_secrets, update_secrets
@@ -84,7 +82,7 @@ def main():  # noqa: C901
             update_settings: ("settings", config.settings, diffs.get("settings", None)),
             update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
             update_labels: ("labels", config.labels, diffs.get("labels", None)),
-            check_repo_branch_protections: (
+            update_branch_protections: (
                 "branch_protections",
                 config.branch_protections,
                 diffs.get("branch_protections", None),

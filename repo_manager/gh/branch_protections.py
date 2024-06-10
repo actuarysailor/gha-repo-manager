@@ -478,13 +478,14 @@ def check_repo_branch_protections(
 
     if len(diffs) > 0:
         return False, diffs
-    
+
     return True, None
+
 
 def update_branch_protections(
     repo: Repository,
     config_branch_protections: list[BranchProtection],
-    diffs: tuple[dict[str, list[str] | dict[str, Any]]]
+    diffs: tuple[dict[str, list[str] | dict[str, Any]]],
 ) -> set[str]:
     """Updates a repo's branch protection policies to match the expected settings
 

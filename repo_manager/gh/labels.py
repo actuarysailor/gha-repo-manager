@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import Any
 
 from actions_toolkit import core as actions_toolkit
@@ -45,7 +44,7 @@ def check_repo_labels(
     labels_to_check.update(
         set(repo_labels.keys()).intersection(
             {
-                label.name 
+                label.name
                 for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)
             }
         )
@@ -73,7 +72,9 @@ def check_repo_labels(
     return True, None
 
 
-def update_labels(repo: Repository, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]) -> set[str]:
+def update_labels(
+    repo: Repository, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
+) -> set[str]:
     """Updates a repo's labels to match the expected settings
 
     Args:
