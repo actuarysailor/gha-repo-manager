@@ -1,7 +1,9 @@
-import json
 import sys
+import json
+import pandas as pd
 
 from actions_toolkit import core as actions_toolkit
+from actions_toolkit.file_command import issue_file_command
 
 from pydantic import ValidationError
 
@@ -17,6 +19,27 @@ from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.collaborators import check_collaborators, update_collaborators
 from repo_manager.gh.environments import check_repo_environments, update_environments
 from repo_manager.gh.settings import check_repo_settings, update_settings
+
+
+def __markdown_summary__( diffs: dict[str, list[str] | dict[str, str]], heading: str = "#") -> str:
+    """Generate a markdown summary of the diffs"""
+    summary = ""
+    for category, items in diffs.items():
+        summary += f"{heading} {category.capitalize()}\n"
+        if isinstance(items, list):
+            summary += "\n".join([f"- {item}" for item in items])
+        elif isinstance(items, dict):
+            for item, diff in items.items():
+                if item in ("missing", "extra", "diff"):
+                    summary += f"{heading}# {item.capitalize()}\n"
+                    if item == "diff":
+                        summary += pd.DataFrame(diff).to_markdown()
+                    else:
+                        summary += "\n".join([f"- {item}" for item in diff])
+                else:
+                    summary += __markdown_summary__(diff, heading + "#")
+        summary += "\n"
+    return summary
 
 
 def main():  # noqa: C901
@@ -70,7 +93,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            actions_toolkit.info(json.dumps(diffs))
+            issue_file_command("SUMMARY", __markdown_summary__(diffs))
             actions_toolkit.set_output("result", "Check failed, diff detected")
             actions_toolkit.set_failed("Diff detected")
         actions_toolkit.set_output("result", "Check passed")
