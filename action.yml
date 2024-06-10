@@ -13,7 +13,7 @@ inputs:
     default: "self"
   github_server_url:
     description: Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB_SERVER_URL if left at default
-    default: ${{ github.server_url }}
+    default: "none"
   token:
     description: What github token to use with this action.
     required: true
