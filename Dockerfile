@@ -33,3 +33,5 @@ COPY --from=builder /app/dist/repo-manager-static /repo-manager
 COPY --from=builder /app/tmp /tmp
 
 RUN git --version
+RUN git config --global user.name "Repo Manager Bot"
+RUN git config --global user.email "repo-mgr@bots.noreply.github.com"

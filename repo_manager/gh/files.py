@@ -19,11 +19,13 @@ commitCleanup: Commit = None
 
 def __clone_repo__(repo: Repository, branch: str) -> Repo:
     """Clone a repository to the local filesystem"""
+
     inputs = get_inputs()
     repo_dir = Path(inputs["workspace_path"]) / repo.name
     if repo_dir.is_dir():
         raise FileExistsError(f"Directory {repo_dir} already exists")
-    cloned_repo = Repo.clone_from(repo.clone_url, str(repo_dir))
+    actions_toolkit.info(f"Cloning {repo.full_name} to {repo_dir}")
+    cloned_repo = Repo.clone_from(repo.clone_url.replace("https://", f"https://{inputs['token']}@"), str(repo_dir))
     cloned_repo.git.checkout(branch)
     return cloned_repo
 
@@ -59,13 +61,14 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
         # prior method used source if move was true, dest if not
         if not file_config.exists:
             fileToDelete = oldPath if file_config.move else newPath
+            fileToDeleteRelativePath = fileToDelete.relative_to(repo_dir.working_tree_dir)
             if fileToDelete.exists():
                 os.remove(fileToDelete)
-                extra.add(str(fileToDelete))
-                actions_toolkit.info(f"Deleted {str(fileToDelete.relative_to(repo_dir.working_tree_dir))}")
+                extra.add(str(fileToDeleteRelativePath))
+                actions_toolkit.info(f"Deleted {str(fileToDelete)}")
             else:
                 actions_toolkit.warning(
-                    f"{str(fileToDelete)} does not exist in {target_branch} branch."
+                    f"{str(fileToDeleteRelativePath)} does not exist in {target_branch} branch."
                     + "Because this is a delete, not failing run"
                 )
         else:
@@ -84,10 +87,10 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
                 else:
                     os.rename(oldPath, newPath)
                     moved += str(file_config.src_file)
-                    actions_toolkit.info(f"Moved {str(file_config.src_file)} to {str(file_config.dest_file)}")
+                    actions_toolkit.info(f"Moved {str(oldPath)} to {str(newPath)}")
             elif file_config.remote_src:
                 shutil.copyfile(oldPath, newPath)
-                actions_toolkit.info("Copied {str(file_config.src_file)} to {str(file_config.dest_file)}")
+                actions_toolkit.info(f"Copied {str(oldPath)} to {str(newPath)}")
 
     # we commit these changes so that deleted files and renamed files are accounted for
     global commitCleanup
@@ -114,7 +117,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
             if newPath.exists():
                 os.remove(newPath)  # Delete the file
             shutil.copyfile(srcPath, destPath)
-            actions_toolkit.info(f"Copied {str(file_config.src_file)} to {str(file_config.dest_file)}")
+            actions_toolkit.info(f"Copied {str(srcPath)} to {str(destPath)}")
 
     # we commit the file updates (e.g. content changes)
     global commitChanges
