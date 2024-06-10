@@ -25,7 +25,7 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     if repo_dir.is_dir():
         raise FileExistsError(f"Directory {repo_dir} already exists")
     actions_toolkit.info(f"Cloning {repo.full_name} to {repo_dir}")
-    cloned_repo = Repo.clone_from(repo.clone_url.replace("https://",f"https://{inputs["token"]}@"), str(repo_dir))
+    cloned_repo = Repo.clone_from(repo.clone_url.replace("https://", f"https://{inputs["token"]}@"), str(repo_dir))
     cloned_repo.git.checkout(branch)
     return cloned_repo
 
