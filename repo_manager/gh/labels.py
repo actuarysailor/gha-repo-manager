@@ -23,23 +23,40 @@ def check_repo_labels(
 
     diffs = {}
 
-    missing = list(repo_labels.keys() - {label.expected_name for label in filter(lambda label: label.exists, config_labels)})
-    missing = list(missing - {label.name for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)})
+    missing = list(
+        repo_labels.keys() - {label.expected_name for label in filter(lambda label: label.exists, config_labels)}
+    )
+    missing = list(
+        missing 
+        - {
+            label.name 
+            for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)
+        }
+    )
     if len(missing) > 0:
         diffs["missing"] = missing
 
-    extra = list(repo_labels.keys() - {label.expected_name for label in filter(lambda label: not label.exists, config_labels)})
+    extra = list(
+        repo_labels.keys() - {label.expected_name for label in filter(lambda label: not label.exists, config_labels)}
+    )
     if len(extra) > 0:
         diffs["extra"] = extra
 
     diff = {}
-    labels_to_check = set(repo_labels.keys()).intersection({label.expected_name for label in filter(lambda label: label.exists, config_labels)})
-    labels_to_check.update(set(repo_labels.keys()).intersection({label.name for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)}))
+    labels_to_check = set(repo_labels.keys()).intersection(
+        {label.expected_name for label in filter(lambda label: label.exists, config_labels)}
+    )
+    labels_to_check.update(
+        set(repo_labels.keys()).intersection(
+            {
+                label.name 
+                for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)
+            }
+        )
+    )
     for label_name in labels_to_check:
         if config_label_dict[label_name].expected_name != label_name:
-            diff[label_name] = {
-                "name": f"Expected {config_label_dict[label_name].expected_name} found {label_name}"
-            }
+            diff[label_name] = {"name": f"Expected {config_label_dict[label_name].expected_name} found {label_name}"}
         if config_label_dict[label_name].color is not None:
             if config_label_dict[label_name].color_no_hash.lower() != repo_labels[label_name].color.lower():
                 diff[label_name] = {
@@ -50,13 +67,13 @@ def check_repo_labels(
                 diff[label_name] = {
                     "description": f"Expected {config_label_dict[label_name].description} found {repo_labels[label_name].description}"
                 }
-        
+
     if len(diff) > 0:
         diffs["diffs"] = diff
 
     if len(diffs) > 0:
         return False, diffs
-    
+
     return True, None
 
 
@@ -103,8 +120,12 @@ def update_labels(repo: Repository, labels: list[Label], diffs: tuple[dict[str, 
                     this_label = repo.get_label(label_name)
                     this_label.edit(
                         label_dict[label_name].expected_name,
-                        this_label.color if label_dict[label_name].color_no_hash is None else label_dict[label_name].color_no_hash,
-                        this_label.description if label_dict[label_name].description is None else label_dict[label_name].description
+                        this_label.color
+                        if label_dict[label_name].color_no_hash is None
+                        else label_dict[label_name].color_no_hash,
+                        this_label.description
+                        if label_dict[label_name].description is None
+                        else label_dict[label_name].description
                     )
                     actions_toolkit.info(f"Updated label {label_name}")
                 except Exception as exc:  # this should be tighter
