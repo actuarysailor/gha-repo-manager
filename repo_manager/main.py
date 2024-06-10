@@ -21,7 +21,7 @@ from repo_manager.gh.environments import check_repo_environments, update_environ
 from repo_manager.gh.settings import check_repo_settings, update_settings
 
 
-def __markdown_summary__( diffs: dict[str, list[str] | dict[str, str]], heading: str = "#") -> str:
+def __markdown_summary__(diffs: dict[str, list[str] | dict[str, str]], heading: str = "#") -> str:
     """Generate a markdown summary of the diffs"""
     summary = ""
     for category, items in diffs.items():

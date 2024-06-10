@@ -1,6 +1,5 @@
 import os
 import shutil
-import json
 import pandas as pd
 
 from pathlib import Path
@@ -195,13 +194,13 @@ def update_files(
         body = "# File updates:\n"
         if diffs.get("extra", None) is not None:
             body += "## Deleted:"
-            body += "\n".join(["- " + item for item in diffs['extra']])
+            body += "\n".join(["- " + item for item in diffs["extra"]])
         if diffs.get("missing", None) is not None:
             body += "## Created:\n"
-            body += "\n -".join(["- " + item for item in diffs['missing']])
+            body += "\n -".join(["- " + item for item in diffs["missing"]])
         if diffs.get("diff", None) is not None:
             body += "## Updated:\n"
-            body += pd.DataFrame(diffs['diff']).to_markdown()
+            body += pd.DataFrame(diffs["diff"]).to_markdown()
         repo.create_pull(title="chore(repo_manager): File updates", body=body, head="gov/updates", base=target_branch)
         actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")
 
