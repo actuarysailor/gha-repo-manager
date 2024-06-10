@@ -1,11 +1,14 @@
 import os
 import shutil
+import pandas as pd
+
 from pathlib import Path
 from typing import Any
 
 from git import Repo, Commit
 
 from actions_toolkit import core as actions_toolkit
+
 from github.GithubException import GithubException
 from github.Repository import Repository
 
@@ -45,6 +48,10 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     else:
         # clone the repo
         repo_dir = __clone_repo__(repo, target_branch)
+
+    # Create and checkout a new branch
+    new_branch = repo_dir.create_head("gov/updates")
+    new_branch.checkout()
 
     diffs = {}
     extra = set[str]()
@@ -166,11 +173,11 @@ def update_files(
             raise NotADirectoryError(f"{repoPath} is not a directory!")
         repo_dir = Repo(repoPath)
 
-    if repo_dir.active_branch.name != target_branch:
-        raise ValueError("Target branch does not match active branch")
+    # if repo_dir.active_branch.name != target_branch:
+    #     raise ValueError("Target branch does not match active branch")
 
     origin = repo_dir.remote()
-    pushInfo = origin.push()
+    pushInfo = origin.push(repo_dir.active_branch.name)
 
     if pushInfo.error is not None:
         for info in pushInfo:
@@ -182,5 +189,19 @@ def update_files(
                         "error": f"{GithubException(info.ERROR, message = info.summary)}",
                     }
                 )
+    else:
+        actions_toolkit.info(f"Pushed changes to remote {repo.full_name} branch {repo_dir.active_branch.name}")
+        body = "# File updates:\n"
+        if diffs.get("extra", None) is not None:
+            body += "## Deleted:"
+            body += "\n".join(["- " + item for item in diffs["extra"]])
+        if diffs.get("missing", None) is not None:
+            body += "## Created:\n"
+            body += "\n -".join(["- " + item for item in diffs["missing"]])
+        if diffs.get("diff", None) is not None:
+            body += "## Updated:\n"
+            body += pd.DataFrame(diffs["diff"]).to_markdown()
+        repo.create_pull(title="chore(repo_manager): File updates", body=body, head="gov/updates", base=target_branch)
+        actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")
 
     return errors
