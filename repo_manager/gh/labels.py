@@ -25,14 +25,24 @@ def check_repo_labels(
     missing = list(
         (
             {label.expected_name for label in filter(lambda label: label.exists, config_labels)}
-            | {label.name for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)}
-        ) -repo_labels.keys()
+            | {
+                label.name
+                for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)
+            }
+        )
+        - repo_labels.keys()
     )
     if len(missing) > 0:
         diffs["missing"] = missing
 
     extra = list(
-        repo_labels.keys() - {label.expected_name for label in filter(lambda label: not label.exists, config_labels)}
+        set(repo_labels.keys()).intersection(
+            {label.expected_name for label in filter(lambda label: not label.exists, config_labels)}
+            | {
+                label.name
+                for label in filter(lambda label: not label.exists and label.expected_name != label.name, config_labels)
+            }
+        )
     )
     if len(extra) > 0:
         diffs["extra"] = extra
@@ -122,7 +132,7 @@ def update_labels(
                         else label_dict[label_name].color_no_hash,
                         this_label.description
                         if label_dict[label_name].description is None
-                        else label_dict[label_name].description
+                        else label_dict[label_name].description,
                     )
                     actions_toolkit.info(f"Updated label {label_name}")
                 except Exception as exc:  # this should be tighter
