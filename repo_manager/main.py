@@ -7,13 +7,11 @@ from pydantic import ValidationError
 
 from yaml import YAMLError
 
-from repo_manager.gh import GithubException
 from repo_manager.schemas import load_config
 from repo_manager.utils import get_inputs
-from repo_manager.gh.branch_protections import check_repo_branch_protections
-from repo_manager.gh.branch_protections import update_branch_protection
+from repo_manager.gh.branch_protections import check_repo_branch_protections, update_branch_protections
 from repo_manager.gh.files import check_files, update_files
-from repo_manager.gh.labels import check_repo_labels, update_label
+from repo_manager.gh.labels import check_repo_labels, update_labels
 from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.collaborators import check_collaborators, update_collaborators
@@ -48,17 +46,17 @@ def main():  # noqa: C901
     check_result = True
     diffs = {}
     for check, to_check in {
-        check_files: ("files", config.files),
         check_repo_settings: ("settings", config.settings),
-        check_repo_secrets: ("secrets", config.secrets),
-        check_variables: ("variables", config.variables),
+        check_collaborators: ("collaborators", config.collaborators),
         check_repo_labels: ("labels", config.labels),
         check_repo_branch_protections: (
             "branch_protections",
             config.branch_protections,
         ),
+        check_repo_secrets: ("secrets", config.secrets),
+        check_variables: ("variables", config.variables),
         check_repo_environments: ("environments", config.environments),
-        check_collaborators: ("collaborators", config.collaborators),
+        check_files: ("files", config.files),
     }.items():
         check_name, to_check = to_check
         if to_check is not None:
@@ -81,18 +79,17 @@ def main():  # noqa: C901
     if inputs["action"] == "apply":
         errors = []
         for update, to_update in {
-            # TODO: Implement these functions to reduce length and complexity of code
-            # update_settings: ("settings", config.settings, diffs.get("settings", None)),
-            # check_repo_labels: ("labels", config.labels, diffs.get("labels", None)),
-            # check_repo_branch_protections: (
-            #     "branch_protections",
-            #     config.branch_protections,
-            #     diffs.get("branch_protections", None),
-            # ),
+            update_settings: ("settings", config.settings, diffs.get("settings", None)),
+            update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
+            update_labels: ("labels", config.labels, diffs.get("labels", None)),
+            update_branch_protections: (
+                "branch_protections",
+                config.branch_protections,
+                diffs.get("branch_protections", None),
+            ),
             update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
             update_variables: ("variables", config.variables, diffs.get("variables", None)),
             update_environments: ("environments", config.environments, diffs.get("environments", None)),
-            update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
             update_files: ("files", config.files, diffs.get("files", None)),
         }.items():
             update_name, to_update, categorical_diffs = to_update
@@ -105,92 +102,6 @@ def main():  # noqa: C901
                         actions_toolkit.info(f"Synced {update_name}")
                 except Exception as exc:
                     errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
-
-        labels_diff = diffs.get("labels", None)
-        if labels_diff is not None:
-            for label_name in labels_diff["extra"]:
-                try:
-                    this_label = inputs["repo_object"].get_label(label_name)
-                    this_label.delete()
-                    actions_toolkit.info(f"Deleted {label_name}")
-                except Exception as exc:  # this should be tighter
-                    errors.append({"type": "label-delete", "name": label_name, "error": f"{exc}"})
-            for label_name in labels_diff["missing"]:
-                label_object = config.labels_dict[label_name]
-                if label_object.name != label_object.expected_name:
-                    update_label(inputs["repo_object"], label_object)
-                    actions_toolkit.info(f"Renamed {label_object.name} to {label_object.expected_name}")
-                else:
-                    try:
-                        inputs["repo_object"].create_label(
-                            label_object.expected_name,
-                            label_object.color_no_hash,
-                            label_object.description,
-                        )
-                        actions_toolkit.info(f"Created label {label_name}")
-                    except Exception as exc:  # this should be tighter
-                        errors.append(
-                            {
-                                "type": "label-create",
-                                "name": label_name,
-                                "error": f"{exc}",
-                            }
-                        )
-            for label_name in labels_diff["diffs"].keys():
-                update_label(inputs["repo_object"], config.labels_dict[label_name])
-                actions_toolkit.info(f"Updated label {label_name}")
-
-        bp_diff = diffs.get("branch_protections", None)
-        if bp_diff is not None:
-            # delete branch protection
-            for branch_name in bp_diff["extra"]:
-                try:
-                    this_branch = inputs["repo_object"].get_branch(branch_name)
-                    this_branch.remove_protection()
-                except GithubException as ghexc:
-                    if ghexc.status != 404:
-                        # a 404 on a delete is fine, means it isnt protected
-                        errors.append(
-                            {
-                                "type": "bp-delete",
-                                "name": branch_name,
-                                "error": f"{ghexc}",
-                            }
-                        )
-                except Exception as exc:  # this should be tighter
-                    errors.append({"type": "bp-delete", "name": branch_name, "error": f"{exc}"})
-
-            # update or create branch protection
-            for branch_name in bp_diff["missing"] + list(bp_diff["diffs"].keys()):
-                try:
-                    bp_config = config.branch_protections_dict[branch_name]
-                    if bp_config.protection is not None:
-                        update_branch_protection(inputs["repo_object"], branch_name, bp_config.protection)
-                        actions_toolkit.info(f"Updated branch proection for {branch_name}")
-                    else:
-                        actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
-                except GithubException as ghexc:
-                    if ghexc.status == 404:
-                        actions_toolkit.info(
-                            f"Can't Update branch protection for {branch_name} because the branch does not exist"
-                        )
-                    else:
-                        errors.append(
-                            {
-                                "type": "bp-update",
-                                "name": branch_name,
-                                "error": f"{ghexc}",
-                            }
-                        )
-                except Exception as exc:  # this should be tighter
-                    errors.append({"type": "bp-update", "name": branch_name, "error": f"{exc}"})
-
-        if config.settings is not None:
-            try:
-                update_settings(inputs["repo_object"], config.settings)
-                actions_toolkit.info("Synced Settings")
-            except Exception as exc:
-                errors.append({"type": "settings-update", "error": f"{exc}"})
 
         if len(errors) > 0:
             actions_toolkit.error(json.dumps(errors))

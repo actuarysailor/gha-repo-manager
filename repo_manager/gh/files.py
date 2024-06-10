@@ -150,7 +150,7 @@ def update_files(
     repo: Repository, files: list[FileConfig], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
 ) -> set[str]:
     """Update files in a repository"""
-    errors = set[str]()
+    errors = []
     if diffs is None:
         return errors
     inputs = get_inputs()

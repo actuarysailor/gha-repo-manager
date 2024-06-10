@@ -14,14 +14,14 @@ from repo_manager.utils import attr_to_kwarg
 from repo_manager.utils import objary_to_list
 
 
-def diff_option(key: str, expected: Any, repo_value: Any) -> str | None:
+def __diff_option__(key: str, expected: Any, repo_value: Any) -> str | None:
     if expected is not None:
         if expected != repo_value:
             return f"{key} -- Expected: {expected} Found: {repo_value}"
     return None
 
 
-def update_branch_protection(repo: Repository, branch: str, protection_config: ProtectionOptions):  # noqa: C901
+def __update_branch_protection__(repo: Repository, branch: str, protection_config: ProtectionOptions):  # noqa: C901
     # Copied from https://github.com/PyGithub/PyGithub/blob/001970d4a828017f704f6744a5775b4207a6523c/github/Branch.py#L112
     # Until pygithub supports this, we need to do it manually
     def edit_protection(  # nosec
@@ -319,7 +319,7 @@ def check_repo_branch_protections(
             continue
         if config_bp.protection.pr_options is not None:
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "required_approving_review_count",
                     config_bp.protection.pr_options.required_approving_review_count,
                     ## Had issues when the YAML defines this but the Repo has none (e.g. it's null in the cloud)
@@ -329,7 +329,7 @@ def check_repo_branch_protections(
                 )
             )
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "dismiss_stale_reviews",
                     config_bp.protection.pr_options.dismiss_stale_reviews,
                     ## Had issues when the YAML defines this but the Repo has none (e.g. it's null in the cloud)
@@ -339,7 +339,7 @@ def check_repo_branch_protections(
                 )
             )
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "require_code_owner_reviews",
                     config_bp.protection.pr_options.require_code_owner_reviews,
                     ## Had issues when the YAML defines this but the Repo has none (e.g. it's null in the cloud)
@@ -355,7 +355,7 @@ def check_repo_branch_protections(
             and this_protection.required_status_checks is not None
         ):
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "required_status_checks::strict",
                     config_bp.protection.required_status_checks.strict,
                     this_protection.required_status_checks.strict,
@@ -367,7 +367,7 @@ def check_repo_branch_protections(
             if this_protection.required_status_checks.contexts is not None:
                 this_protection.required_status_checks.contexts.sort()
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "required_status_checks::checks",
                     config_bp.protection.required_status_checks.checks,
                     this_protection.required_status_checks.contexts,
@@ -375,49 +375,49 @@ def check_repo_branch_protections(
             )
 
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "enforce_admins",
                 config_bp.protection.enforce_admins,
                 this_protection.enforce_admins,
             )
         )
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "require_linear_history",
                 config_bp.protection.require_linear_history,
                 this_protection.raw_data["required_linear_history"]["enabled"],
             )
         )
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "allow_force_pushes",
                 config_bp.protection.allow_force_pushes,
                 this_protection.raw_data["allow_force_pushes"]["enabled"],
             )
         )
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "allow_deletions",
                 config_bp.protection.allow_deletions,
                 this_protection.raw_data["allow_deletions"]["enabled"],
             )
         )
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "block_creations",
                 config_bp.protection.block_creations,
                 this_protection.raw_data["block_creations"]["enabled"],
             )
         )
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "require_conversation_resolution",
                 config_bp.protection.require_conversation_resolution,
                 this_protection.raw_data["required_conversation_resolution"]["enabled"],
             )
         )
         diffs.append(
-            diff_option(
+            __diff_option__(
                 "require_signed_commits",
                 config_bp.protection.require_signed_commits,
                 this_protection.raw_data["required_signatures"]["enabled"],
@@ -443,7 +443,7 @@ def check_repo_branch_protections(
             if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
                 config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "dismissal_users",
                     config_bp.protection.pr_options.dismissal_restrictions.users,
                     dismissal_users,
@@ -455,7 +455,7 @@ def check_repo_branch_protections(
             if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
                 config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
             diffs.append(
-                diff_option(
+                __diff_option__(
                     "dismissal_teams",
                     config_bp.protection.pr_options.dismissal_restrictions.teams,
                     dismissal_teams,
@@ -466,8 +466,79 @@ def check_repo_branch_protections(
         if len(diffs) > 0:
             diff_protections[config_bp.name] = deepcopy(diffs)
 
-    return len(missing_protections) == 0 & len(extra_protections) == 0 & len(diff_protections.keys()) == 0, {
-        "missing": missing_protections,
-        "extra": extra_protections,
-        "diffs": diff_protections,
-    }
+    diffs = {}
+    if len(missing_protections) > 0:
+        diffs["missing"] = missing_protections
+
+    if len(extra_protections) > 0:
+        diffs["extra"] = extra_protections
+
+    if len(diff_protections) > 0:
+        diffs["diffs"] = diff_protections
+
+    if len(diffs) > 0:
+        return False, diffs
+
+    return True, None
+
+
+def update_branch_protections(
+    repo: Repository,
+    config_branch_protections: list[BranchProtection],
+    diffs: tuple[dict[str, list[str] | dict[str, Any]]],
+) -> set[str]:
+    """Updates a repo's branch protection policies to match the expected settings
+
+    Args:
+        repo (Repository): [description]
+        secrets (List[Secret]): [description]
+
+    Returns:
+        set[str]: [description]
+    """
+    errors = []
+    branch_protections_dict = {bp.name: bp for bp in config_branch_protections}
+    # delete branch protection
+    for branch_name in diffs["extra"]:
+        try:
+            this_branch = repo.get_branch(branch_name)
+            this_branch.remove_protection()
+        except GithubException as ghexc:
+            if ghexc.status != 404:
+                # a 404 on a delete is fine, means it isnt protected
+                errors.append(
+                    {
+                        "type": "bp-delete",
+                        "name": branch_name,
+                        "error": f"{ghexc}",
+                    }
+                )
+        except Exception as exc:  # this should be tighter
+            errors.append({"type": "bp-delete", "name": branch_name, "error": f"{exc}"})
+
+    # update or create branch protection
+    for branch_name in diffs["missing"] + list(diffs["diffs"].keys()):
+        try:
+            bp_config = branch_protections_dict[branch_name]
+            if bp_config.protection is not None:
+                __update_branch_protection__(repo, branch_name, bp_config.protection)
+                actions_toolkit.info(f"Updated branch proection for {branch_name}")
+            else:
+                actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
+        except GithubException as ghexc:
+            if ghexc.status == 404:
+                actions_toolkit.info(
+                    f"Can't Update branch protection for {branch_name} because the branch does not exist"
+                )
+            else:
+                errors.append(
+                    {
+                        "type": "bp-update",
+                        "name": branch_name,
+                        "error": f"{ghexc}",
+                    }
+                )
+        except Exception as exc:  # this should be tighter
+            errors.append({"type": "bp-update", "name": branch_name, "error": f"{exc}"})
+
+    return errors
