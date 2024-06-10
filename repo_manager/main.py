@@ -93,7 +93,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            os.environ["GITHUB_SUMMARY"] = __markdown_summary__(diffs)
+            os.environ["GITHUB_STEP_SUMMARY"] = __markdown_summary__(diffs)
             actions_toolkit.set_output("result", "Check failed, diff detected")
             actions_toolkit.set_failed("Diff detected")
         actions_toolkit.set_output("result", "Check passed")
