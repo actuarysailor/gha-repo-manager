@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 
 from repo_manager.main import __markdown_summary__
 
