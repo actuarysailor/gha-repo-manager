@@ -1,5 +1,5 @@
 import sys
-import subprocess
+import ps
 import json
 import pandas as pd
 
@@ -93,7 +93,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            subprocess.Popen(f"echo '{__markdown_summary__(diffs)}' >> $GITHUB_STEP_SUMMARY", shell=True)
+            os.system(f"echo '{__markdown_summary__(diffs)}' >> $GITHUB_STEP_SUMMARY")
             actions_toolkit.set_output("result", "Check failed, diff detected")
             actions_toolkit.set_failed("Diff detected")
         actions_toolkit.set_output("result", "Check passed")
