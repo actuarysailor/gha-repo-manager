@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.4...v2.0.5) (2024-06-10)
+
+
+### Bug Fixes
+
+* Tabulate needed for better markdown ([#54](https://github.com/actuarysailor/gha-repo-manager/issues/54)) ([a15dd0c](https://github.com/actuarysailor/gha-repo-manager/commit/a15dd0cd1841d905c6cec678afa3d5ea4dafd0c1))
+
 ## [2.0.4](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.3...v2.0.4) (2024-06-10)
 
 
