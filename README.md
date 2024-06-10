@@ -79,7 +79,7 @@ jobs:
 | `action` | <p>What action to take with this action. One of validate, check, or apply. Validate will validate your settings file, but not touch your repo. Check will check your repo with your settings file and output a report of any drift. Apply will apply the settings in your settings file to your repo</p> | `false` | `check` |
 | `settings_file` | <p>What yaml file to use as your settings. This is local to runner running this action.</p> | `false` | `.github/settings.yml` |
 | `repo` | <p>What repo to perform this action on. Default is self, as in the repo this action is running in</p> | `false` | `self` |
-| `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `none` |
+| `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `${{ github.server_url }}` |
 | `token` | <p>What github token to use with this action.</p> | `true` | `""` |
 | `fail_on_diff` | <p>Fail the action if the repo settings differ from the settings file. Default is false. Note, this only applies if the action is set to 'check'</p> | `false` | `false` |
 <!-- action-docs-inputs source="action.yml" -->
