@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.1...v2.0.2) (2024-06-10)
+
+
+### Bug Fixes
+
+* Enable files with private repos ([#48](https://github.com/actuarysailor/gha-repo-manager/issues/48)) ([1f126bf](https://github.com/actuarysailor/gha-repo-manager/commit/1f126bfd99df1ff7c58b3f1ae7d1127e33580b6e))
+
 ## [2.0.1](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.0...v2.0.1) (2024-06-09)
 
 
