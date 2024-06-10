@@ -23,10 +23,10 @@ def check_repo_labels(
     diffs = {}
 
     missing = list(
-        repo_labels.keys() - (
+        (
             {label.expected_name for label in filter(lambda label: label.exists, config_labels)}
             | {label.name for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)}
-        )
+        ) -repo_labels.keys()
     )
     if len(missing) > 0:
         diffs["missing"] = missing
