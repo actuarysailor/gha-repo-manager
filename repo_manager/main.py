@@ -94,8 +94,11 @@ def main():  # noqa: C901
     if inputs["action"] == "check":
         if not check_result:
             issue_file_command("STEP_SUMMARY", __markdown_summary__(diffs))
-            actions_toolkit.set_output("result", "Check failed, diff detected")
-            actions_toolkit.set_failed("Diff detected")
+            if inputs["fail_on_diff"]:
+                actions_toolkit.set_output("result", "Check failed, diff detected")
+                actions_toolkit.set_failed("Diff detected")
+            else:
+                actions_toolkit.warning("Diff detected")
         actions_toolkit.set_output("result", "Check passed")
         sys.exit(0)
 
