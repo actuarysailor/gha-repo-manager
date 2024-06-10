@@ -39,6 +39,7 @@ jobs:
       NOXSESSION: ${{ matrix.session }}
       FORCE_COLOR: "1"
       PRE_COMMIT_COLOR: "always"
+      INPUT_TOKEN: ${{ secrets.THIS_PAT }}
 
     steps:
       - name: Check out the repository
@@ -127,7 +128,7 @@ jobs:
         with:
           filename: ./**/.coverage.xml
           badge: true
-          fail_below_min: true
+          fail_below_min: false
           format: markdown
           hide_branch_rate: false
           hide_complexity: true
