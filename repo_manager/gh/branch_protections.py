@@ -498,47 +498,37 @@ def update_branch_protections(
     """
     errors = []
     branch_protections_dict = {bp.name: bp for bp in config_branch_protections}
-    # delete branch protection
-    for branch_name in diffs["extra"]:
-        try:
-            this_branch = repo.get_branch(branch_name)
-            this_branch.remove_protection()
-        except GithubException as ghexc:
-            if ghexc.status != 404:
-                # a 404 on a delete is fine, means it isnt protected
-                errors.append(
-                    {
-                        "type": "bp-delete",
-                        "name": branch_name,
-                        "error": f"{ghexc}",
-                    }
-                )
-        except Exception as exc:  # this should be tighter
-            errors.append({"type": "bp-delete", "name": branch_name, "error": f"{exc}"})
-
-    # update or create branch protection
-    for branch_name in diffs["missing"] + list(diffs["diffs"].keys()):
-        try:
-            bp_config = branch_protections_dict[branch_name]
-            if bp_config.protection is not None:
-                __update_branch_protection__(repo, branch_name, bp_config.protection)
-                actions_toolkit.info(f"Updated branch proection for {branch_name}")
-            else:
-                actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
-        except GithubException as ghexc:
-            if ghexc.status == 404:
-                actions_toolkit.info(
-                    f"Can't Update branch protection for {branch_name} because the branch does not exist"
-                )
-            else:
-                errors.append(
-                    {
-                        "type": "bp-update",
-                        "name": branch_name,
-                        "error": f"{ghexc}",
-                    }
-                )
-        except Exception as exc:  # this should be tighter
-            errors.append({"type": "bp-update", "name": branch_name, "error": f"{exc}"})
+    for issue_type in diffs.keys():
+        branches = diffs[issue_type] if issue_type != "diffs" else diffs[issue_type].keys()
+        for branch_name in branches:
+            try:
+                if issue_type == "extra":
+                    # remove branch protection
+                    this_branch = repo.get_branch(branch_name)
+                    this_branch.remove_protection()
+                else:
+                    # update or create branch protection
+                    bp_config = branch_protections_dict[branch_name]
+                    if bp_config.protection is not None:
+                        __update_branch_protection__(repo, branch_name, bp_config.protection)
+                        actions_toolkit.info(f"Updated branch proection for {branch_name}")
+                    else:
+                        actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
+            except GithubException as ghexc:
+                if ghexc.status == 404:
+                    actions_toolkit.set_failed(
+                        f"Can't change branch protection for {branch_name} because either the branch or the protection does not exist"
+                    )
+                if ghexc.status != 404:
+                    # a 404 on a delete is fine, means it isnt protected
+                    errors.append(
+                        {
+                            "type": "bp-delete" if issue_type == "extra" else "bp-update",
+                            "name": branch_name,
+                            "error": f"{ghexc}",
+                        }
+                    )
+            except Exception as exc:  # this should be tighter
+                errors.append({"type": "bp-delete", "name": branch_name, "error": f"{exc}"})
 
     return errors
