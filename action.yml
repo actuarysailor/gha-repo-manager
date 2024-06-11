@@ -17,6 +17,9 @@ inputs:
   token:
     description: What github token to use with this action.
     required: true
+  fail_on_diff:
+    description: Fail the action if the repo settings differ from the settings file. Default is false. Note, this only applies if the action is set to 'check'
+    default: False
 outputs:
   result:
     description: "Result of the action"
@@ -24,7 +27,7 @@ outputs:
     description: "Diff of this action, dumped to a json string"
 runs:
   using: "docker"
-  image: "docker://ghcr.io/actuarysailor/gha-repo-manager:v2.0.5" # x-release-please-version
+  image: "docker://ghcr.io/actuarysailor/gha-repo-manager:v2.0.6" # x-release-please-version
 branding:
   icon: "settings"
   color: "blue"

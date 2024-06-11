@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.6](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.5...v2.0.6) (2024-06-10)
+
+
+### Bug Fixes
+
+* Tabulate still not appearing in image. ([#56](https://github.com/actuarysailor/gha-repo-manager/issues/56)) ([a3a9332](https://github.com/actuarysailor/gha-repo-manager/commit/a3a9332c1c0888adb5251882612987c2271abf20))
+
 ## [2.0.5](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.4...v2.0.5) (2024-06-10)
 
 
