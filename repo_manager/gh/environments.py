@@ -187,7 +187,10 @@ def check_repo_environments(
     """
 
     repo_environments = repo.get_environments()
-    repo_environment_names = {environment.name for environment in repo_environments}
+    if len(repo_environments) > 0:
+        repo_environment_names = {environment.name for environment in repo_environments}
+    else:
+        repo_environment_names = set()
 
     expected_environment_names = {
         environment.name for environment in filter(lambda environment: environment.exists, environments)
