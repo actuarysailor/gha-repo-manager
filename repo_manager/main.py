@@ -25,13 +25,13 @@ def __markdown_summary__(diffs: dict[str, list[str] | dict[str, str]], heading: 
     """Generate a markdown summary of the diffs"""
     summary = ""
     for category, items in diffs.items():
-        summary += f"{heading} {category.capitalize()}\n"
+        summary += f"\n{heading} {category.capitalize()}\n"
         if isinstance(items, list):
             summary += "\n".join([f"- {item}" for item in items])
         elif isinstance(items, dict):
             for item, diff in items.items():
                 if item in ("missing", "extra", "diff"):
-                    summary += f"{heading}# {item.capitalize()}\n"
+                    summary += f"\n{heading}# {item.capitalize()}\n"
                     if item == "diff":
                         summary += pd.DataFrame(diff).to_markdown()
                     else:

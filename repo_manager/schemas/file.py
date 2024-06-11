@@ -1,12 +1,13 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Self
 
 from pydantic import (
     BaseModel,  # pylint: disable=E0611
-    Field,
     ValidationInfo,
+    Field,
     field_validator,
+    model_validator,
 )
 
 OptBool = Optional[bool]
@@ -18,7 +19,6 @@ class FileConfig(BaseModel):
     exists: OptBool = Field(True, description="Set to false to delete dest_file")
     remote_src: OptBool = Field(False, description="If true, src_file is a remote file")
     src_file: Path = Field(
-        None,
         description="Sourrce file to copy from. Can me a local file path, or if you prefix with remote://, "
         + "a path inside the target_repo. Can be relative to the GHA workspace",
     )
@@ -43,6 +43,7 @@ class FileConfig(BaseModel):
     )
 
     @field_validator("src_file", mode="before")
+    @classmethod
     def validate_src_file(cls, v, info: ValidationInfo) -> Path:
         if v is None and info.data["exists"]:
             raise ValueError("Missing src_file")
@@ -52,13 +53,13 @@ class FileConfig(BaseModel):
             v = v.replace("remote://", "")
         return Path(v)
 
-    @field_validator("dest_file")
-    def validate_dest_file(cls, v, info: ValidationInfo) -> Path:
-        if v is None:
-            if info.data["move"] is False and info.data["exists"] is True:
-                raise ValueError("Missing dest_file")
-            return info.data["src_file"]
-        return v
+    @model_validator(mode="after")
+    def validate_config(self) -> Self:
+        if self.move is True and self.dest_file is None:
+            raise ValueError("Move requires dest_file to be set")
+        if self.dest_file is None:
+            self.dest_file = self.src_file
+        return self
 
     @property
     def src_file_exists(self) -> bool:
