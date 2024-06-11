@@ -187,7 +187,7 @@ def check_repo_environments(
     """
 
     repo_environments = repo.get_environments()
-    if len(repo_environments) > 0:
+    if repo_environments.totalCount > 0:
         repo_environment_names = {environment.name for environment in repo_environments}
     else:
         repo_environment_names = set()
