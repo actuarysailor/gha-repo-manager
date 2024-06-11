@@ -18,19 +18,20 @@ on:
       - '**/*.py'
 
 jobs:
-  strategy:
-    matrix:
-      include:
-      - repo: self
-        action: check
-        settings_file: '[".github/settings.yml"]'
-        fail_on_diff: true
-      - repo: actuarysailor/test
-        action: test
-        settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
-        fail_on_diff: false
 
   action-integration-testing:
+    strategy:
+      matrix:
+        include:
+        - repo: self
+          action: check
+          settings_file: '[".github/settings.yml"]'
+          fail_on_diff: true
+        - repo: actuarysailor/test
+          action: test
+          settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
+          fail_on_diff: false
+
     name: Action Integration Testing
     runs-on: ubuntu-latest
     steps:
