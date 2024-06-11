@@ -27,7 +27,7 @@ def __markdown_summary__(diffs: dict[str, list[str] | dict[str, str]], heading: 
     for category, items in diffs.items():
         summary += f"\n{heading} {category.capitalize()}\n"
         if isinstance(items, list):
-            summary += "\n".join([f"- {item}" for item in items])
+            summary += "\n".join([f"- {item}\n" for item in items])
         elif isinstance(items, dict):
             for item, diff in items.items():
                 if item in ("missing", "extra", "diff"):
@@ -35,7 +35,7 @@ def __markdown_summary__(diffs: dict[str, list[str] | dict[str, str]], heading: 
                     if item == "diff":
                         summary += pd.DataFrame(diff).to_markdown()
                     else:
-                        summary += "\n".join([f"- {item}" for item in diff])
+                        summary += "\n".join([f"- {item}\n" for item in diff])
                 else:
                     summary += __markdown_summary__(diff, heading + "#")
         summary += "\n"
