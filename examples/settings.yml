@@ -237,7 +237,7 @@ files:
     move: true
     commit_msg: "move readme"
   # This removes OLDDOC.md in the dev branch. If OLDDOC.md doesn't exist, the workflow will emit a warning
-  - dest_file: OLDDOC.md
+  - src_file: OLDDOC.md
     exists: false
     branch: dev
     commit_msg: "remove OLDDOC.md from dev"
