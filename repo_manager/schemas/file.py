@@ -30,6 +30,7 @@ class FileConfig(BaseModel):
         description="If true and dealing with a remote src_file, repo_manager will move the file instead of "
         + "copying it, by removing src_file after copy. If src_file is a local file, this option is ignored.",
     )
+    # Commit messages and target branches should be set for the set of files, not individually
     commit_msg: str = Field(
         "repo_manager file commit",
         description="Commit message to commit the file with. Files with the same commit message "
@@ -52,9 +53,11 @@ class FileConfig(BaseModel):
         return Path(v)
 
     @field_validator("dest_file")
-    def validate_dest_file(cls, v) -> Path:
+    def validate_dest_file(cls, v, info: ValidationInfo) -> Path:
         if v is None:
-            raise ValueError("Missing dest_file")
+            if info.data["move"] is False and info.data["exists"] is True:
+                raise ValueError("Missing dest_file")
+            return info.data["src_file"]
         return v
 
     @property
@@ -62,6 +65,7 @@ class FileConfig(BaseModel):
         """Checks if local file exists"""
         return os.path.exists(self.src_file) if self.src_file is not None else None
 
+    # Not needed, but still used in tests I have not cleaned up...
     @property
     def src_file_contents(self) -> str:
         """Returns the contents of the local file"""
@@ -70,12 +74,11 @@ class FileConfig(BaseModel):
         with open(self.src_file) as fh:
             return fh.read()
 
+    # Not needed, but still used in tests I have not cleaned up...
+    # if we want to set commit messages, it should be done in groups of files, not per file
     @property
     def commit_key(self) -> str:
         """Returns the commit key for this file_config, a combination of commit msg and target_branch"""
         target_branch = self.target_branch if self.target_branch is not None else ""
 
         return f"{self.commit_msg}_{target_branch}"
-
-    class Config:
-        use_enum_values = True
