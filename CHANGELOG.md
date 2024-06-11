@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.7](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.6...v2.0.7) (2024-06-11)
+
+
+### Bug Fixes
+
+* Remove req for dest_file; it is too strict ([#58](https://github.com/actuarysailor/gha-repo-manager/issues/58)) ([cc8bd19](https://github.com/actuarysailor/gha-repo-manager/commit/cc8bd197db09005d3ec4b69319db78333ee5586d))
+
 ## [2.0.6](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.5...v2.0.6) (2024-06-10)
 
 
