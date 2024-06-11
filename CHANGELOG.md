@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.9](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.8...v2.0.9) (2024-06-11)
+
+
+### Bug Fixes
+
+* Pandas uses hidden imports... ([#62](https://github.com/actuarysailor/gha-repo-manager/issues/62)) ([04f0f98](https://github.com/actuarysailor/gha-repo-manager/commit/04f0f982065c798a16f540671b1da3414ee77f0d))
+
 ## [2.0.8](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.7...v2.0.8) (2024-06-11)
 
 
