@@ -194,10 +194,10 @@ def update_files(
         body = "# File updates:\n"
         if diffs.get("extra", None) is not None:
             body += "## Deleted:"
-            body += "\n".join(["- " + item for item in diffs["extra"]])
+            body += "\n".join(["- " + item for item in diffs["extra"] + "\n"])
         if diffs.get("missing", None) is not None:
             body += "## Created:\n"
-            body += "\n -".join(["- " + item for item in diffs["missing"]])
+            body += "\n -".join(["- " + item for item in diffs["missing"] + "\n"])
         if diffs.get("diff", None) is not None:
             body += "## Updated:\n"
             body += pd.DataFrame(diffs["diff"]).to_markdown()

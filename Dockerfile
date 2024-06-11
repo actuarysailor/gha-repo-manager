@@ -16,7 +16,10 @@ RUN poetry build
 RUN pip install dist/gha_repo_manager*.whl
 
 # pyinstaller package the app
-RUN python -OO -m PyInstaller -F repo_manager/main.py --name repo-manager --hidden-import _cffi_backend
+# https://docs.python.org/3/using/cmdline.html#interface-options
+# OO flag is for optimization (first O omit asserts and debug statements, second omits docstrings)
+# F flag is for one file, hidden-import is for cffi
+RUN python -OO -m PyInstaller -F repo_manager/main.py --name repo-manager --hidden-import _cffi_backend --hidden-import tabulate
 # static link the repo-manager binary
 RUN cd ./dist && \
     staticx -l $(ldconfig -p| grep libgcc_s.so.1 | awk -F "=>" '{print $2}' | tr -d " ") --strip repo-manager repo-manager-static && \
