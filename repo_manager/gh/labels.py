@@ -18,34 +18,58 @@ def check_repo_labels(
     """
     repo_labels = {label.name: label for label in repo.get_labels()}
     config_label_dict = {label.name: label for label in config_labels}
-    config_label_dict.update({label.expected_name: label for label in config_labels if label.expected_name != label.name})
+    config_label_dict.update(
+        {label.expected_name: label for label in config_labels if label.expected_name != label.name}
+    )
 
     diffs = {}
 
     missing = list(
-        {label.expected_name for label in filter(lambda label: label.exists and label.name not in repo_labels.keys() and label.expected_name not in repo_labels.keys(), config_labels)}
+        {
+            label.expected_name
+            for label in filter(
+                lambda label: label.exists
+                and label.name not in repo_labels.keys()
+                and label.expected_name not in repo_labels.keys(),
+                config_labels,
+            )
+        }
     )
     if len(missing) > 0:
         diffs["missing"] = missing
 
     extra = list(
-        {label.expected_name for label in filter(lambda label: not label.exists and (label.name in repo_labels.keys() or label.expected_name in repo_labels.keys()), config_labels)}
+        {
+            label.expected_name
+            for label in filter(
+                lambda label: not label.exists
+                and (label.name in repo_labels.keys() or label.expected_name in repo_labels.keys()),
+                config_labels,
+            )
+        }
     )
     if len(extra) > 0:
         diffs["extra"] = extra
 
     diff = {}
     labels_to_check = list(
-        {label.name for label in filter(lambda label: label.exists and (label.name in repo_labels.keys()), config_labels)}.union(
-        {label.expected_name for label in filter(lambda label: label.exists and (label.expected_name in repo_labels.keys() and label.name != label.expected_name), config_labels)})
+        {
+            label.name
+            for label in filter(lambda label: label.exists and (label.name in repo_labels.keys()), config_labels)
+        }.union(
+            {
+                label.expected_name
+                for label in filter(
+                    lambda label: label.exists
+                    and (label.expected_name in repo_labels.keys() and label.name != label.expected_name),
+                    config_labels,
+                )
+            }
+        )
     )
     for label_name in labels_to_check:
         if config_label_dict[label_name].expected_name != label_name:
-            diff[label_name] = {"name": {
-                "expected": config_label_dict[label_name].expected_name,
-                "found":  label_name
-                }
-            }
+            diff[label_name] = {"name": {"expected": config_label_dict[label_name].expected_name, "found": label_name}}
         if config_label_dict[label_name].color is not None:
             if config_label_dict[label_name].color_no_hash.lower() != repo_labels[label_name].color.lower():
                 diff[label_name] = {
@@ -94,9 +118,11 @@ def update_labels(
                 try:
                     repo.create_label(
                         label_dict[label_name].expected_name,
-                        "ffffff" if label_dict[label_name].color_no_hash is None
+                        "ffffff"
+                        if label_dict[label_name].color_no_hash is None
                         else label_dict[label_name].color_no_hash,
-                        label_dict[label_name].expected_name if label_dict[label_name].expected_name is not None
+                        label_dict[label_name].expected_name
+                        if label_dict[label_name].expected_name is not None
                         else "",
                     )
                     actions_toolkit.info(f"Created label {label_name}")

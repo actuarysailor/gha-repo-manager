@@ -30,10 +30,10 @@ labels:
 
 branch_protections:
   - name: main
-    
+
     protection:
       pr_options:
-        
+
         dismiss_stale_reviews: true
       required_status_checks:
         strict: true
@@ -43,4 +43,3 @@ branch_protections:
           - Generate Docs
       enforce_admins: false
       allow_force_pushes: true
-

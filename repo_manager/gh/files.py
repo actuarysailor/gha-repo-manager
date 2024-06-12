@@ -218,7 +218,7 @@ def update_files(
                 tbl["Lines Removed"].append(diff.get("deletions", None))
                 comments = ""
                 for k, v in diff.items():
-                    if k not in ["insertions", "deletions","lines"]:
+                    if k not in ["insertions", "deletions", "lines"]:
                         comments += f"- {k}: {v}\n"
                 tbl["Comments"].append(comments)
             body += pd.DataFrame(tbl).to_markdown()

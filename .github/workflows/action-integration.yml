@@ -55,7 +55,7 @@ jobs:
 
       - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
         id: test-check-action
-        if: contains(fromJSON('["check","test"]'), matrix.action) 
+        if: contains(fromJSON('["check","test"]'), matrix.action)
         uses: ./
         with:
           token: ${{ secrets.THIS_PAT || github.token }}

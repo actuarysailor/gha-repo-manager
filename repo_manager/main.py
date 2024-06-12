@@ -21,38 +21,20 @@ from repo_manager.gh.environments import check_repo_environments, update_environ
 from repo_manager.gh.files import check_files, update_files
 
 
-
-CATEGORIES_TO_TABULATE = [
-    "settings",
-    "collaborators",
-    "branch_protections",
-    "files"
-]
+CATEGORIES_TO_TABULATE = ["settings", "collaborators", "branch_protections", "files"]
 
 COLUMN_NAME_MAP = {
-    "settings": {
-        "key": "Setting",
-        "value": None
-    },
-    "collaborators": {
-        "key": "Collaborator Type",
-        "value": "Collaborator"
-    },
-    "branch_protections": {
-        "key": "Branch",
-        "value": "Protection"
-    },
-    "files": {
-        "key": "File",
-        "value": "Differences"
-    }
+    "settings": {"key": "Setting", "value": None},
+    "collaborators": {"key": "Collaborator Type", "value": "Collaborator"},
+    "branch_protections": {"key": "Branch", "value": "Protection"},
+    "files": {"key": "File", "value": "Differences"},
 }
 
 
-def __flatten_differences__(input_dict: dict, fieldNames: dict[str,str]) -> dict:
+def __flatten_differences__(input_dict: dict, fieldNames: dict[str, str]) -> dict:
     fieldName = fieldNames["key"]
     valueName = fieldNames["value"]
-    result = {fieldName: [], valueName: []}            
+    result = {fieldName: [], valueName: []}
     for k1, v1 in input_dict.items():
         result[fieldName].append(k1)
         for k2, v2 in v1.items():
@@ -60,7 +42,8 @@ def __flatten_differences__(input_dict: dict, fieldNames: dict[str,str]) -> dict
 
     return result
 
-def __dict_to_columns__(input_dict: dict, fieldNames: dict[str,str]) -> dict:
+
+def __dict_to_columns__(input_dict: dict, fieldNames: dict[str, str]) -> dict:
     result = {}
     for key, value in input_dict.items():
         if fieldNames is None:

@@ -68,10 +68,10 @@ def check_variables(repo: Repository, variables: list[Secret]) -> tuple[bool, di
         diffs["missing"] = missing
 
     extra = list(
-            repo_variable_names.intersection(
-                {variable.key for variable in filter(lambda variable: variable.exists is False, variables)}
-            )
+        repo_variable_names.intersection(
+            {variable.key for variable in filter(lambda variable: variable.exists is False, variables)}
         )
+    )
     if len(extra) > 0:
         diffs["extra"] = extra
 

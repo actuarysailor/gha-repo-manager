@@ -276,7 +276,9 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                     if config_env_dict[env_name].reviewers is not None:
                         kwargs["reviewers"] = config_env_dict[env_name].get_ReviewerParams()
                     if config_env_dict[env_name].deployment_branch_policy is not None:
-                        kwargs["deployment_branch_policy"] = config_env_dict[env_name].get_EnvironmentDeploymentBranchPolicyParams()
+                        kwargs["deployment_branch_policy"] = config_env_dict[
+                            env_name
+                        ].get_EnvironmentDeploymentBranchPolicyParams()
                     repo.create_environment(**kwargs)
                     components = ["secrets", "variables"]
                     for env_component in components:
