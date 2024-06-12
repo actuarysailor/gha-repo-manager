@@ -438,29 +438,30 @@ def check_repo_branch_protections(
             else:
                 dismissal_users = []
 
-        dismissal_users.sort()
-        if config_bp.protection.pr_options.dismissal_restrictions is not None:
-            if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
-                config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
-            diffs.append(
-                __diff_option__(
-                    "dismissal_users",
-                    config_bp.protection.pr_options.dismissal_restrictions.users,
-                    dismissal_users,
+        if config_bp.protection.pr_options is not None:
+            dismissal_users.sort()
+            if config_bp.protection.pr_options.dismissal_restrictions is not None:
+                if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
+                    config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
+                diffs.append(
+                    __diff_option__(
+                        "dismissal_users",
+                        config_bp.protection.pr_options.dismissal_restrictions.users,
+                        dismissal_users,
+                    )
                 )
-            )
 
-        dismissal_teams.sort()
-        if config_bp.protection.pr_options.dismissal_restrictions is not None:
-            if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
-                config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
-            diffs.append(
-                __diff_option__(
-                    "dismissal_teams",
-                    config_bp.protection.pr_options.dismissal_restrictions.teams,
-                    dismissal_teams,
+            dismissal_teams.sort()
+            if config_bp.protection.pr_options.dismissal_restrictions is not None:
+                if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
+                    config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
+                diffs.append(
+                    __diff_option__(
+                        "dismissal_teams",
+                        config_bp.protection.pr_options.dismissal_restrictions.teams,
+                        dismissal_teams,
+                    )
                 )
-            )
 
         diffs = [i for i in diffs if i is not None]
         if len(diffs) > 0:
