@@ -110,7 +110,9 @@ def update_labels(
                 try:
                     repo.create_label(
                         label_dict[label_name].expected_name,
-                        label_dict[label_name].color_no_hash,
+                        label_dict[label_name].color_no_hash
+                        if label_dict[label_name].color_no_hash is not None
+                        else "ffffff",
                         label_dict[label_name].description,
                     )
                     actions_toolkit.info(f"Created label {label_name}")
