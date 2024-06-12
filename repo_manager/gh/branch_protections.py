@@ -474,7 +474,7 @@ def check_repo_branch_protections(
         diffs["extra"] = extra_protections
 
     if len(diff_protections) > 0:
-        diffs["diffs"] = diff_protections
+        diffs["diff"] = diff_protections
 
     if len(diffs) > 0:
         return False, diffs
@@ -499,7 +499,7 @@ def update_branch_protections(
     errors = []
     branch_protections_dict = {bp.name: bp for bp in config_branch_protections}
     for issue_type in diffs.keys():
-        branches = diffs[issue_type] if issue_type != "diffs" else diffs[issue_type].keys()
+        branches = diffs[issue_type] if issue_type != "diff" else diffs[issue_type].keys()
         for branch_name in branches:
             try:
                 if issue_type == "extra":

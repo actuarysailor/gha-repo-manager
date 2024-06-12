@@ -74,7 +74,7 @@ def check_repo_labels(
                 }
 
     if len(diff) > 0:
-        diffs["diffs"] = diff
+        diffs["diff"] = diff
 
     if len(diffs) > 0:
         return False, diffs
@@ -97,7 +97,7 @@ def update_labels(
     errors = []
     label_dict = {label.name: label for label in labels}
     for issue_type in diffs.keys():
-        label_names = diffs[issue_type] if issue_type != "diffs" else diffs[issue_type].keys()
+        label_names = diffs[issue_type] if issue_type != "diff" else diffs[issue_type].keys()
         for label_name in label_names:
             if issue_type == "extra":
                 try:
@@ -122,7 +122,7 @@ def update_labels(
                             "error": f"{exc}",
                         }
                     )
-            elif issue_type == "diffs":
+            elif issue_type == "diff":
                 try:
                     this_label = repo.get_label(label_name)
                     this_label.edit(

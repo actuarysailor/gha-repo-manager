@@ -56,8 +56,7 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     diffs = {}
     extra = set[str]()
     missing = set[str]()
-    moved = set[str]()
-    changed = set[str]()
+    changed = {}
 
     # First we handle file movement and removal
     for file_config in files:
@@ -81,23 +80,20 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
         else:
             if file_config.exists and file_config.remote_src and not oldPath.exists():
                 raise FileNotFoundError(f"File {file_config.src_file} does not exist in {repo}")
-            if not (oldPath.exists() or newPath.exists()):
-                missing.add(str(file_config.dest_file))
+            if file_config.remote_src and file_config.move and newPath.exists():
+                raise FileExistsError(f"File {file_config.dest_file} already exists in {repo}")
             if oldPath == newPath:
                 continue  # Nothing to do
-            if file_config.move:
-                if not oldPath.exists():
-                    actions_toolkit.warning(
-                        f"{str(file_config.src_file)} does not exist in {target_branch} branch."
-                        + "Because this is not a remote file, not failing run as it may be created later"
-                    )
+            if oldPath.exists():
+                if file_config.remote_src and not file_config.move:
+                    missing.add(str(file_config.dest_file))
+                    shutil.copyfile(oldPath, newPath)
+                    actions_toolkit.info(f"Copied {str(oldPath)} to {str(newPath)}")
                 else:
                     os.rename(oldPath, newPath)
-                    moved += str(file_config.src_file)
+                    changed[str(file_config.src_file)] = {"renamed": f"to {str(file_config.dest_file)}"}
+                    changed[str(file_config.dest_file)] = {"renamed": f"from {str(file_config.src_file)}"}
                     actions_toolkit.info(f"Moved {str(oldPath)} to {str(newPath)}")
-            elif file_config.remote_src:
-                shutil.copyfile(oldPath, newPath)
-                actions_toolkit.info(f"Copied {str(oldPath)} to {str(newPath)}")
 
     # we commit these changes so that deleted files and renamed files are accounted for
     global commitCleanup
@@ -114,6 +110,13 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
     if len(missing) > 0:
         diffs["missing"] = list(missing)
 
+    # get the list of files that were re-organized
+    if commitCleanup is not None:
+        actions_toolkit.info(f"File Change Commit SHA: {commitCleanup.hexsha}")
+        for file in commitCleanup.stats.files:
+            if str(Path(file)) not in (missing.union(extra).union(changed.keys())):
+                raise RuntimeError(f"File {file} has unaccounted changes!{commitCleanup.stats.files[file]}")
+
     # now we handle file content changes
     for file_config in files:
         if not file_config.exists or file_config.remote_src:
@@ -123,8 +126,13 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
         if file_config.exists:
             if newPath.exists():
                 os.remove(newPath)  # Delete the file
+            else:
+                missing.add(str(file_config.dest_file))
             shutil.copyfile(srcPath, destPath)
             actions_toolkit.info(f"Copied {str(srcPath)} to {str(destPath)}")
+
+    if len(missing) > 0:
+        diffs["missing"] = list(missing)
 
     # we commit the file updates (e.g. content changes)
     global commitChanges
@@ -137,18 +145,19 @@ def check_files(repo: Repository, files: list[FileConfig]) -> tuple[bool, dict[s
 
     # get the list of files that changed content
     if commitChanges is not None:
+        actions_toolkit.info(f"File Change Commit SHA: {commitChanges.hexsha}")
         for file in commitChanges.stats.files:
             if str(Path(file)) not in missing:
-                changed.add(str(Path(file)))
-
-    changed.update(moved)
+                change = commitChanges.stats.files[file]
+                changed[str(Path(file))] = change
+            elif str(Path(file)) in changed.keys():
+                changed.pop(str(Path(file)))
 
     if len(changed) > 0:
-        diffs["diff"] = list(changed)
+        diffs["diff"] = changed
 
     if len(diffs) > 0:
         return False, diffs
-    # actions_toolkit.info("Commit SHAs: " + ",".join(commits))
     # Default to no differences
     return True, None
 

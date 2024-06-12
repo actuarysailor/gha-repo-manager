@@ -3,6 +3,7 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
+from github.GithubException import UnknownObjectException
 from github.Repository import Repository
 
 from repo_manager.schemas.environment import (
@@ -187,10 +188,14 @@ def check_repo_environments(
     """
 
     repo_environments = repo.get_environments()
-    if repo_environments.totalCount > 0:
+    try:
         repo_environment_names = {environment.name for environment in repo_environments}
-    else:
-        repo_environment_names = set()
+    except UnknownObjectException as exc:
+        # Github throughts a 404 if there are no environments
+        if exc.status == 404:
+            repo_environment_names = set()
+        else:
+            raise exc
 
     expected_environment_names = {
         environment.name for environment in filter(lambda environment: environment.exists, environments)

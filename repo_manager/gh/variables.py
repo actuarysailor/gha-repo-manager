@@ -50,6 +50,7 @@ def check_variables(repo: Repository, variables: list[Secret]) -> tuple[bool, di
     Returns:
         Tuple[bool, Optional[List[str]]]: [description]
     """
+    diffs = {}
     repo_dict = dict[str, Any]()
     if any(filter(lambda variable: variable.type == "actions", variables)):
         repo_dict.update(__get_repo_variable_dict__(repo))
@@ -61,25 +62,32 @@ def check_variables(repo: Repository, variables: list[Secret]) -> tuple[bool, di
     repo_variable_names = {variable for variable in repo_dict.keys()}
 
     expected_variables_names = {variable.key for variable in filter(lambda variable: variable.exists, variables)}
-    diff = {
-        "missing": list(expected_variables_names - repo_variable_names),
-        "extra": list(
+
+    missing = list(expected_variables_names - repo_variable_names)
+    if len(missing) > 0:
+        diffs["missing"] = missing
+
+    extra = list(
             repo_variable_names.intersection(
                 {variable.key for variable in filter(lambda variable: variable.exists is False, variables)}
             )
-        ),
-        "diff": {},
-    }
+        )
+    if len(extra) > 0:
+        diffs["extra"] = extra
 
+    diff = {}
     variables_to_check_values_on = list(expected_variables_names.intersection(repo_variable_names))
     for variable_name in variables_to_check_values_on:
         config_var = config_dict.get(variable_name, None)
         repo_var = repo_dict.get(variable_name, None)
         if config_var.value != repo_var.value:
-            diff["diff"][variable_name] = diff_option(variable_name, config_var.value, repo_var.value)
+            diff[variable_name] = diff_option(variable_name, config_var.value, repo_var.value)
 
-    if len(diff["missing"]) + len(diff["extra"]) + len(diff["diff"]) > 0:
-        return False, diff
+    if len(diff) > 0:
+        diffs["diff"] = diff
+
+    if len(diffs) > 0:
+        return False, diffs
 
     return True, None
 

@@ -30,7 +30,7 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
         else:
             return getter()
 
-    drift = []
+    diffs = {}
     checked = True
     for setting_name in settings.model_dump().keys():
         repo_value = get_repo_value(setting_name, repo)
@@ -53,11 +53,14 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
         if settings_value is None:
             continue
         if repo_value != settings_value:
-            drift.append(f"{setting_name} -- Expected: '{settings_value}' Found: '{repo_value}'")
-            checked &= False if (settings_value is not None) else True
+            diffs[setting_name] = {
+                "expected": settings_value,
+                "found": repo_value,
+            }
+            checked &= False
 
-    if len(drift) > 0:
-        return checked, drift
+    if len(diffs) > 0:
+        return checked, diffs
 
     return checked, None
 
