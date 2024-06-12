@@ -65,7 +65,12 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
     return checked, None
 
 
-def update_settings(repo: Repository, settings: Settings):
+def update_settings(
+    repo: Repository,
+    settings: Settings,
+    diffs: tuple[dict[str, list[str] | dict[str, Any]]],
+) -> set[str]:
+    errors = []
     kwargs = {"name": None}
 
     attr_to_kwarg("description", settings, kwargs)
@@ -96,6 +101,8 @@ def update_settings(repo: Repository, settings: Settings):
 
     if settings.topics is not None:
         repo.replace_topics(settings.topics)
+
+    return errors
 
 
 def update(repo: Repository, setting_name: str, new_value: Any):

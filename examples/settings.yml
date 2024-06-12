@@ -142,7 +142,7 @@ environments:
     # same rules for secrets within the environment that are used for repo level secrets
     secrets:
       - key: PRODUCTION_SECRET
-        env: PRODUCTION_SECRET
+        env: SOME_SECRET
         type: environments/production
         exists: true
     # same rules for variables within the environment that are used for repo level variables
@@ -170,10 +170,10 @@ secrets:
   - key: SECRET_KEY
     # pull the value from an environment variable. If this variable is not found in the env, throw an error and fail the run
     # Set env vars on the github action job from secrets in your repo to sync screts across repos
-    env: SECRET_VALUE
+    env: SOME_SECRET 
     # Set a dependabot secret on the repo
   - key: SECRET_KEY
-    env: SECRET_VALUE
+    env: SOME_SECRET
     type: dependabot
   - key: ANOTHER_SECRET
     # set a value directly in your yaml, probably not a good idea for things that are actually a secret

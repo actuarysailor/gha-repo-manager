@@ -11,14 +11,14 @@ from yaml import YAMLError
 
 from repo_manager.schemas import load_config
 from repo_manager.utils import get_inputs
-from repo_manager.gh.branch_protections import check_repo_branch_protections, update_branch_protections
-from repo_manager.gh.files import check_files, update_files
+from repo_manager.gh.settings import check_repo_settings, update_settings
 from repo_manager.gh.labels import check_repo_labels, update_labels
+from repo_manager.gh.collaborators import check_collaborators, update_collaborators
+from repo_manager.gh.branch_protections import check_repo_branch_protections, update_branch_protections
 from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
-from repo_manager.gh.collaborators import check_collaborators, update_collaborators
 from repo_manager.gh.environments import check_repo_environments, update_environments
-from repo_manager.gh.settings import check_repo_settings, update_settings
+from repo_manager.gh.files import check_files, update_files
 
 
 
