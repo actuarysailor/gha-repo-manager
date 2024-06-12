@@ -203,13 +203,26 @@ def update_files(
         body = "# File updates:\n"
         if diffs.get("extra", None) is not None:
             body += "## Deleted:"
-            body += "\n".join(["- " + item for item in diffs["extra"] + "\n"])
+            body += "\n".join(["- " + item for item in diffs["extra"]])
+            body += "\n"
         if diffs.get("missing", None) is not None:
             body += "## Created:\n"
-            body += "\n -".join(["- " + item for item in diffs["missing"] + "\n"])
+            body += "\n -".join(["- " + item for item in diffs["missing"]])
+            body += "\n"
         if diffs.get("diff", None) is not None:
             body += "## Updated:\n"
-            body += pd.DataFrame(diffs["diff"]).to_markdown()
+            tbl = {"File": [], "Lines Added": [], "Lines Removed": [], "Comments": []}
+            for file, diff in diffs["diff"].items():
+                tbl["File"].append(file)
+                tbl["Lines Added"].append(diff.get("insertions", None))
+                tbl["Lines Removed"].append(diff.get("deletions", None))
+                comments = ""
+                for k, v in diff.items():
+                    if k not in ["insertions", "deletions","lines"]:
+                        comments += f"- {k}: {v}\n"
+                tbl["Comments"].append(comments)
+            body += pd.DataFrame(tbl).to_markdown()
+            body += "\n"
         repo.create_pull(title="chore(repo_manager): File updates", body=body, head="gov/updates", base=target_branch)
         actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")
 

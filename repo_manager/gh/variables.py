@@ -57,7 +57,7 @@ def check_variables(repo: Repository, variables: list[Secret]) -> tuple[bool, di
     if any(filter(lambda variable: variable.type not in {"actions"}, variables)):
         first_variable = next(filter(lambda variable: variable.type not in {"actions"}, variables), None)
         if first_variable is not None:
-            repo_dict.update(__get_repo_variable_dict__(repo, first_variable.type))
+            repo_dict.update(__get_repo_variable_dict__(repo, first_variable.type.replace("environments/", "")))
     config_dict = {variable.key: variable for variable in variables}
     repo_variable_names = {variable for variable in repo_dict.keys()}
 

@@ -39,7 +39,7 @@ def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, d
             None,
         )
         if first_secret is not None:
-            repo_secret_names.update(__get_repo_secret_names__(repo, first_secret.type))
+            repo_secret_names.update(__get_repo_secret_names__(repo, first_secret.type.replace("environments/", "")))
 
     expected_secrets_names = {secret.key for secret in filter(lambda secret: secret.exists, secrets)}
 
@@ -93,7 +93,7 @@ def update_secrets(
                             secret_name, secret_dict[secret_name].expected_value, secret_dict[secret_name].type
                         )
                     else:
-                        repo.get_environment(secret_dict[secret_name].type).create_secret(
+                        repo.get_environment(secret_dict[secret_name].type.replace("environments/", "")).create_secret(
                             secret_name, secret_dict[secret_name].expected_value
                         )
                     # create_secret(repo, secret.key, secret.expected_value, secret.type)
