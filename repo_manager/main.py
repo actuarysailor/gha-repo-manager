@@ -146,7 +146,7 @@ def main():  # noqa: C901
         check_repo_secrets: ("secrets", config.secrets),
         check_variables: ("variables", config.variables),
         check_repo_environments: ("environments", config.environments),
-        check_files: ("files", config.files),
+        check_files: ("files", config.batch_file_operations),
     }.items():
         check_name, to_check = to_check
         if to_check is not None:
@@ -183,7 +183,7 @@ def main():  # noqa: C901
             update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
             update_variables: ("variables", config.variables, diffs.get("variables", None)),
             update_environments: ("environments", config.environments, diffs.get("environments", None)),
-            update_files: ("files", config.files, diffs.get("files", None)),
+            update_files: ("files", config.batch_file_operations, diffs.get("files", None)),
         }.items():
             update_name, to_update, categorical_diffs = to_update
             if categorical_diffs is not None:

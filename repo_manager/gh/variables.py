@@ -1,8 +1,10 @@
 import json
 from typing import Any
 
+
 from actions_toolkit import core as actions_toolkit
 
+from github import GithubException
 from github.Repository import Repository
 
 from repo_manager.schemas.secret import Secret
@@ -131,9 +133,15 @@ def update_variables(
                         if variables_dict[variable].type == "actions":
                             repo.create_variable(variable, variables_dict[variable].value)
                         else:
-                            repo.get_environment(
-                                variables_dict[variable].type.replace("environments/", "")
-                            ).create_variable(variable, variables_dict[variable].value)
+                            try:
+                                repo.get_environment(
+                                    variables_dict[variable].type.replace("environments/", "")
+                                ).create_variable(variable, variables_dict[variable].value)
+                            except GithubException as exc:
+                                if exc.status == 422:
+                                    repo.get_environment(
+                                        variables_dict[variable].type.replace("environments/", "")
+                                    ).update_variable(variable, variables_dict[variable].value)
                         actions_toolkit.info(f"Created variable {variable}")
                 except Exception as exc:  # this should be tighter
                     if variables_dict[variable].required:

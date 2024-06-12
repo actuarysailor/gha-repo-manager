@@ -23,7 +23,7 @@ settings:
 
 labels:
   - name: first-timers-only
-    new_name: Help Wanted
+    new_name: help wanted
 
   - name: Fake Label
     exists: false
@@ -57,3 +57,15 @@ secrets:
 variables:
   - key: VARIABLE1
     exists: false
+
+batch_file_operations:
+  - target_branch: main
+    skip: false
+    files:
+      - src_file: remote://README.md
+        dest_file: README.rst
+        move: true
+      - src_file: README.md
+        commit_msg: update issue template
+      - src_file: OLDDOC.md
+        exists: false

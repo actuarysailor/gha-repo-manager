@@ -30,17 +30,6 @@ class FileConfig(BaseModel):
         description="If true and dealing with a remote src_file, repo_manager will move the file instead of "
         + "copying it, by removing src_file after copy. If src_file is a local file, this option is ignored.",
     )
-    # Commit messages and target branches should be set for the set of files, not individually
-    commit_msg: str = Field(
-        "repo_manager file commit",
-        description="Commit message to commit the file with. Files with the same commit message "
-        + "and target_branch will be commited in one commit.",
-    )
-    target_branch: OptStr = Field(
-        None,
-        description="Target branch to commit this file to. Default(None) "
-        + "means to lookup the default branch of the repo",
-    )
 
     @field_validator("src_file", mode="before")
     @classmethod
@@ -75,11 +64,23 @@ class FileConfig(BaseModel):
         with open(self.src_file) as fh:
             return fh.read()
 
-    # Not needed, but still used in tests I have not cleaned up...
-    # if we want to set commit messages, it should be done in groups of files, not per file
-    @property
-    def commit_key(self) -> str:
-        """Returns the commit key for this file_config, a combination of commit msg and target_branch"""
-        target_branch = self.target_branch if self.target_branch is not None else ""
 
-        return f"{self.commit_msg}_{target_branch}"
+class BranchFiles(BaseModel):
+    # Commit messages and target branches should be set for the set of files, not individually
+    commit_msg: str = Field(
+        "chore: Updates from repo_manager",
+        description="Commit message to commit the file(s) with.",
+    )
+    target_branch: OptStr = Field(
+        None,
+        description="Target branch to commit this file to. Default(None) "
+        + "means to lookup the default branch of the repo",
+    )
+    skip: bool = Field(
+        False,
+        description="If true, this set of files will be skipped. Useful for conditional file copying",
+    )
+    files: list[FileConfig] = Field(
+        [],
+        description="List of files to copy. If the file exists in the target_repo, it will be overwritten",
+    )

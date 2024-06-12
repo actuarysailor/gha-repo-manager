@@ -77,7 +77,7 @@ settings:
 
 # Labels: define labels for Issues and Pull Requests
 labels:
-  - name: Help Wanted
+  - name: help wanted
     # Provide a new name to rename an existing label. A rename that results in a 'not found' will not fail a run
     new_name: first-timers-only
 
@@ -191,22 +191,36 @@ variables:
     # set to false in order to remove a variable
     exists: true
 
-# Can copy files from your local context to the repo.
+# Can copy files from your local (e.g. the repo where the action is running) repo to the repo targeted by the action input.
+# * src_file always assumed to be in the local repo unless prefixed with remote://
+#   * remote:// means the file is in the target repo and should only be used if a different repo is specified in the action input
+# * dest_file always assumed to be in the target repo
+# * dest_file is optional and will default to the same name as src_file; only necessary if you want to rename/move the file
 # Manipulate files in the target repo
-# * move files around
-# * delete files
+# * move files with move: true and remote://src_file
+# * delete files with exists: false
 # Changes are automatically commited and pushed to a target branch (default is default branch)
 # File operations are applied sequentially
-files:
-  # copy templates/actions/my_workflow.yml to .github/workflows/my_workflow.yml in your target repo
-  # and commit it with the default commit message and to your repo's default branch.
-  # default commit message is "repo_manager file commit"
-  # This moves README.md to README.rst in the remote. If README.md doesn't exist, the workflow will not fail and will emit a warning.
-  - src_file: remote://README.md
-    dest_file: README.rst
-    move: true
-  - src_file: README.md
-    commit_msg: update issue template
-  # This removes OLDDOC.md in the dev branch. If OLDDOC.md doesn't exist, the workflow will emit a warning
-  - src_file: OLDDOC.md
-    exists: false
+# It performs the file operations in batches on a per branch basis; will consist of one or two commits per batch:
+# * One commit for all file operations that are only in the target repo - e.g. moves, renames, deletes, copies
+# * One commit for all file operations that update files in the target repo - e.g. content changes with corresponding files from the local repo
+# Finally, it will push the changes to a new branch in the target repo and initiate a pull request to merge the changes into the target branch if it exists
+# If the target branch does not exist, create the branch from the default branch and initiate a pull request to the default branch instead of the target branch
+# If the target branch is omitted, it will use the default branch of the target repo
+batch_file_operations:
+  - target_branch: main
+    skip: false
+    # You should follow Conventional Commits for commit messages - not required but recommended
+    commit_msg: 'chore(docs): Update README'
+    files:
+      # This moves README.md to README.rst in the remote (e.g. the repo specified in action input).
+      # If README.md doesn't exist, the workflow will fail because without it, there is no file to move so this operation should be omitted
+      - src_file: remote://README.md
+        dest_file: README.rst
+        move: true
+      # Copy the readme from the local repo (e.g. the one where the action is running) to the remote repo
+      - src_file: README.md
+        commit_msg: update issue template
+      # This removes OLDDOC.md in the target repo. If OLDDOC.md doesn't exist, the workflow will emit a warning.
+      - src_file: OLDDOC.md
+        exists: false
