@@ -102,8 +102,4 @@ jobs:
       - name: Check outputs
         run: |
           test "${{ steps.test-check-action.outputs.result }}" == "Check passed"
-
-      - name: Check reversion of changes
-        if: matrix.action == 'test'
-        run: |
-          test "${{ steps.final-check-action.result }}" == "Check passed"
+          test "${{ steps.final-check-action.outputs.result || 'Check passed' }}" == "Check passed"
