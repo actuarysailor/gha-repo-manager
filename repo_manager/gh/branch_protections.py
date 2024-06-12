@@ -516,11 +516,15 @@ def update_branch_protections(
                     else:
                         actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
             except GithubException as ghexc:
+                if ghexc.status == 403:
+                    actions_toolkit.warning(
+                        f"Unable to modify branch protection for {branch_name}.  {ghexc.message}"
+                    )
                 if ghexc.status == 404:
                     actions_toolkit.set_failed(
                         f"Can't change branch protection for {branch_name} because either the branch or the protection does not exist"
                     )
-                if ghexc.status != 404:
+                if ghexc.status not in [403, 404]:
                     # a 404 on a delete is fine, means it isnt protected
                     errors.append(
                         {

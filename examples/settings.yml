@@ -29,7 +29,7 @@ settings:
   # A URL with more information about the repository. Set to an empty string to clear.
   homepage: "https://github.com"
 
-  # A list of strings to apply as topics on the repo. Set to an empty string to clear topics. Omit or set to null to leave what repo already has
+  # A list of strings to apply as topics on the repo. Set to an empty list to clear topics. Omit or set to null to leave what repo already has
   topics:
     - sample-topic
 
@@ -88,11 +88,11 @@ labels:
 branch_protections:
   # branch protection can only be created for branches that exist.
   - name: main
+    # Set exists to false to delete branch protection
+    exists: true
     # https://docs.github.com/en/rest/reference/repos#update-branch-protection
     # Branch Protection settings. Leave a value out to leave set at current repo settings
     protection:
-      # Set exists to false to delete branch protection
-      exists: true
       # Require at least one approving review on a pull request, before merging. Set to null to disable.
       pr_options:
         # The number of approvals required. (1-6)

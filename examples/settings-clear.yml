@@ -7,7 +7,7 @@ collaborators:
 settings:
   description: This repo is for testing github actions against without messing up a real repo
   homepage: ""
-  topics: ""
+  topics: []
   private: true
   has_issues: false
   has_projects: false
@@ -30,8 +30,7 @@ labels:
 
 branch_protections:
   - name: main
-    protection:
-      exists: false
+    exists: false
 
 environments:
   - name: production
