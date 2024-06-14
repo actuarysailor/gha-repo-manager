@@ -138,7 +138,7 @@ def update_variables(
                                     variables_dict[variable].type.replace("environments/", "")
                                 ).create_variable(variable, variables_dict[variable].value)
                             except GithubException as exc:
-                                if exc.status == 422:
+                                if exc.status [409, 422]:
                                     repo.get_environment(
                                         variables_dict[variable].type.replace("environments/", "")
                                     ).update_variable(variable, variables_dict[variable].value)

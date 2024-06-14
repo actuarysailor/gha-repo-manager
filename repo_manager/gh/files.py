@@ -295,9 +295,9 @@ def update_files(
         if branch.skip:
             actions_toolkit.info(f"Skipping file sync to branch {branch.target_branch}")
             continue
-        if branch in diffs.keys():
-            diff = diffs[branch]
-            target_branch = f"repomgr/updates-to-{branch}"
+        if branch.target_branch in set(diffs.keys()):
+            diff = diffs[branch.target_branch]
+            target_branch = f"repomgr/updates-to-{branch.target_branch}"
             repo_dir.git.checkout(target_branch)
             prTitle = repo_dir.active_branch.commit.message
 
@@ -317,8 +317,8 @@ def update_files(
             else:
                 actions_toolkit.info(f"Pushed changes to remote {repo.full_name} branch {repo_dir.active_branch.name}")
                 body = "#"
-                body += generate({"files": {branch: diff}})
-                pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch)
+                body += generate({"files": {branch.target_branch: diff}})
+                pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch.target_branch)
 
                 body = f"# [{prTitle}]({pr.comments_url})\n\n" + body
                 issue_file_command("STEP_SUMMARY", body)
