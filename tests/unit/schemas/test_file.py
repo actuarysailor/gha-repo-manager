@@ -59,6 +59,6 @@ def test_example_works():
     with open("examples/settings.yml") as fh:
         example_data = yaml.safe_load(fh)
 
-    assert len(example_data["files"]) > 0
-    for file_config_dict in example_data["files"]:
+    assert len(example_data["batch_file_operations"]) > 0
+    for file_config_dict in example_data["batch_file_operations"]["files"]:
         FileConfig(**file_config_dict)
