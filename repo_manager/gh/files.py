@@ -42,6 +42,7 @@ def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, File
 
     return diff
 
+
 def __aggregate_git_diff_multiple_commits__(
     diff: dict[str, Files_TD], commit: dict[str, Files_TD]
 ) -> dict[str, Files_TD]:
@@ -61,6 +62,7 @@ def __aggregate_git_diff_multiple_commits__(
             diff[k] = metrics
 
     return diff
+
 
 def __clone_repo__(repo: Repository, branch: str) -> Repo:
     """Clone a repository to the local filesystem"""

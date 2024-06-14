@@ -409,7 +409,7 @@ def check_repo_branch_protections(
         # block_creations missing? Not sure if it is supported by the pygithub library
         if (
             config_bp.protection.require_conversation_resolution is not None
-            and config_bp.protection.require_conversation_resolution 
+            and config_bp.protection.require_conversation_resolution
             != (this_protection.required_conversation_resolution or "")
         ):
             diffs["require_conversation_resolution"] = {
