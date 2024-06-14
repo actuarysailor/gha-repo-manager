@@ -296,7 +296,7 @@ def update_files(
             actions_toolkit.info(f"Skipping file sync to branch {branch.target_branch}")
             continue
         if branch in diffs.keys():
-            diff = diffs[branch]:
+            diff = diffs[branch]
             target_branch = f"repomgr/updates-to-{branch}"
             repo_dir.git.checkout(target_branch)
             prTitle = repo_dir.active_branch.commit.message
