@@ -10,8 +10,7 @@ SUBKEY_HEADER_SYNTAX = {
     "branch": "branch <key>",
 }
 
-KEY_TO_CATEGORY = {
-}
+KEY_TO_CATEGORY = {}
 
 KEY_CHILD_NAME = {
     # "settings": "Setting",
@@ -71,8 +70,10 @@ def __depth__(v: Any) -> int:
     else:
         raise NotImplementedError(f"Unhandled case for {v} in {__depth__}")
 
+
 def __maximum_depth__(input_dict: dict) -> int:
     return 1 + max([__depth__(v) for v in input_dict.values()])
+
 
 def __minimum_depth__(input_dict: dict) -> int:
     return 1 + min([__depth__(v) for v in input_dict.values()])
@@ -101,21 +102,21 @@ def __validate_df_dict__(dfDict: dict) -> bool:
 
 # Should this just output a dataframe?
 def __dict_key_to_columns__(key: str, dfDict: dict | list, keyColName: str = None, valColName: str = None) -> dict:
-    '''Convert a dictionary to a DataFrame compatible dictionary with the keys as columns and the values as rows.
+    """Convert a dictionary to a DataFrame compatible dictionary with the keys as columns and the values as rows.
     This assumes that the dictionary provided is already data frame compatible.
-    '''
+    """
     result = {}
     # category = CATEGORY_MAP.get(category.lower(), category)
     _keyColName = (COLUMN_VALUE_TO_NAME[key.lower()] if keyColName is None else keyColName).capitalize()
     _keyValue = ACTION_TAKEN.get(key.lower(), key).capitalize()
-    _valColName = (COLUMN_RENAME_MAP.get(key.lower(), key)if valColName is None else valColName.capitalize())
+    _valColName = COLUMN_RENAME_MAP.get(key.lower(), key)if valColName is None else valColName.capitalize()
     if isinstance(dfDict, list):
         # Note that above we are using the key to get the category column name, not the column name for the key itself
-        if (_keyColName or '').lower() == (_valColName or '').lower():
+        if (_keyColName or "").lower() == (_valColName or "").lower():
             raise ValueError(f"Key column name {_keyColName} is the same as value column name {_valColName}")
         result[_keyColName] = [_keyValue] * len(dfDict)
         result[_valColName] = dfDict
-    elif isinstance(dfDict, dict):    
+    elif isinstance(dfDict, dict):
         if set(ACTION_TAKEN.keys()).intersection(dfDict.keys()):
             if not __validate_df_dict__(dfDict):
                 raise ValueError(f"Dictionary {dfDict} is not DataFrame compatible!")
@@ -128,16 +129,18 @@ def __dict_key_to_columns__(key: str, dfDict: dict | list, keyColName: str = Non
                 vColName = COLUMN_RENAME_MAP.get(k.lower(), k).capitalize()
                 if vColName == "Change":
                     v = f"{k} {v}"
-                result[vColName.capitalize()] = list([v]) # this is a list of one element
+                result[vColName.capitalize()] = list([v])  # this is a list of one element
         if result.get(_keyColName, None) is not None:
             raise ValueError(f"Column {_keyColName} already exists in {result}")
-        result[_keyColName] = [_keyValue.capitalize()] * len(next(iter(result.values())))            
+        result[_keyColName] = [_keyValue.capitalize()] * len(next(iter(result.values())))
     else:
         raise NotImplementedError(f"Unhandled case for {key}")
-    
+
     if not __validate_df_dict__(result):
         raise ValueError(f"Dictionary {result} is not DataFrame compatible!")
+
     return result
+
 
 def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> dict:
     result = {}
@@ -157,7 +160,7 @@ def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, va
                         result[v1ColName] = list([v1])
                 else:
                     result = __dict_to_dfDict__(v, keyColName, valColName)
-                if result.get(_keyColName, None) is None: # files sometimes have this accounted for already
+                if result.get(_keyColName, None) is None:  # files sometimes have this accounted for already
                     result[_keyColName] = [_keyColValue]
             else:
                 raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
@@ -167,25 +170,29 @@ def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, va
     return result
 
 
-def __dict_to_dfDict__(input_dict: dict, keyColName: str = None, valColName: str = None) -> dict: # should this just return a dataframe?
+def __dict_to_dfDict__(
+        input_dict: dict, keyColName: str = None, valColName: str = None
+) -> dict:  # should this just return a dataframe?
     result = {}
     # valColName = (COLUMN_RENAME_MAP.get(key.lower(), None) or COLUMN_RENAME_MAP.get(category, key)).capitalize()
     for key, value in input_dict.items():
         if isinstance(value, list):
-            if len(result) ==  0:
+            if len(result) == 0:
                 result = __dict_key_to_columns__(key, value, keyColName, valColName)
             else:
                 _keyColName = (COLUMN_VALUE_TO_NAME[key.lower()] if keyColName is None else keyColName).capitalize()
                 _keyValue = ACTION_TAKEN.get(key.lower(), key).capitalize()
-                _valColName = (COLUMN_RENAME_MAP.get(key.lower(), key)if valColName is None else valColName.capitalize())
+                _valColName = COLUMN_RENAME_MAP.get(key.lower(), key)if valColName is None else valColName.capitalize()
                 # Note that above we are using the key to get the category column name, not the column name for the key itself
                 if _keyColName.lower() == _valColName.lower():
                     raise ValueError(f"Key column name {keyColName} is the same as value column name {valColName}")
                 result[_keyColName].extend([_keyValue] * len(value))
                 result[_valColName].extend(value)
         elif isinstance(value, dict):
-            if __maximum_depth__(value) == 1 or (__minimum_depth__(value) == 2 and len(set(ACTION_TAKEN.keys()).intersection(value.keys())) > 0):
-                dfDict = __dict_key_to_columns__(key, value, keyColName, valColName) # used to have category
+            if __maximum_depth__(value) == 1 or (
+                __minimum_depth__(value) == 2 and len(set(ACTION_TAKEN.keys()).intersection(value.keys())) > 0
+            ):
+                dfDict = __dict_key_to_columns__(key, value, keyColName, valColName)  # used to have category
             else:
                 dfDict = __dict_to_dfDict__(value, keyColName, valColName)
                 _keyColName = COLUMN_VALUE_TO_NAME.get(key.lower(), None)
@@ -205,18 +212,21 @@ def __dict_to_dfDict__(input_dict: dict, keyColName: str = None, valColName: str
 
 def __key_handler__(key: str, value: Any, hdrDepth: str = "#") -> str:
     if key in KEYS_TO_DATAFRAME:
-        return pd.DataFrame(__dict_to_dfDict__(value, keyColName = KEY_CHILD_NAME.get(key, None), valColName = VAL_CHILD_NAME.get(key, None))).to_markdown() # used to have key?
+        return pd.DataFrame(
+            __dict_to_dfDict__(
+                value, keyColName = KEY_CHILD_NAME.get(key, None), valColName = VAL_CHILD_NAME.get(key, None))
+            ).to_markdown()  # used to have key?
     elif key in KEYS_TO_SKIP_A_LEVEL:
-        return '\n'.join([__key_handler__(k, v, f"{hdrDepth}#") for k, v in value.items()])
+        return "\n".join([__key_handler__(k, v, f"{hdrDepth}#") for k, v in value.items()])
     elif key in ACTION_TAKEN.keys():
         actionVerb = ACTION_TAKEN.get(key, key).capitalize()
-        return '\n'.join([__section_handler__(f"{actionVerb} {k}", v, f"{hdrDepth}#") for k, v in value.items()])
+        return "\n".join([__section_handler__(f"{actionVerb} {k}", v, f"{hdrDepth}#") for k, v in value.items()])
     elif key in MISSING_SUB_KEY.keys():
         key = MISSING_SUB_KEY[key]
         headerSyntax = SUBKEY_HEADER_SYNTAX[key]
-        return '\n'.join([__section_handler__(key, v, f"{hdrDepth}#", headerSyntax.replace("<key>", k)) for k, v in value.items()])
+        return "\n".join([__section_handler__(key, v, f"{hdrDepth}#", headerSyntax.replace("<key>", k)) for k, v in value.items()])
     else:
-        return '\n'.join([__section_handler__(k, v, f"{hdrDepth}#") for k, v in value.items()])
+        return "\n".join([__section_handler__(k, v, f"{hdrDepth}#") for k, v in value.items()])
 
 
 def __section_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
