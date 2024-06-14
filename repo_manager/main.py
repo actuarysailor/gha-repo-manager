@@ -1,6 +1,5 @@
 import sys
 import json
-import pandas as pd
 
 from actions_toolkit import core as actions_toolkit
 from actions_toolkit.file_command import issue_file_command
@@ -9,8 +8,9 @@ from pydantic import ValidationError
 
 from yaml import YAMLError
 
-from repo_manager.schemas import load_config
 from repo_manager.utils import get_inputs
+from repo_manager.utils.markdown import generate
+from repo_manager.schemas import load_config
 from repo_manager.gh.settings import check_repo_settings, update_settings
 from repo_manager.gh.labels import check_repo_labels, update_labels
 from repo_manager.gh.collaborators import check_collaborators, update_collaborators
@@ -19,94 +19,6 @@ from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.environments import check_repo_environments, update_environments
 from repo_manager.gh.files import check_files, update_files
-
-
-CATEGORIES_TO_TABULATE = ["settings", "collaborators", "branch_protections", "files"]
-
-COLUMN_NAME_MAP = {
-    "settings": {"key": "Setting", "value": None},
-    "collaborators": {"key": "Collaborator Type", "value": "Collaborator"},
-    "branch_protections": {"key": "Branch", "value": "Protection"},
-    "files": {"key": "File", "value": "Differences"},
-}
-
-
-def __flatten_differences__(input_dict: dict, fieldNames: dict[str, str]) -> dict:
-    fieldName = fieldNames["key"]
-    valueName = fieldNames["value"]
-    result = {fieldName: [], valueName: []}
-    for k1, v1 in input_dict.items():
-        result[fieldName].append(k1)
-        for k2, v2 in v1.items():
-            result[valueName].append(f"{k2} {v2}")
-
-    return result
-
-
-def __dict_to_columns__(input_dict: dict, fieldNames: dict[str, str]) -> dict:
-    result = {}
-    for key, value in input_dict.items():
-        if fieldNames is None:
-            fieldName = key
-            valueName = None
-        elif key.lower() in ["missing", "extra", "diff"]:
-            fieldName = "Differences"
-            if isinstance(value, list):
-                valueName = fieldNames["key"]
-            else:
-                valueName = fieldNames["value"]
-        elif key.lower() in ["users", "teams"]:
-            fieldName = "Collaborator Type"
-            valueName = fieldNames["value"]
-        else:
-            fieldName = fieldNames["key"]
-            valueName = fieldNames["value"]
-        if result.get(fieldName, None) is None:
-            result[fieldName] = []
-        if isinstance(value, str | int | bool):
-            result[fieldName].append(value)
-        elif isinstance(value, list):
-            if valueName is None:
-                result[fieldName].append(str(value))
-            else:
-                result[fieldName].extend([key] * len(value))
-                result[valueName] = value
-        elif isinstance(value, dict):
-            if valueName == "Differences":
-                subDict = __flatten_differences__(value, fieldNames)
-            else:
-                subDict = __dict_to_columns__(value, fieldNames if valueName is not None else None)
-            if fieldName != valueName:
-                result[fieldName].extend([key] * len(next(iter(subDict.values()))))
-            for subKey, subValue in subDict.items():
-                if result.get(subKey, None) is None:
-                    result[subKey] = []
-                result[subKey].extend(subValue)
-        else:
-            raise NotImplementedError(f"Unhandled case for {key} in {input_dict}")
-    return result
-
-
-def __tabularize_differences__(input_dict: dict, category: str) -> pd.DataFrame:
-    fieldNames = COLUMN_NAME_MAP.get(category, None)
-    flatDict = __dict_to_columns__(input_dict, fieldNames)
-    return pd.DataFrame(flatDict)
-
-
-def __markdown_summary__(diffs: dict[str, list[str] | dict[str, dict]], heading: str = "#") -> str:
-    """Generate a markdown summary of the diffs"""
-    summary = ""
-    for category, items in diffs.items():
-        summary += f"\n{heading} {category.capitalize()}\n"
-        if category in CATEGORIES_TO_TABULATE:
-            tbl = __tabularize_differences__(items, category)
-            summary += pd.DataFrame(tbl).to_markdown()
-        elif isinstance(items, list):
-            summary += "\n".join([f"- {item}" for item in items])
-        elif isinstance(items, dict):
-            summary += __markdown_summary__(diffs[category], heading + "#")
-        summary += "\n"
-    return summary
 
 
 def main():  # noqa: C901
@@ -160,7 +72,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            issue_file_command("STEP_SUMMARY", __markdown_summary__(diffs))
+            issue_file_command("STEP_SUMMARY", generate(diffs))
             if inputs["fail_on_diff"] == "true":
                 actions_toolkit.set_output("result", "Check failed, diff detected")
                 actions_toolkit.set_failed("Diff detected")
