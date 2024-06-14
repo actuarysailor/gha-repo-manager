@@ -60,7 +60,7 @@ variables:
 
 batch_file_operations:
   - target_branch: main
-    skip: false
+    skip: true
     files:
       - src_file: remote://README.md
         dest_file: README.rst
