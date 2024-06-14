@@ -311,7 +311,7 @@ def update_files(
         else:
             actions_toolkit.info(f"Pushed changes to remote {repo.full_name} branch {repo_dir.active_branch.name}")
             body = "#"
-            body += generate({"files": diff})
+            body += generate({"files": {branch: diff}})
             pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch)
 
             body = f"# [{prTitle}]({pr.comments_url})\n\n" + body
