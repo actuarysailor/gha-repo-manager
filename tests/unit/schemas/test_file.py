@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from repo_manager.schemas import FileConfig
+from repo_manager.schemas.file import FileConfig
 
 
 VALID_CONFIG = {
