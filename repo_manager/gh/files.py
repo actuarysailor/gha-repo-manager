@@ -246,6 +246,7 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
     diffs = {}
     for branch in branches:
         if branch.skip:
+            actions_toolkit.info(f"Skipping file sync to branch {branch.target_branch}")
             continue
 
         branch.target_branch = repo.default_branch if branch.target_branch is None else branch.target_branch
@@ -272,7 +273,7 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
 
 
 def update_files(
-    repo: Repository, files: list[BranchFiles], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
+    repo: Repository, branches: list[BranchFiles], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
 ) -> set[str]:
     """Update files in a repository"""
     errors = []
@@ -290,32 +291,37 @@ def update_files(
             raise NotADirectoryError(f"{repoPath} is not a directory!")
         repo_dir = Repo(repoPath)
 
-    for branch, diff in diffs.items():
-        target_branch = f"repomgr/updates-to-{branch}"
-        repo_dir.git.checkout(target_branch)
-        prTitle = repo_dir.active_branch.commit.message
+    for branch in branches:
+        if branch.skip:
+            actions_toolkit.info(f"Skipping file sync to branch {branch.target_branch}")
+            continue
+        if branch in diffs.keys():
+            diff = diffs[branch]:
+            target_branch = f"repomgr/updates-to-{branch}"
+            repo_dir.git.checkout(target_branch)
+            prTitle = repo_dir.active_branch.commit.message
 
-        origin = repo_dir.remote()
-        pushInfo = origin.push(repo_dir.active_branch.name)
+            origin = repo_dir.remote()
+            pushInfo = origin.push(repo_dir.active_branch.name)
 
-        if pushInfo.error is not None:
-            for info in pushInfo:
-                if info.ERROR:
-                    errors.append(
-                        {
-                            "type": "file-update",
-                            "key": info.local_ref.commit.hexsha,
-                            "error": f"{GithubException(info.ERROR, message = info.summary)}",
-                        }
-                    )
-        else:
-            actions_toolkit.info(f"Pushed changes to remote {repo.full_name} branch {repo_dir.active_branch.name}")
-            body = "#"
-            body += generate({"files": {branch: diff}})
-            pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch)
+            if pushInfo.error is not None:
+                for info in pushInfo:
+                    if info.ERROR:
+                        errors.append(
+                            {
+                                "type": "file-update",
+                                "key": info.local_ref.commit.hexsha,
+                                "error": f"{GithubException(info.ERROR, message = info.summary)}",
+                            }
+                        )
+            else:
+                actions_toolkit.info(f"Pushed changes to remote {repo.full_name} branch {repo_dir.active_branch.name}")
+                body = "#"
+                body += generate({"files": {branch: diff}})
+                pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch)
 
-            body = f"# [{prTitle}]({pr.comments_url})\n\n" + body
-            issue_file_command("STEP_SUMMARY", body)
-            actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")
+                body = f"# [{prTitle}]({pr.comments_url})\n\n" + body
+                issue_file_command("STEP_SUMMARY", body)
+                actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")
 
     return errors

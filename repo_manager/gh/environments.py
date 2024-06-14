@@ -3,7 +3,7 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
-from github.GithubException import UnknownObjectException
+from github.GithubException import GithubException, UnknownObjectException
 from github.Repository import Repository
 
 from repo_manager.schemas.environment import (
@@ -306,8 +306,14 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                     else:
                         actions_toolkit.info(f"Synced {env_component} for environment {env_name}")
                 elif issue_type == "extra":
-                    repo.delete_environment(env_name)
-                    actions_toolkit.info(f"Deleted Deployment Environment {env_name}")
+                    try:
+                        repo.delete_environment(env_name)
+                        actions_toolkit.info(f"Deleted Deployment Environment {env_name}")
+                    except GithubException as exc:
+                        if exc.status == 404 and repo.private:
+                            actions_toolkit.warning(f"Environment {env_name} may be hidden due to repository being private")
+                        else:
+                            raise exc
             except Exception as exc:
                 errors.append({env_name: f"environment-{action}", "error": f"{exc}"})
     return errors
