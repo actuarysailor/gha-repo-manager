@@ -378,9 +378,7 @@ def check_repo_branch_protections(
                     "found": this_protection.required_status_checks.contexts,
                 }
 
-        if config_bp.protection.enforce_admins is not None and config_bp.protection.enforce_admins != (
-            this_protection.enforce_admins or ""
-        ):
+        if (config_bp.protection.enforce_admins or this_protection.enforce_admins) != this_protection.enforce_admins:
             diffs["enforce_admins"] = {
                 "expected": config_bp.protection.enforce_admins,
                 "found": this_protection.enforce_admins,
