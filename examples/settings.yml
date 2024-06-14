@@ -11,9 +11,9 @@
 # permission can be 'push','pull','triage','admin','maintain', or any custom role you have defined
 # for either users or teams, set exists to false to remove their permissions
 collaborators:
-  - name: andrewthetechie
+  - name: actuarysailor
     type: user
-    permission: pull
+    permission: push
     exists: true
 
 # Which method you choose is up to you. See README.md for more info and example
@@ -154,7 +154,7 @@ environments:
     # wait_timer: 30
     # for reviewers, it will add or remove teams and users such that the list matches the one below
     reviewers:
-      - name: andrewthetechie
+      - name: actuarysailor
         type: user
     # omit deployment_branch_policy if you do not want any set
     deployment_branch_policy:

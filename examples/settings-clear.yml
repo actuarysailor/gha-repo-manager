@@ -1,7 +1,7 @@
 collaborators:
-  - name: andrewthetechie
+  - name: actuarysailor
     type: user
-    permission: pull
+    permission: push
     exists: false
 
 settings:
