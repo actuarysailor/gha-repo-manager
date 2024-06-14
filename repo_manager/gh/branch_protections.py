@@ -318,23 +318,25 @@ def check_repo_branch_protections(
         if config_bp.protection.pr_options is not None:
             if (
                 config_bp.protection.pr_options.required_approving_review_count is not None
-                and this_protection.required_pull_request_reviews.required_approving_review_count != config_bp.protection.pr_options.required_approving_review_count
+                and this_protection.required_pull_request_reviews.required_approving_review_count 
+                != config_bp.protection.pr_options.required_approving_review_count
             ):
                 diffs["required_approving_review_count"] = {
                     "expected": config_bp.protection.pr_options.required_approving_review_count,
-                    "found": None 
+                    "found": None
                     if (this_protection.required_pull_request_reviews is None)
                     else this_protection.required_pull_request_reviews.required_approving_review_count
                 }
             if (
                 config_bp.protection.pr_options.dismiss_stale_reviews is not None
-                and this_protection.required_pull_request_reviews.dismiss_stale_reviews != config_bp.protection.pr_options.dismiss_stale_reviews
+                and this_protection.required_pull_request_reviews.dismiss_stale_reviews 
+                != config_bp.protection.pr_options.dismiss_stale_reviews
             ):
                 diffs["dismiss_stale_reviews"] = {
                     "expected": config_bp.protection.pr_options.dismiss_stale_reviews,
-                    "found": None 
+                    "found": None
                     if (this_protection.required_pull_request_reviews is None)
-                    else this_protection.required_pull_request_reviews.dismiss_stale_reviews
+                    else this_protection.required_pull_request_reviews.dismiss_stale_reviews,
                 }
             if (
                 config_bp.protection.pr_options.require_code_owner_reviews is not None
@@ -343,7 +345,7 @@ def check_repo_branch_protections(
             ):
                 diffs["require_code_owner_reviews"] = {
                     "expected": config_bp.protection.pr_options.require_code_owner_reviews,
-                    "found": None 
+                    "found": None
                     if (this_protection.required_pull_request_reviews is None)
                     else this_protection.required_pull_request_reviews.require_code_owner_reviews
                 }
@@ -355,7 +357,8 @@ def check_repo_branch_protections(
         ):
             if (
                 config_bp.protection.required_status_checks.strict is not None
-                and config_bp.protection.required_status_checks.strict != this_protection.required_status_checks.strict
+                and config_bp.protection.required_status_checks.strict 
+                != this_protection.required_status_checks.strict
             ):
                 diffs["required_status_checks::strict"] = {
                     "expected": config_bp.protection.required_status_checks.strict,
@@ -404,8 +407,9 @@ def check_repo_branch_protections(
                 "found": this_protection.allow_deletions,
             }
         # block_creations missing? Not sure if it is supported by the pygithub library
-        if (config_bp.protection.require_conversation_resolution is not None
-            and config_bp.protection.require_conversation_resolution != (this_protection.required_conversation_resolution or "")):
+        if config_bp.protection.require_conversation_resolution is not None and config_bp.protection.require_conversation_resolution != (
+            this_protection.required_conversation_resolution or ""
+        ):
             diffs["require_conversation_resolution"] = {
                 "expected": config_bp.protection.require_conversation_resolution,
                 "found": this_protection.required_conversation_resolution,

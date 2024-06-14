@@ -211,7 +211,7 @@ batch_file_operations:
   - target_branch: main
     skip: false
     # You should follow Conventional Commits for commit messages - not required but recommended
-    commit_msg: 'chore(docs): Update README'
+    commit_msg: "chore(docs): Update README"
     files:
       # This moves README.md to README.rst in the remote (e.g. the repo specified in action input).
       # If README.md doesn't exist, the workflow will fail because without it, there is no file to move so this operation should be omitted
