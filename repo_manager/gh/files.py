@@ -25,7 +25,7 @@ commitCleanup: Commit = None
 
 def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, Files_TD]) -> dict[str, Files_TD]:
     """Get the file differences -- this is used to handle file moves and renames"""
-        
+
     for k in filter(lambda k: k in pathMap.keys(), diff.keys()):
         newPath = pathMap[k]
         for metric in diff[newPath].keys():
@@ -35,14 +35,16 @@ def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, File
                 diff[newPath][metric] -= diff[k]["deletions"]
             else:
                 diff[newPath][metric] -= diff[k][metric]
-                
+
     for k in pathMap.keys():
         if k in diff.keys():
             diff.pop(k)
 
     return diff
 
-def __aggregate_git_diff_multiple_commits__(diff: dict[str, Files_TD], commit: dict[str, Files_TD]) -> dict[str, Files_TD]:
+def __aggregate_git_diff_multiple_commits__(
+    diff: dict[str, Files_TD], commit: dict[str, Files_TD]
+) -> dict[str, Files_TD]:
     """Add the file differences"""
     unchangedFiles = [k for k in filter(lambda k: k not in commit.keys(), diff.keys())]
     [diff.pop(k) for k in unchangedFiles]
@@ -50,7 +52,7 @@ def __aggregate_git_diff_multiple_commits__(diff: dict[str, Files_TD], commit: d
         metrics = commit.pop(k)
         for metric in ["insertions", "deletions", "lines"]:
             if diff[k] is None:
-                diff[k] = {'insertions': 0, 'deletions': 0, 'lines': 0}
+                diff[k] = {"insertions": 0, "deletions": 0, "lines": 0}
             if diff[k].get(metric, None) is None:
                 diff[k][metric] = metrics[metric]
             else:
@@ -73,13 +75,15 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     return cloned_repo
 
 
-def __check_files__(repo: Repo, commit_msg: str, files: list[FileConfig]) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
+def __check_files__(
+    repo: Repo, commit_msg: str, files: list[FileConfig]
+) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
     """Check files in a repository"""
 
     # if no files are provided, return True
     if files is None:
         return True, None
-    
+
     if re.search(r"\((\w+)\):", commit_msg):
         commitCleanupMsg = re.sub(r"\((\w+)\):", r"(\1-maint):", commit_msg)
         commitUpdateMsg = re.sub(r"\((\w+)\):", r"(\1-update):", commit_msg)
@@ -91,7 +95,7 @@ def __check_files__(repo: Repo, commit_msg: str, files: list[FileConfig]) -> tup
         commitUpdateMsg = f"chore:(update): {commit_msg}"
 
     diffs = {}
-    extra =  {}
+    extra = {}
     missing = {}
     changed = {}
 
@@ -114,9 +118,9 @@ def __check_files__(repo: Repo, commit_msg: str, files: list[FileConfig]) -> tup
                 )
         else:
             if file_config.exists and file_config.remote_src and not oldPath.exists():
-                raise FileNotFoundError(f"File {file_config.src_file} does not exist in target repo") # {repo}
+                raise FileNotFoundError(f"File {file_config.src_file} does not exist in target repo")  # {repo}
             if file_config.remote_src and file_config.move and newPath.exists():
-                raise FileExistsError(f"File {file_config.dest_file} already exists in target repo") # {repo}
+                raise FileExistsError(f"File {file_config.dest_file} already exists in target repo")  # {repo}
             if oldPath == newPath:
                 continue  # Nothing to do
             if oldPath.exists():
@@ -147,7 +151,9 @@ def __check_files__(repo: Repo, commit_msg: str, files: list[FileConfig]) -> tup
     # get the list of files that were re-organized
     if commitCleanup is not None:
         actions_toolkit.info(f"File Change Commit SHA: {commitCleanup.hexsha}")
-        renamedFiles = {str(f.src_file): str(f.dest_file) for f in filter(lambda f: str(f.src_file) != str(f.dest_file), files)}
+        renamedFiles = {
+            str(f.src_file): str(f.dest_file) for f in filter(lambda f: str(f.src_file) != str(f.dest_file), files)
+        }
         for file in commitCleanup.stats.files:
             if str(Path(file)) not in missing.keys() | extra.keys() | changed.keys() | renamedFiles.keys():
                 raise RuntimeError(f"File {file} has unaccounted changes!{commitCleanup.stats.files[file]}")
@@ -205,7 +211,6 @@ def __check_files__(repo: Repo, commit_msg: str, files: list[FileConfig]) -> tup
             else:
                 raise RuntimeError(f"File {file} has unaccounted changes!{commitCleanup.stats.files[file]}")
 
-
     if len(extra) > 0:
         diffs["extra"] = extra
 
@@ -217,7 +222,7 @@ def __check_files__(repo: Repo, commit_msg: str, files: list[FileConfig]) -> tup
 
     if len(diffs) > 0:
         return False, diffs
-    
+
     # Default to no differences
     return True, None
 
@@ -244,9 +249,11 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
         branch.target_branch = repo.default_branch if branch.target_branch is None else branch.target_branch
 
         # Checkout the target branch if it exists
-        if branch.target_branch != repo.default_branch and branch.target_branch in [b.name for b in repo.get_branches()]:
+        if branch.target_branch != repo.default_branch and branch.target_branch in [
+            b.name for b in repo.get_branches()
+        ]:
             repo_dir.git.checkout(branch.target_branch)
-        
+
         # Create and checkout a new branch
         new_branch = repo_dir.create_head(f"repomgr/updates-to-{branch.target_branch}")
         new_branch.checkout()
@@ -255,10 +262,10 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
         success, diff = __check_files__(repo_dir, branch.commit_msg, branch.files)
         if not success:
             diffs[branch.target_branch] = diff
-        
+
     if len(diffs) > 0:
         return False, diffs
-    
+
     return True, None
 
 
@@ -304,7 +311,7 @@ def update_files(
             body = "#"
             body += generate({"file": diff})
             pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch)
-            
+
             body = f"# [{prTitle}]({pr.comments_url})\n\n" + body
             issue_file_command("STEP_SUMMARY", body)
             actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")

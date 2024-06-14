@@ -318,18 +318,18 @@ def check_repo_branch_protections(
         if config_bp.protection.pr_options is not None:
             if (
                 config_bp.protection.pr_options.required_approving_review_count is not None
-                and this_protection.required_pull_request_reviews.required_approving_review_count 
+                and this_protection.required_pull_request_reviews.required_approving_review_count
                 != config_bp.protection.pr_options.required_approving_review_count
             ):
                 diffs["required_approving_review_count"] = {
                     "expected": config_bp.protection.pr_options.required_approving_review_count,
                     "found": None
                     if (this_protection.required_pull_request_reviews is None)
-                    else this_protection.required_pull_request_reviews.required_approving_review_count
+                    else this_protection.required_pull_request_reviews.required_approving_review_count,
                 }
             if (
                 config_bp.protection.pr_options.dismiss_stale_reviews is not None
-                and this_protection.required_pull_request_reviews.dismiss_stale_reviews 
+                and this_protection.required_pull_request_reviews.dismiss_stale_reviews
                 != config_bp.protection.pr_options.dismiss_stale_reviews
             ):
                 diffs["dismiss_stale_reviews"] = {
@@ -340,14 +340,14 @@ def check_repo_branch_protections(
                 }
             if (
                 config_bp.protection.pr_options.require_code_owner_reviews is not None
-                and this_protection.required_pull_request_reviews.require_code_owner_reviews 
+                and this_protection.required_pull_request_reviews.require_code_owner_reviews
                 != config_bp.protection.pr_options.require_code_owner_reviews
             ):
                 diffs["require_code_owner_reviews"] = {
                     "expected": config_bp.protection.pr_options.require_code_owner_reviews,
                     "found": None
                     if (this_protection.required_pull_request_reviews is None)
-                    else this_protection.required_pull_request_reviews.require_code_owner_reviews
+                    else this_protection.required_pull_request_reviews.require_code_owner_reviews,
                 }
             # for now, not checking dismissal options. Will note that in the docs
 
@@ -357,8 +357,7 @@ def check_repo_branch_protections(
         ):
             if (
                 config_bp.protection.required_status_checks.strict is not None
-                and config_bp.protection.required_status_checks.strict 
-                != this_protection.required_status_checks.strict
+                and config_bp.protection.required_status_checks.strict != this_protection.required_status_checks.strict
             ):
                 diffs["required_status_checks::strict"] = {
                     "expected": config_bp.protection.required_status_checks.strict,
@@ -371,7 +370,8 @@ def check_repo_branch_protections(
                 this_protection.required_status_checks.contexts.sort()
             if (
                 config_bp.protection.required_status_checks.checks is not None
-                and config_bp.protection.required_status_checks.checks != this_protection.required_status_checks.contexts
+                and config_bp.protection.required_status_checks.checks
+                != this_protection.required_status_checks.contexts
             ):
                 diffs["required_status_checks::checks"] = {
                     "expected": config_bp.protection.required_status_checks.checks,
@@ -382,8 +382,8 @@ def check_repo_branch_protections(
             this_protection.enforce_admins or ""
         ):
             diffs["enforce_admins"] = {
-            "expected": config_bp.protection.enforce_admins,
-            "found": this_protection.enforce_admins,
+                "expected": config_bp.protection.enforce_admins,
+                "found": this_protection.enforce_admins,
             }
         if config_bp.protection.require_linear_history is not None and config_bp.protection.require_linear_history != (
             this_protection.required_linear_history or ""
@@ -407,8 +407,10 @@ def check_repo_branch_protections(
                 "found": this_protection.allow_deletions,
             }
         # block_creations missing? Not sure if it is supported by the pygithub library
-        if config_bp.protection.require_conversation_resolution is not None and config_bp.protection.require_conversation_resolution != (
-            this_protection.required_conversation_resolution or ""
+        if (
+            config_bp.protection.require_conversation_resolution is not None
+            and config_bp.protection.require_conversation_resolution 
+            != (this_protection.required_conversation_resolution or "")
         ):
             diffs["require_conversation_resolution"] = {
                 "expected": config_bp.protection.require_conversation_resolution,
@@ -435,8 +437,10 @@ def check_repo_branch_protections(
             if config_bp.protection.pr_options.dismissal_restrictions is not None:
                 if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
                     config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
-                if (config_bp.protection.pr_options.dismissal_restrictions.users is not None
-                        and config_bp.protection.pr_options.dismissal_restrictions.users != (dismissal_users or [])):
+                if (
+                    config_bp.protection.pr_options.dismissal_restrictions.users is not None
+                    and config_bp.protection.pr_options.dismissal_restrictions.users != (dismissal_users or [])
+                ):
                     diffs["dismissal_users"] = {
                         "expected": config_bp.protection.pr_options.dismissal_restrictions.users,
                         "found": dismissal_users,
@@ -446,8 +450,10 @@ def check_repo_branch_protections(
             if config_bp.protection.pr_options.dismissal_restrictions is not None:
                 if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
                     config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
-                if (config_bp.protection.pr_options.dismissal_restrictions.teams is not None
-                        and config_bp.protection.pr_options.dismissal_restrictions.teams != (dismissal_teams or [])):
+                if (
+                    config_bp.protection.pr_options.dismissal_restrictions.teams is not None
+                    and config_bp.protection.pr_options.dismissal_restrictions.teams != (dismissal_teams or [])
+                ):
                     diffs["dismissal_teams"] = {
                         "expected": config_bp.protection.pr_options.dismissal_restrictions.teams,
                         "found": dismissal_teams,
@@ -507,9 +513,7 @@ def update_branch_protections(
                         actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
             except GithubException as ghexc:
                 if ghexc.status == 403:
-                    actions_toolkit.warning(
-                        f"Unable to modify branch protection for {branch_name}.  {ghexc.message}"
-                    )
+                    actions_toolkit.warning(f"Unable to modify branch protection for {branch_name}.  {ghexc.message}")
                 if ghexc.status == 404:
                     actions_toolkit.set_failed(
                         f"Can't change branch protection for {branch_name} because either the branch or the protection does not exist"
