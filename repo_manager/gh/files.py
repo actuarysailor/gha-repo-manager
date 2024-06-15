@@ -307,6 +307,8 @@ def update_files(
 
             if pushInfo.error is not None:
                 for info in pushInfo:
+                    if info.ERROR == 1024:
+                        actions_toolkit.warning(f"Branch {repo_dir.active_branch.name} already exists in {repo.full_name}!")
                     if info.ERROR:
                         errors.append(
                             {
