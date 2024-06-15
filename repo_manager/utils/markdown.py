@@ -314,7 +314,7 @@ def __section_handler__(
 def generate(markdown: dict[str, Any], messages: dict[str, list[str]], hdrDepth: str = "#") -> str:
     body = ""
     if messages.get("open", None) is not None:
-        body += f"{hdrDepth} {messages["open"]}:\n\n"
+        body += f"{hdrDepth} {messages['open']}:\n\n"
         hdrDepth += "#"
     for key, value in markdown.items():
         body += __section_handler__(key, value, hdrDepth, messages=messages.get(key, None))

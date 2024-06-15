@@ -287,7 +287,7 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                                 secret_diffs = {"missing": [secret.key for secret in config_env_dict[env_name].secrets]}
                             else:
                                 secret_diffs = diffs[issue_type][env_name][env_component]
-                            pErrors = update_secrets(repo, config_env_dict[env_name].secrets, secret_diffs)
+                            pErrors, pMessages = update_secrets(repo, config_env_dict[env_name].secrets, secret_diffs)
                         elif env_component == "variables" and config_env_dict[env_name].variables is not None:
                             if issue_type == "missing":
                                 var_diffs = {
@@ -296,13 +296,13 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                             else:
                                 var_diffs = diffs[issue_type][env_name].get(env_component, None)
                             if var_diffs is not None:
-                                pErrors = update_variables(
+                                pErrors, pMessages = update_variables(
                                     repo,
                                     config_env_dict[env_name].variables,
                                     var_diffs,
                                 )
                     if len(pErrors) > 0:
-                        errors.append({env_name: pErrors})
+                        errors.append(f"{env_name}: {pErrors}")
                     else:
                         actions_toolkit.info(f"Synced {env_component} for environment {env_name}")
                 elif issue_type == "extra":
