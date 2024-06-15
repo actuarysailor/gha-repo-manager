@@ -78,6 +78,8 @@ def main():  # noqa: C901
                 actions_toolkit.set_failed("Diff detected")
             else:
                 actions_toolkit.warning("Diff detected")
+        else:
+            issue_file_command("STEP_SUMMARY", "# No changes detected")
         actions_toolkit.set_output("result", "Check passed")
         sys.exit(0)
 
