@@ -1,8 +1,4 @@
 collaborators:
-  - name: actuarysailor
-    type: user
-    permission: push
-    exists: false
 
 settings:
   description: This repo is for testing github actions against without messing up a real repo
