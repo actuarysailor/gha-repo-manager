@@ -170,15 +170,6 @@ def __dict_embed_key_in_subdict__(
             elif isinstance(v, dict):
                 r = __dict_embed_key_in_subdict__(v, keyColName, valColName)
                 df = pd.concat([df, r])
-                
-            #     dfDict = v
-            #     sample = next(iter(dfDict.values()))
-            #     if isinstance(sample, list):
-            #         dfDict[_keyColName] = [_keyColValue] * len(sample)
-            #     elif isinstance(sample, dict):
-            #         dfDict[_keyColName] = [_keyColValue] * len(sample.keys())
-            #     else:
-            #         raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
             else:
                 raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
         elif keyColName == "Setting":
@@ -190,9 +181,7 @@ def __dict_embed_key_in_subdict__(
     return df
 
 
-def __dict_diff_to_columns__(
-    input_dict: dict | list, keyColName: str = None, valColName: str = None
-) -> pd.DataFrame:
+def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> pd.DataFrame:
     """Maps the typical expected, found difference columns to the appropriate column names and values."""
     dfDict = {}
     expectedLength = __maximum_depth__(input_dict)
