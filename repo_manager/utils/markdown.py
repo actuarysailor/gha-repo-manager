@@ -259,7 +259,7 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
     actionVerb = ACTION_TAKEN.get(key, key).lower()
     if isinstance(value, list):
         return (
-            f"\n{__section_handler__(actionVerb, value, hdrDepth, f"{actionVerb.capitalize()} {header.capitalize()}")}"
+            f"\n{__section_handler__(actionVerb, value, hdrDepth, f'{actionVerb.capitalize()} {header.capitalize()}')}"
         )
     elif isinstance(value, dict):
         key = MISSING_SUB_KEY[header]
