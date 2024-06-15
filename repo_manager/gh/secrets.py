@@ -27,6 +27,7 @@ def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, d
     Returns:
         Tuple[bool, Optional[List[str]]]: [description]
     """
+    diff = {}
     repo_secret_names = set[str]()
     if any(filter(lambda secret: secret.type == "actions", secrets)):
         repo_secret_names.update(__get_repo_secret_names__(repo))
@@ -38,23 +39,30 @@ def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, d
             None,
         )
         if first_secret is not None:
-            repo_secret_names.update(__get_repo_secret_names__(repo, first_secret.type))
+            repo_secret_names.update(__get_repo_secret_names__(repo, first_secret.type.replace("environments/", "")))
 
     expected_secrets_names = {secret.key for secret in filter(lambda secret: secret.exists, secrets)}
-    diff = {
-        "missing": list(expected_secrets_names - repo_secret_names),
-        "extra": list(
-            repo_secret_names.intersection(
-                {secret.key for secret in filter(lambda secret: secret.exists is False, secrets)}
-            )
-        ),
-        # Because we cannot diff secret values, we assume they are different if they exist
-        "diff": list(
-            repo_secret_names.intersection({secret.key for secret in filter(lambda secret: secret.exists, secrets)})
-        ),
-    }
 
-    if len(diff["missing"]) + len(diff["extra"]) + len(diff["diff"]) > 0:
+    missing = list(expected_secrets_names - repo_secret_names)
+    if len(missing) > 0:
+        diff["missing"] = missing
+
+    extra = list(
+        repo_secret_names.intersection(
+            {secret.key for secret in filter(lambda secret: secret.exists is False, secrets)}
+        )
+    )
+    if len(extra) > 0:
+        diff["extra"] = extra
+
+    existing = list(
+        repo_secret_names.intersection({secret.key for secret in filter(lambda secret: secret.exists, secrets)})
+    )
+
+    if len(existing) > 0:
+        diff["diff"] = existing
+
+    if len(diff) > 0:
         return False, diff
 
     return True, None
@@ -64,7 +72,7 @@ def update_secrets(
     repo: Repository,
     secrets: list[Secret],
     diffs: tuple[dict[str, list[str] | dict[str, Any]]],
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's secrets to match the expected settings
 
     Args:
@@ -85,7 +93,7 @@ def update_secrets(
                             secret_name, secret_dict[secret_name].expected_value, secret_dict[secret_name].type
                         )
                     else:
-                        repo.get_environment(secret_dict[secret_name].type).create_secret(
+                        repo.get_environment(secret_dict[secret_name].type.replace("environments/", "")).create_secret(
                             secret_name, secret_dict[secret_name].expected_value
                         )
                     # create_secret(repo, secret.key, secret.expected_value, secret.type)
@@ -106,4 +114,4 @@ def update_secrets(
                             "error": f"{exc}",
                         }
                     )
-    return errors
+    return errors, []

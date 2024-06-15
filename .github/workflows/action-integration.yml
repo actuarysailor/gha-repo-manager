@@ -19,7 +19,20 @@ on:
       - '**/*.py'
 
 jobs:
+
   action-integration-testing:
+    strategy:
+      matrix:
+        include:
+        - repo: self
+          action: check
+          settings_file: '[".github/settings.yml"]'
+          fail_on_diff: true
+        - repo: actuarysailor/test
+          action: test
+          settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
+          fail_on_diff: false
+
     name: Action Integration Testing
     runs-on: ubuntu-latest
     steps:
@@ -40,16 +53,53 @@ jobs:
       - name: cat action.yml
         run: cat action.yml
 
-      - name: Test action
-        id: test-action
-        # test with the local checkout of the action
+      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
+        id: test-check-action
+        if: contains(fromJSON('["check","test"]'), matrix.action)
         uses: ./
         with:
           token: ${{ secrets.THIS_PAT || github.token }}
-          action: "check"
+          repo: ${{ matrix.repo }}
+          settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
+          action: check
+          fail_on_diff: ${{ matrix.fail_on_diff }}
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
+      - name: Applying ${{ fromJSON(matrix.settings_file)[0] }} to ${{ matrix.repo }}
+        id: test-apply-action
+        if: matrix.action == 'test'
+        uses: ./
+        with:
+          token: ${{ secrets.THIS_PAT || github.token }}
+          repo: ${{ matrix.repo }}
+          settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
+          action: apply
+        env:
+          SOME_SECRET: ${{ secrets.SOME_SECRET }}
+
+      - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.repo }}
+        id: undo-apply-action
+        if: matrix.action == 'test'
+        uses: ./
+        with:
+          token: ${{ secrets.THIS_PAT || github.token }}
+          repo: ${{ matrix.repo }}
+          settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
+          action: apply
+
+      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
+        id: final-check-action
+        if: matrix.action == 'test'
+        uses: ./
+        with:
+          token: ${{ secrets.THIS_PAT || github.token }}
+          repo: ${{ matrix.repo }}
+          settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
+          action: check
+          fail_on_diff: true
+
       - name: Check outputs
         run: |
-          test "${{ steps.test-action.outputs.result }}" == "Check passed"
+          test "${{ steps.test-check-action.outputs.result }}" == "Check passed"
+          test "${{ steps.final-check-action.outputs.result || 'Check passed' }}" == "Check passed"

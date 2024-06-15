@@ -1,0 +1,67 @@
+collaborators:
+
+settings:
+  description: This repo is for testing github actions against without messing up a real repo
+  homepage: ""
+  topics: []
+  private: true
+  has_issues: false
+  has_projects: false
+  has_wiki: false
+  has_downloads: false
+  default_branch: main
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+  enable_automated_security_fixes: true
+  enable_vulnerability_alerts: true
+
+labels:
+  - name: first-timers-only
+    new_name: help wanted
+
+  - name: Fake Label
+    exists: false
+
+branch_protections:
+  - name: main
+    exists: false
+
+environments:
+  - name: production
+    exists: false
+    secrets:
+      - key: PRODUCTION_SECRET
+        type: environments/production
+        exists: false
+    variables:
+      - key: PROD_VARIABLE
+        type: environments/production
+        exists: false
+
+secrets:
+  - key: SECRET_KEY
+    exists: false
+  - key: SECRET_KEY
+    exists: false
+  - key: ANOTHER_SECRET
+    exists: false
+  - key: THIRD_SECRET
+    exists: false
+
+variables:
+  - key: VARIABLE1
+    exists: false
+
+batch_file_operations:
+  - target_branch: main
+    skip: true
+    files:
+      - src_file: remote://README.md
+        dest_file: README.rst
+        move: true
+      - src_file: README.md
+        commit_msg: update issue template
+      - src_file: OLDDOC.md
+        exists: false

@@ -11,14 +11,10 @@
 # permission can be 'push','pull','triage','admin','maintain', or any custom role you have defined
 # for either users or teams, set exists to false to remove their permissions
 collaborators:
-  # - name: andrewthetechie
-  #   type: user
-  #   permission: admin
-  #   exists: false
-  # - name: <org>/<team>
-  #   type: team
-  #   permission: admin
-  #   exists: false
+  - name: actuarysailor
+    type: user
+    permission: push
+    exists: true
 
 # Which method you choose is up to you. See README.md for more info and example
 # Workflows to implement these strategies.
@@ -28,16 +24,14 @@ settings:
   # If a setting has a value in settings.yml, it will always overwrite what exists in the repo.
 
   # A short description of the repository that will show up on GitHub. Set to an empty string to clear.
-  description: description of repo
+  description: Some Vague Description to Test updating of repo description
 
   # A URL with more information about the repository. Set to an empty string to clear.
-  homepage: https://example.github.io/
+  homepage: "https://github.com"
 
-  # A list of strings to apply as topics on the repo. Set to an empty string to clear topics. Omit or set to null to leave what repo already has
+  # A list of strings to apply as topics on the repo. Set to an empty list to clear topics. Omit or set to null to leave what repo already has
   topics:
-    - gha
-    - foo
-    - bar
+    - sample-topic
 
   # Either `true` to make the repository private, or `false` to make it public.
   private: false
@@ -64,45 +58,38 @@ settings:
 
   # Either `true` to allow merging pull requests with a merge commit, or `false`
   # to prevent merging pull requests with merge commits.
-  allow_merge_commit: true
+  allow_merge_commit: false
 
   # Either `true` to allow rebase-merging pull requests, or `false` to prevent
   # rebase-merging.
-  allow_rebase_merge: true
+  allow_rebase_merge: false
 
   # Either `true` to enable automatic deletion of branches on merge, or `false` to disable
-  delete_branch_on_merge: true
+  delete_branch_on_merge: false
 
   # Either `true` to enable automated security fixes, or `false` to disable
   # automated security fixes.
-  enable_automated_security_fixes: true
+  enable_automated_security_fixes: false
 
   # Either `true` to enable vulnerability alerts, or `false` to disable
   # vulnerability alerts.
-  enable_vulnerability_alerts: true
+  enable_vulnerability_alerts: false
 
 # Labels: define labels for Issues and Pull Requests
 labels:
-  - name: bug
-    color: CC0000
-    description: An issue with the system.
-
-  - name: feature
-    # If including a `#`, make sure to wrap it with quotes!
-    color: "#336699"
-    description: New functionality.
-
-  - name: Help Wanted
+  - name: help wanted
     # Provide a new name to rename an existing label. A rename that results in a 'not found' will not fail a run
     new_name: first-timers-only
 
-  - name: Old Label
+  - name: Fake Label
     # set exists: false to delete a label. A delete that results in a "not found" will not fail a run
-    exists: false
+    exists: true
 
 branch_protections:
   # branch protection can only be created for branches that exist.
   - name: main
+    # Set exists to false to delete branch protection
+    exists: true
     # https://docs.github.com/en/rest/reference/repos#update-branch-protection
     # Branch Protection settings. Leave a value out to leave set at current repo settings
     protection:
@@ -143,13 +130,6 @@ branch_protections:
       restrictions:
         users: []
         teams: []
-  - name: dev
-    # will clear any branch protection on the dev branch, IF the dev branch exists. If you setup protection for a non-existant branch, this action cannot delete it
-    exists: False
-  # if the repo has a third branch named test with branch protections setup, by not adding a protection with name: test, this config will not change
-  # those existing protections.
-  - name: test
-    exists: True
 
 # For users, it is the login id
 # For teams, it is the slug id
@@ -160,37 +140,39 @@ environments:
     # exists: false
     # same rules for secrets within the environment that are used for repo level secrets
     secrets:
-      # - key: PRODUCTION_SECRET
-      #   value: PRODUCTION_SECRET
-      #   type: environments/production
-      #   exists: false
+      - key: PRODUCTION_SECRET
+        env: SOME_SECRET
+        type: environments/production
+        exists: true
     # same rules for variables within the environment that are used for repo level variables
     variables:
-      # - key: PROD_VARIABLE
-      #   value: change
+      - key: PROD_VARIABLE
+        type: environments/production
+        value: sample value
     # wait_timer can be set for a deployment environment, but it can not be cleared with this tool
     # you will need to manually clear it if you want to remove it after setting it
     # wait_timer: 30
     # for reviewers, it will add or remove teams and users such that the list matches the one below
     reviewers:
-    #   - name: andrewthetechie
-    #     type: user
+      - name: actuarysailor
+        type: user
     # omit deployment_branch_policy if you do not want any set
-    # deployment_branch_policy:
-    #   protected_branches: false
-    #   custom_branch_policies: true
-    # branch_name_patterns:
-    #   - releases
+    deployment_branch_policy:
+      protected_branches: false
+      custom_branch_policies: true
+    branch_name_patterns:
+      - main
+      - feature/*
 
 secrets:
   # Manage secrets in your repo. Useful to manage secrets from a central repo for non organizations or to manage secrets org wide
   - key: SECRET_KEY
     # pull the value from an environment variable. If this variable is not found in the env, throw an error and fail the run
     # Set env vars on the github action job from secrets in your repo to sync screts across repos
-    env: SECRET_VALUE
+    env: SOME_SECRET
     # Set a dependabot secret on the repo
   - key: SECRET_KEY
-    env: SECRET_VALUE
+    env: SOME_SECRET
     type: dependabot
   - key: ANOTHER_SECRET
     # set a value directly in your yaml, probably not a good idea for things that are actually a secret
@@ -200,9 +182,6 @@ secrets:
     env: THIRD_VALUE
     # setting a value as not required allows you to not pass in an env var. if THIRD_VALUE is not set in the env, this secret won't be set but no error will be thrown
     required: false
-  - key: DELETED_SECRET
-    # setting exists to false will delete a secret. A delete that results in "not found" won't fail a run, so you can use this to make sure a secret is always deleted
-    exists: false
 
 variables:
   # Largely the same as secrets, except it can actually check the values to see if there is a difference
@@ -210,34 +189,38 @@ variables:
   - key: VARIABLE1
     value: change
     # set to false in order to remove a variable
-    exists: false
+    exists: true
 
-# Can copy files from your local context to the repo.
+# Can copy files from your local (e.g. the repo where the action is running) repo to the repo targeted by the action input.
+# * src_file always assumed to be in the local repo unless prefixed with remote://
+#   * remote:// means the file is in the target repo and should only be used if a different repo is specified in the action input
+# * dest_file always assumed to be in the target repo
+# * dest_file is optional and will default to the same name as src_file; only necessary if you want to rename/move the file
 # Manipulate files in the target repo
-# * move files around
-# * delete files
+# * move files with move: true and remote://src_file
+# * delete files with exists: false
 # Changes are automatically commited and pushed to a target branch (default is default branch)
 # File operations are applied sequentially
-files:
-  # copy templates/actions/my_workflow.yml to .github/workflows/my_workflow.yml in your target repo
-  # and commit it with the default commit message and to your repo's default branch.
-  # default commit message is "repo_manager file commit"
-  - src_file: templates/actions/my_workflow.yml
-    dest_file: .github/workflows/my_workflow.yml
-  - src_file: templates/issues/issue_template.md
-    dest_file: .github/ISSUE_TEMPLATE/issue.md
-    commit_msg: update issue template
-    # Update this file in the dev branch. If the dev branch doesn't exist, this will fail the workflow
-  - src_file: templates/dev/dev.md
-    dest_file: dev.md
-    target_branch: dev
-  # This moves README.md to README.rst in the remote. If README.md doesn't exist, the workflow will not fail and will emit a warning.
-  - src_file: remote://README.md
-    dest_file: README.rst
-    move: true
-    commit_msg: "move readme"
-  # This removes OLDDOC.md in the dev branch. If OLDDOC.md doesn't exist, the workflow will emit a warning
-  - src_file: OLDDOC.md
-    exists: false
-    branch: dev
-    commit_msg: "remove OLDDOC.md from dev"
+# It performs the file operations in batches on a per branch basis; will consist of one or two commits per batch:
+# * One commit for all file operations that are only in the target repo - e.g. moves, renames, deletes, copies
+# * One commit for all file operations that update files in the target repo - e.g. content changes with corresponding files from the local repo
+# Finally, it will push the changes to a new branch in the target repo and initiate a pull request to merge the changes into the target branch if it exists
+# If the target branch does not exist, create the branch from the default branch and initiate a pull request to the default branch instead of the target branch
+# If the target branch is omitted, it will use the default branch of the target repo
+batch_file_operations:
+  - target_branch: main
+    skip: false
+    # You should follow Conventional Commits for commit messages - not required but recommended
+    commit_msg: "chore(docs): Update README"
+    files:
+      # This moves README.md to README.rst in the remote (e.g. the repo specified in action input).
+      # If README.md doesn't exist, the workflow will fail because without it, there is no file to move so this operation should be omitted
+      - src_file: remote://README.md
+        dest_file: README.rst
+        move: true
+      # Copy the readme from the local repo (e.g. the one where the action is running) to the remote repo
+      - src_file: README.md
+        commit_msg: update issue template
+      # This removes OLDDOC.md in the target repo. If OLDDOC.md doesn't exist, the workflow will emit a warning.
+      - src_file: OLDDOC.md
+        exists: false

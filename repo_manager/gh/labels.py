@@ -17,51 +17,59 @@ def check_repo_labels(
 
     """
     repo_labels = {label.name: label for label in repo.get_labels()}
-    config_label_dict = {label.expected_name: label for label in config_labels}
-    config_label_dict.update({label.name: label for label in config_labels if label.expected_name != label.name})
+    config_label_dict = {label.name: label for label in config_labels}
+    config_label_dict.update(
+        {label.expected_name: label for label in config_labels if label.expected_name != label.name}
+    )
 
     diffs = {}
 
     missing = list(
-        (
-            {label.expected_name for label in filter(lambda label: label.exists, config_labels)}
-            | {
-                label.name
-                for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)
-            }
-        )
-        - repo_labels.keys()
+        {
+            label.expected_name
+            for label in filter(
+                lambda label: label.exists
+                and label.name not in repo_labels.keys()
+                and label.expected_name not in repo_labels.keys(),
+                config_labels,
+            )
+        }
     )
     if len(missing) > 0:
         diffs["missing"] = missing
 
     extra = list(
-        set(repo_labels.keys()).intersection(
-            {label.expected_name for label in filter(lambda label: not label.exists, config_labels)}
-            | {
-                label.name
-                for label in filter(lambda label: not label.exists and label.expected_name != label.name, config_labels)
-            }
-        )
+        {
+            label.expected_name
+            for label in filter(
+                lambda label: not label.exists
+                and (label.name in repo_labels.keys() or label.expected_name in repo_labels.keys()),
+                config_labels,
+            )
+        }
     )
     if len(extra) > 0:
         diffs["extra"] = extra
 
     diff = {}
-    labels_to_check = set(repo_labels.keys()).intersection(
-        {label.expected_name for label in filter(lambda label: label.exists, config_labels)}
-    )
-    labels_to_check.update(
-        set(repo_labels.keys()).intersection(
+    labels_to_check = list(
+        {
+            label.name
+            for label in filter(lambda label: label.exists and (label.name in repo_labels.keys()), config_labels)
+        }.union(
             {
-                label.name
-                for label in filter(lambda label: label.exists and label.expected_name != label.name, config_labels)
+                label.expected_name
+                for label in filter(
+                    lambda label: label.exists
+                    and (label.expected_name in repo_labels.keys() and label.name != label.expected_name),
+                    config_labels,
+                )
             }
         )
     )
     for label_name in labels_to_check:
         if config_label_dict[label_name].expected_name != label_name:
-            diff[label_name] = {"name": f"Expected {config_label_dict[label_name].expected_name} found {label_name}"}
+            diff[label_name] = {"name": {"expected": config_label_dict[label_name].expected_name, "found": label_name}}
         if config_label_dict[label_name].color is not None:
             if config_label_dict[label_name].color_no_hash.lower() != repo_labels[label_name].color.lower():
                 diff[label_name] = {
@@ -74,7 +82,7 @@ def check_repo_labels(
                 }
 
     if len(diff) > 0:
-        diffs["diffs"] = diff
+        diffs["diff"] = diff
 
     if len(diffs) > 0:
         return False, diffs
@@ -84,7 +92,7 @@ def check_repo_labels(
 
 def update_labels(
     repo: Repository, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's labels to match the expected settings
 
     Args:
@@ -97,7 +105,7 @@ def update_labels(
     errors = []
     label_dict = {label.name: label for label in labels}
     for issue_type in diffs.keys():
-        label_names = diffs[issue_type] if issue_type != "diffs" else diffs[issue_type].keys()
+        label_names = diffs[issue_type] if issue_type != "diff" else diffs[issue_type].keys()
         for label_name in label_names:
             if issue_type == "extra":
                 try:
@@ -110,8 +118,12 @@ def update_labels(
                 try:
                     repo.create_label(
                         label_dict[label_name].expected_name,
-                        label_dict[label_name].color_no_hash,
-                        label_dict[label_name].description,
+                        "ffffff"
+                        if label_dict[label_name].color_no_hash is None
+                        else label_dict[label_name].color_no_hash,
+                        label_dict[label_name].expected_name
+                        if label_dict[label_name].expected_name is not None
+                        else "",
                     )
                     actions_toolkit.info(f"Created label {label_name}")
                 except Exception as exc:  # this should be tighter
@@ -122,7 +134,7 @@ def update_labels(
                             "error": f"{exc}",
                         }
                     )
-            elif issue_type == "diffs":
+            elif issue_type == "diff":
                 try:
                     this_label = repo.get_label(label_name)
                     this_label.edit(
@@ -143,4 +155,4 @@ def update_labels(
                             "error": f"{exc}",
                         }
                     )
-    return errors
+    return errors, []

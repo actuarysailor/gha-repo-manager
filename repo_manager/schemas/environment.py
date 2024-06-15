@@ -19,7 +19,7 @@ OptInt = Optional[int]
 class Reviewer(BaseModel):
     type: str = Field("team", description="Type of reviewer, can be `user` or `team`")
     name: str = Field(
-        "andrewthetechie",
+        None,
         description="Name of the reviewer, either a user or team name",
     )
     id: int = Field(0, description="ID of the reviewer, either a user or team ID")

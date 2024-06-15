@@ -296,19 +296,17 @@ def check_repo_branch_protections(
     for config_bp in config_branch_protections:
         repo_bp = repo_branches.get(config_bp.name, None)
         if repo_bp is None and config_bp.exists:
+            # This should maybe be a regex pattern?
+            raise RuntimeError(f"Branch {config_bp.name} does not exist in repo {repo.full_name}")
+        if not repo_bp.protected and config_bp.exists:
             missing_protections.append(config_bp.name)
             continue
         if not config_bp.exists and repo_bp is not None:
             extra_protections.append(config_bp.name)
             continue
 
-        diffs = []
+        diffs = {}
         if config_bp.protection is None:
-            continue
-
-        # if our repo isn't protected and we've made it this far, it should be
-        if not repo_bp.protected:
-            diff_protections[config_bp.name] = ["Branch is not protected"]
             continue
 
         try:
@@ -318,111 +316,105 @@ def check_repo_branch_protections(
             actions_toolkit.info(f"error: {exc}")
             continue
         if config_bp.protection.pr_options is not None:
-            diffs.append(
-                __diff_option__(
-                    "required_approving_review_count",
-                    config_bp.protection.pr_options.required_approving_review_count,
-                    ## Had issues when the YAML defines this but the Repo has none (e.g. it's null in the cloud)
-                    None
+            if (
+                config_bp.protection.pr_options.required_approving_review_count is not None
+                and this_protection.required_pull_request_reviews.required_approving_review_count
+                != config_bp.protection.pr_options.required_approving_review_count
+            ):
+                diffs["required_approving_review_count"] = {
+                    "expected": config_bp.protection.pr_options.required_approving_review_count,
+                    "found": None
                     if (this_protection.required_pull_request_reviews is None)
                     else this_protection.required_pull_request_reviews.required_approving_review_count,
-                )
-            )
-            diffs.append(
-                __diff_option__(
-                    "dismiss_stale_reviews",
-                    config_bp.protection.pr_options.dismiss_stale_reviews,
-                    ## Had issues when the YAML defines this but the Repo has none (e.g. it's null in the cloud)
-                    None
+                }
+            if (
+                config_bp.protection.pr_options.dismiss_stale_reviews is not None
+                and this_protection.required_pull_request_reviews.dismiss_stale_reviews
+                != config_bp.protection.pr_options.dismiss_stale_reviews
+            ):
+                diffs["dismiss_stale_reviews"] = {
+                    "expected": config_bp.protection.pr_options.dismiss_stale_reviews,
+                    "found": None
                     if (this_protection.required_pull_request_reviews is None)
                     else this_protection.required_pull_request_reviews.dismiss_stale_reviews,
-                )
-            )
-            diffs.append(
-                __diff_option__(
-                    "require_code_owner_reviews",
-                    config_bp.protection.pr_options.require_code_owner_reviews,
-                    ## Had issues when the YAML defines this but the Repo has none (e.g. it's null in the cloud)
-                    None
+                }
+            if (
+                config_bp.protection.pr_options.require_code_owner_reviews is not None
+                and this_protection.required_pull_request_reviews.require_code_owner_reviews
+                != config_bp.protection.pr_options.require_code_owner_reviews
+            ):
+                diffs["require_code_owner_reviews"] = {
+                    "expected": config_bp.protection.pr_options.require_code_owner_reviews,
+                    "found": None
                     if (this_protection.required_pull_request_reviews is None)
                     else this_protection.required_pull_request_reviews.require_code_owner_reviews,
-                )
-            )
+                }
             # for now, not checking dismissal options. Will note that in the docs
 
         if (
             config_bp.protection.required_status_checks is not None
             and this_protection.required_status_checks is not None
         ):
-            diffs.append(
-                __diff_option__(
-                    "required_status_checks::strict",
-                    config_bp.protection.required_status_checks.strict,
-                    this_protection.required_status_checks.strict,
-                )
-            )
+            if (
+                config_bp.protection.required_status_checks.strict is not None
+                and config_bp.protection.required_status_checks.strict != this_protection.required_status_checks.strict
+            ):
+                diffs["required_status_checks::strict"] = {
+                    "expected": config_bp.protection.required_status_checks.strict,
+                    "found": this_protection.required_status_checks.strict,
+                }
             # Without sorting, they sometimes get flagged as different just due to the ordinality of them
             if config_bp.protection.required_status_checks.checks is not None:
                 config_bp.protection.required_status_checks.checks.sort()
             if this_protection.required_status_checks.contexts is not None:
                 this_protection.required_status_checks.contexts.sort()
-            diffs.append(
-                __diff_option__(
-                    "required_status_checks::checks",
-                    config_bp.protection.required_status_checks.checks,
-                    this_protection.required_status_checks.contexts,
-                )
-            )
+            if (
+                config_bp.protection.required_status_checks.checks is not None
+                and config_bp.protection.required_status_checks.checks
+                != this_protection.required_status_checks.contexts
+            ):
+                diffs["required_status_checks::checks"] = {
+                    "expected": config_bp.protection.required_status_checks.checks,
+                    "found": this_protection.required_status_checks.contexts,
+                }
 
-        diffs.append(
-            __diff_option__(
-                "enforce_admins",
-                config_bp.protection.enforce_admins,
-                this_protection.enforce_admins,
-            )
-        )
-        diffs.append(
-            __diff_option__(
-                "require_linear_history",
-                config_bp.protection.require_linear_history,
-                this_protection.raw_data["required_linear_history"]["enabled"],
-            )
-        )
-        diffs.append(
-            __diff_option__(
-                "allow_force_pushes",
-                config_bp.protection.allow_force_pushes,
-                this_protection.raw_data["allow_force_pushes"]["enabled"],
-            )
-        )
-        diffs.append(
-            __diff_option__(
-                "allow_deletions",
-                config_bp.protection.allow_deletions,
-                this_protection.raw_data["allow_deletions"]["enabled"],
-            )
-        )
-        diffs.append(
-            __diff_option__(
-                "block_creations",
-                config_bp.protection.block_creations,
-                this_protection.raw_data["block_creations"]["enabled"],
-            )
-        )
-        diffs.append(
-            __diff_option__(
-                "require_conversation_resolution",
-                config_bp.protection.require_conversation_resolution,
-                this_protection.raw_data["required_conversation_resolution"]["enabled"],
-            )
-        )
-        diffs.append(
-            __diff_option__(
-                "require_signed_commits",
-                config_bp.protection.require_signed_commits,
-                this_protection.raw_data["required_signatures"]["enabled"],
-            )
-        )
+        if (config_bp.protection.enforce_admins or this_protection.enforce_admins) != this_protection.enforce_admins:
+            diffs["enforce_admins"] = {
+                "expected": config_bp.protection.enforce_admins,
+                "found": this_protection.enforce_admins,
+            }
+        if config_bp.protection.require_linear_history is not None and config_bp.protection.require_linear_history != (
+            this_protection.required_linear_history or ""
+        ):
+            diffs["require_linear_history"] = {
+                "expected": config_bp.protection.require_linear_history,
+                "found": this_protection.required_linear_history,
+            }
+        if config_bp.protection.allow_force_pushes is not None and config_bp.protection.allow_force_pushes != (
+            this_protection.allow_force_pushes or ""
+        ):
+            diffs["allow_force_pushes"] = {
+                "expected": config_bp.protection.allow_force_pushes,
+                "found": this_protection.allow_force_pushes,
+            }
+        if config_bp.protection.allow_deletions is not None and config_bp.protection.allow_deletions != (
+            this_protection.allow_deletions or ""
+        ):
+            diffs["allow_deletions"] = {
+                "expected": config_bp.protection.allow_deletions,
+                "found": this_protection.allow_deletions,
+            }
+        # block_creations missing? Not sure if it is supported by the pygithub library
+        if (
+            config_bp.protection.require_conversation_resolution is not None
+            and config_bp.protection.require_conversation_resolution
+            != (this_protection.required_conversation_resolution or "")
+        ):
+            diffs["require_conversation_resolution"] = {
+                "expected": config_bp.protection.require_conversation_resolution,
+                "found": this_protection.required_conversation_resolution,
+            }
+        # require_signed_commits missing? Not sure if it is supported by the pygithub library
 
         if this_protection.required_pull_request_reviews is None:
             dismissal_users = []
@@ -438,31 +430,34 @@ def check_repo_branch_protections(
             else:
                 dismissal_users = []
 
-        dismissal_users.sort()
-        if config_bp.protection.pr_options.dismissal_restrictions is not None:
-            if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
-                config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
-            diffs.append(
-                __diff_option__(
-                    "dismissal_users",
-                    config_bp.protection.pr_options.dismissal_restrictions.users,
-                    dismissal_users,
-                )
-            )
+        if config_bp.protection.pr_options is not None:
+            dismissal_users.sort()
+            if config_bp.protection.pr_options.dismissal_restrictions is not None:
+                if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
+                    config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
+                if (
+                    config_bp.protection.pr_options.dismissal_restrictions.users is not None
+                    and config_bp.protection.pr_options.dismissal_restrictions.users != (dismissal_users or [])
+                ):
+                    diffs["dismissal_users"] = {
+                        "expected": config_bp.protection.pr_options.dismissal_restrictions.users,
+                        "found": dismissal_users,
+                    }
 
-        dismissal_teams.sort()
-        if config_bp.protection.pr_options.dismissal_restrictions is not None:
-            if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
-                config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
-            diffs.append(
-                __diff_option__(
-                    "dismissal_teams",
-                    config_bp.protection.pr_options.dismissal_restrictions.teams,
-                    dismissal_teams,
-                )
-            )
+            dismissal_teams.sort()
+            if config_bp.protection.pr_options.dismissal_restrictions is not None:
+                if config_bp.protection.pr_options.dismissal_restrictions.teams is not None:
+                    config_bp.protection.pr_options.dismissal_restrictions.teams.sort()
+                if (
+                    config_bp.protection.pr_options.dismissal_restrictions.teams is not None
+                    and config_bp.protection.pr_options.dismissal_restrictions.teams != (dismissal_teams or [])
+                ):
+                    diffs["dismissal_teams"] = {
+                        "expected": config_bp.protection.pr_options.dismissal_restrictions.teams,
+                        "found": dismissal_teams,
+                    }
 
-        diffs = [i for i in diffs if i is not None]
+        # diffs = [i for i in diffs if i is not None] # Why was this here?
         if len(diffs) > 0:
             diff_protections[config_bp.name] = deepcopy(diffs)
 
@@ -474,7 +469,7 @@ def check_repo_branch_protections(
         diffs["extra"] = extra_protections
 
     if len(diff_protections) > 0:
-        diffs["diffs"] = diff_protections
+        diffs["diff"] = diff_protections
 
     if len(diffs) > 0:
         return False, diffs
@@ -486,7 +481,7 @@ def update_branch_protections(
     repo: Repository,
     config_branch_protections: list[BranchProtection],
     diffs: tuple[dict[str, list[str] | dict[str, Any]]],
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's branch protection policies to match the expected settings
 
     Args:
@@ -499,7 +494,7 @@ def update_branch_protections(
     errors = []
     branch_protections_dict = {bp.name: bp for bp in config_branch_protections}
     for issue_type in diffs.keys():
-        branches = diffs[issue_type] if issue_type != "diffs" else diffs[issue_type].keys()
+        branches = diffs[issue_type] if issue_type != "diff" else diffs[issue_type].keys()
         for branch_name in branches:
             try:
                 if issue_type == "extra":
@@ -515,11 +510,13 @@ def update_branch_protections(
                     else:
                         actions_toolkit.warning(f"Branch protection config for {branch_name} is empty")
             except GithubException as ghexc:
+                if ghexc.status == 403:
+                    actions_toolkit.warning(f"Unable to modify branch protection for {branch_name}.  {ghexc.message}")
                 if ghexc.status == 404:
                     actions_toolkit.set_failed(
                         f"Can't change branch protection for {branch_name} because either the branch or the protection does not exist"
                     )
-                if ghexc.status != 404:
+                if ghexc.status not in [403, 404]:
                     # a 404 on a delete is fine, means it isnt protected
                     errors.append(
                         {
@@ -531,4 +528,4 @@ def update_branch_protections(
             except Exception as exc:  # this should be tighter
                 errors.append({"type": "bp-delete", "name": branch_name, "error": f"{exc}"})
 
-    return errors
+    return errors, []

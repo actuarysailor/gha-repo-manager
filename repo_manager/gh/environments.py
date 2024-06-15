@@ -3,6 +3,7 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
+from github.GithubException import GithubException, UnknownObjectException
 from github.Repository import Repository
 
 from repo_manager.schemas.environment import (
@@ -114,9 +115,9 @@ def check_environment_settings(repo: Repository, config_env: Environment) -> tup
                     for reviewer in repo_reviewers.reviewers
                 }
             if len(config_reviewers.keys() - repo_reviewers.keys()) > 0:
-                diffs[protection_rule]["missing"] = [config_reviewers.keys() - repo_reviewers.keys()]
+                diffs[protection_rule]["missing"] = list(config_reviewers.keys() - repo_reviewers.keys())
             if len(repo_reviewers.keys() - config_reviewers.keys()) > 0:
-                diffs[protection_rule]["extra"] = [repo_reviewers.keys() - config_reviewers.keys()]
+                diffs[protection_rule]["extra"] = list(repo_reviewers.keys() - config_reviewers.keys())
             diff_reviewers = {}
             reviewers_to_check_values_on = list(config_reviewers.keys() & repo_reviewers.keys())
             for reviewer_name in reviewers_to_check_values_on:
@@ -142,8 +143,8 @@ def check_environment_settings(repo: Repository, config_env: Environment) -> tup
                 diffs[protection_rule]["rules"] = diff_option(protection_rule, config_value, repo_value)
         else:
             config_value = getattr(config_env, protection_rule)
-            repo_value = getattr(repo_protection_rules_dict.get(protection_rule, None), protection_rule)
-            if config_value != repo_value:
+            repo_value = repo_protection_rules_dict.get(protection_rule, None)
+            if (config_value or "") != (repo_value or ""):
                 diffs[protection_rule] = diff_option(protection_rule, config_value, repo_value)
 
         if diffs[protection_rule] is None or len(diffs[protection_rule]) == 0:
@@ -187,7 +188,14 @@ def check_repo_environments(
     """
 
     repo_environments = repo.get_environments()
-    repo_environment_names = {environment.name for environment in repo_environments}
+    try:
+        repo_environment_names = {environment.name for environment in repo_environments}
+    except UnknownObjectException as exc:
+        # Github throughts a 404 if there are no environments
+        if exc.status == 404:
+            repo_environment_names = set()
+        else:
+            raise exc
 
     expected_environment_names = {
         environment.name for environment in filter(lambda environment: environment.exists, environments)
@@ -250,21 +258,28 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
     """
     errors = []
     config_env_dict = {environment.name: environment for environment in environments}
-    try:
-        for issue_type in diffs.keys():
-            if issue_type in ["missing", "extra"]:
-                envList = diffs[issue_type]
-            else:
-                envList = diffs[issue_type].keys()
-            for env_name in envList:
+    for issue_type in diffs.keys():
+        action = ""
+        if issue_type in ["missing", "extra"]:
+            action = "create" if issue_type == "missing" else "delete"
+            envList = diffs[issue_type]
+        else:
+            action = "update"
+            envList = diffs[issue_type].keys()
+        for env_name in envList:
+            try:
                 pErrors = []
                 if issue_type in ["missing", "diff"]:
-                    repo.create_environment(
-                        env_name,
-                        config_env_dict[env_name].wait_timer,
-                        config_env_dict[env_name].get_ReviewerParams(),
-                        config_env_dict[env_name].get_EnvironmentDeploymentBranchPolicyParams(),
-                    )
+                    kwargs = {"environment_name": env_name}
+                    if config_env_dict[env_name].wait_timer is not None:
+                        kwargs["wait_timer"] = config_env_dict[env_name].wait_timer
+                    if config_env_dict[env_name].reviewers is not None:
+                        kwargs["reviewers"] = config_env_dict[env_name].get_ReviewerParams()
+                    if config_env_dict[env_name].deployment_branch_policy is not None:
+                        kwargs["deployment_branch_policy"] = config_env_dict[
+                            env_name
+                        ].get_EnvironmentDeploymentBranchPolicyParams()
+                    repo.create_environment(**kwargs)
                     components = ["secrets", "variables"]
                     for env_component in components:
                         if env_component == "secrets" and config_env_dict[env_name].secrets is not None:
@@ -272,26 +287,36 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                                 secret_diffs = {"missing": [secret.key for secret in config_env_dict[env_name].secrets]}
                             else:
                                 secret_diffs = diffs[issue_type][env_name][env_component]
-                            pErrors = update_secrets(repo, config_env_dict[env_name].secrets, secret_diffs)
+                            pErrors, pMessages = update_secrets(repo, config_env_dict[env_name].secrets, secret_diffs)
                         elif env_component == "variables" and config_env_dict[env_name].variables is not None:
                             if issue_type == "missing":
                                 var_diffs = {
                                     "missing": [variable.key for variable in config_env_dict[env_name].variables]
                                 }
                             else:
-                                var_diffs = diffs[issue_type][env_name][env_component]
-                            pErrors = update_variables(
-                                repo,
-                                config_env_dict[env_name].variables,
-                                var_diffs,
-                            )
+                                var_diffs = diffs[issue_type][env_name].get(env_component, None)
+                            if var_diffs is not None:
+                                pErrors, pMessages = update_variables(
+                                    repo,
+                                    config_env_dict[env_name].variables,
+                                    var_diffs,
+                                )
                     if len(pErrors) > 0:
-                        errors.append(pErrors)
+                        errors.append(f"{env_name}: {pErrors}")
                     else:
                         actions_toolkit.info(f"Synced {env_component} for environment {env_name}")
                 elif issue_type == "extra":
-                    repo.delete_environment(env_name)
-                    actions_toolkit.info(f"Deleted Deployment Environment {env_name}")
-    except Exception as exc:
-        errors.append({"type": f"{env_component}-update", "error": f"{exc}"})
-    return errors
+                    try:
+                        repo.delete_environment(env_name)
+                        actions_toolkit.info(f"Deleted Deployment Environment {env_name}")
+                    except GithubException as exc:
+                        if exc.status == 404 and repo.private:
+                            actions_toolkit.warning(
+                                f"Environment {env_name} may be hidden due to repository being private"
+                            )
+                        else:
+                            raise exc
+            except Exception as exc:
+                errors.append({env_name: f"environment-{action}", "error": f"{exc}"})
+
+    return errors, []

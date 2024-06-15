@@ -1,8 +1,10 @@
 import json
 from typing import Any
 
+
 from actions_toolkit import core as actions_toolkit
 
+from github import GithubException
 from github.Repository import Repository
 
 from repo_manager.schemas.secret import Secret
@@ -50,36 +52,44 @@ def check_variables(repo: Repository, variables: list[Secret]) -> tuple[bool, di
     Returns:
         Tuple[bool, Optional[List[str]]]: [description]
     """
+    diffs = {}
     repo_dict = dict[str, Any]()
     if any(filter(lambda variable: variable.type == "actions", variables)):
         repo_dict.update(__get_repo_variable_dict__(repo))
     if any(filter(lambda variable: variable.type not in {"actions"}, variables)):
         first_variable = next(filter(lambda variable: variable.type not in {"actions"}, variables), None)
         if first_variable is not None:
-            repo_dict.update(__get_repo_variable_dict__(repo, first_variable.type))
+            repo_dict.update(__get_repo_variable_dict__(repo, first_variable.type.replace("environments/", "")))
     config_dict = {variable.key: variable for variable in variables}
     repo_variable_names = {variable for variable in repo_dict.keys()}
 
     expected_variables_names = {variable.key for variable in filter(lambda variable: variable.exists, variables)}
-    diff = {
-        "missing": list(expected_variables_names - repo_variable_names),
-        "extra": list(
-            repo_variable_names.intersection(
-                {variable.key for variable in filter(lambda variable: variable.exists is False, variables)}
-            )
-        ),
-        "diff": {},
-    }
 
+    missing = list(expected_variables_names - repo_variable_names)
+    if len(missing) > 0:
+        diffs["missing"] = missing
+
+    extra = list(
+        repo_variable_names.intersection(
+            {variable.key for variable in filter(lambda variable: variable.exists is False, variables)}
+        )
+    )
+    if len(extra) > 0:
+        diffs["extra"] = extra
+
+    diff = {}
     variables_to_check_values_on = list(expected_variables_names.intersection(repo_variable_names))
     for variable_name in variables_to_check_values_on:
         config_var = config_dict.get(variable_name, None)
         repo_var = repo_dict.get(variable_name, None)
         if config_var.value != repo_var.value:
-            diff["diff"][variable_name] = diff_option(variable_name, config_var.value, repo_var.value)
+            diff[variable_name] = diff_option(variable_name, config_var.value, repo_var.value)
 
-    if len(diff["missing"]) + len(diff["extra"]) + len(diff["diff"]) > 0:
-        return False, diff
+    if len(diff) > 0:
+        diffs["diff"] = diff
+
+    if len(diffs) > 0:
+        return False, diffs
 
     return True, None
 
@@ -88,7 +98,7 @@ def update_variables(
     repo: Repository,
     variables: list[Secret],
     diffs: tuple[dict[str, list[str] | dict[str, Any]]],
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's secrets to match the expected settings
 
     Args:
@@ -123,9 +133,15 @@ def update_variables(
                         if variables_dict[variable].type == "actions":
                             repo.create_variable(variable, variables_dict[variable].value)
                         else:
-                            repo.get_environment(
-                                variables_dict[variable].type.replace("environments/", "")
-                            ).create_variable(variable, variables_dict[variable].value)
+                            try:
+                                repo.get_environment(
+                                    variables_dict[variable].type.replace("environments/", "")
+                                ).create_variable(variable, variables_dict[variable].value)
+                            except GithubException as exc:
+                                if exc.status in [409, 422]:
+                                    repo.get_environment(
+                                        variables_dict[variable].type.replace("environments/", "")
+                                    ).update_variable(variable, variables_dict[variable].value)
                         actions_toolkit.info(f"Created variable {variable}")
                 except Exception as exc:  # this should be tighter
                     if variables_dict[variable].required:
@@ -153,4 +169,4 @@ def update_variables(
                             "error": f"{exc}",
                         }
                     )
-    return errors
+    return errors, []

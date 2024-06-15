@@ -2,7 +2,7 @@ import yaml
 from pydantic import BaseModel, Field  # pylint: disable=E0611
 
 from .branch_protection import BranchProtection
-from .file import FileConfig
+from .file import BranchFiles
 from .label import Label
 from .secret import Secret
 from .settings import Settings
@@ -18,7 +18,7 @@ class RepoManagerConfig(BaseModel):
     secrets: list[Secret] | None = Field(None, description="Secrets in the repo to manage")
     variables: list[Secret] | None = Field(None, description="Variables in the repo to manage")
     labels: list[Label] | None = Field(None, description="Labels in the repo to manage")
-    files: list[FileConfig] | None = Field(None, description="Files in the repo to manage")
+    batch_file_operations: list[BranchFiles] | None = Field(None, description="Files in the repo to manage")
     collaborators: list[Collaborator] | None = Field(None, description="Collaborators in the repo to manage")
     environments: list[Environment] | None = Field(None, description="Deployment Environments in the repo to manage")
 

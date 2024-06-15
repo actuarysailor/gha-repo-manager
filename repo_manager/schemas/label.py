@@ -1,7 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel  # pylint: disable=E0611
-from pydantic import Field
+from pydantic import BaseModel, ValidationInfo, Field, field_validator  # pylint: disable=E0611
 from pydantic_extra_types.color import Color
 
 OptBool = Optional[bool]
@@ -9,11 +8,18 @@ OptStr = Optional[str]
 
 
 class Label(BaseModel):
-    name: OptStr = Field(None, description="Label's name.")
+    name: str = Field(description="Label's name.")
     color: Color | None = Field(None, description="Color of this label")
     description: OptStr = Field(None, description="Description of the label")
     new_name: OptStr = Field(None, description="If set, rename a label from name to new_name.")
     exists: OptBool = Field(True, description="Set to false to delete a label")
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_name(cls, v: str, info: ValidationInfo) -> str:
+        if v is None:
+            raise ValueError("Missing name of label!")
+        return v.lower()
 
     @property
     def expected_name(self) -> str:

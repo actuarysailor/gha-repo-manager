@@ -129,7 +129,9 @@ def check_collaborators(
     return True, None
 
 
-def update_collaborators(repo: Repository, collaborators: list[Collaborator], diffs: dict[str, Any]) -> set[str]:
+def update_collaborators(
+    repo: Repository, collaborators: list[Collaborator], diffs: dict[str, Any]
+) -> tuple[set[str], set[str]]:
     """Updates a repo's environments to match the expected settings
 
     Args:
@@ -196,4 +198,4 @@ def update_collaborators(repo: Repository, collaborators: list[Collaborator], di
                 else:
                     raise Exception(f"Modifying collaborators of type {collaborator_type} not currently supported")
 
-    return errors
+    return errors, []

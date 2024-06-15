@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from repo_manager.schemas import FileConfig
+from repo_manager.schemas.file import FileConfig
 
 
 VALID_CONFIG = {
@@ -22,8 +22,6 @@ def test_file_valid_config():
     assert this_file_config.dest_file == Path(VALID_CONFIG["dest_file"])
     assert this_file_config.move is False
     assert this_file_config.exists
-    assert this_file_config.commit_msg == "repo_manager file commit"
-    assert this_file_config.target_branch is None
     assert this_file_config.src_file_exists
     assert this_file_config.remote_src is False
 
@@ -61,17 +59,6 @@ def test_example_works():
     with open("examples/settings.yml") as fh:
         example_data = yaml.safe_load(fh)
 
-    assert len(example_data["files"]) > 0
-    for file_config_dict in example_data["files"]:
+    assert len(example_data["batch_file_operations"]) > 0
+    for file_config_dict in example_data["batch_file_operations"][0]["files"]:
         FileConfig(**file_config_dict)
-
-
-def test_file_commit_key():
-    this_file_config = FileConfig(**VALID_CONFIG)
-    assert this_file_config.commit_key == "repo_manager file commit_"
-
-    this_file_config.target_branch = "master"
-    assert this_file_config.commit_key == "repo_manager file commit_master"
-
-    this_file_config.target_branch = "develop"
-    assert this_file_config.commit_key == "repo_manager file commit_develop"
