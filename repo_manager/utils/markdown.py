@@ -155,7 +155,9 @@ def __dict_key_to_columns__(key: str, dfDict: dict | list, keyColName: str = Non
     return result
 
 
-def __dict_embed_key_in_subdict__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> pd.DataFrame:
+def __dict_embed_key_in_subdict__(
+    input_dict: dict | list, keyColName: str = None, valColName: str = None
+) -> pd.DataFrame:
     df: pd.DataFrame = pd.DataFrame({})
     dfDict = {}
     for k, v in input_dict.items():
@@ -181,20 +183,24 @@ def __dict_embed_key_in_subdict__(input_dict: dict | list, keyColName: str = Non
                 raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
         elif keyColName == "Setting":
             v[keyColName] = [k] if isinstance(next(iter(v.values())), list) else k
-            df = pd.concat([df, __dict_diff_to_columnsNew__(v, None, None)])
+            df = pd.concat([df, __dict_diff_to_columns__(v, None, None)])
         else:
             raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
 
     return df
 
 
-def __dict_diff_to_columnsNew__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> pd.DataFrame:
+def __dict_diff_to_columns__(
+    input_dict: dict | list, keyColName: str = None, valColName: str = None
+) -> pd.DataFrame:
     """Maps the typical expected, found difference columns to the appropriate column names and values."""
     dfDict = {}
     expectedLength = __maximum_depth__(input_dict)
     for k, v in input_dict.items():
         if isinstance(v, list):
-            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = v if len(v) == expectedLength else v.extend([None] * (expectedLength - len(v)))
+            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = (
+                v if len(v) == expectedLength else v.extend([None] * (expectedLength - len(v)))
+            )
             if OPPOSSING_COLUMN_MAP.get(k, None) is not None:
                 dfDict[OPPOSSING_COLUMN_MAP[k]] = [None] * expectedLength
         elif isinstance(v, dict):
@@ -204,7 +210,7 @@ def __dict_diff_to_columnsNew__(input_dict: dict | list, keyColName: str = None,
             # else:
             #     dfDict = __dict_to_dfDict__(v, keyColName, valColName)
         else:
-            _keyColName = COLUMN_RENAME_MAP.get(k,k).capitalize()
+            _keyColName = COLUMN_RENAME_MAP.get(k, k).capitalize()
             # _valColName = COLUMN_RENAME_MAP.get(k, k).capitalize()
             if _keyColName not in dfDict.keys():
                 dfDict[_keyColName] = []
@@ -263,7 +269,9 @@ def __list_handler__(value: dict | list) -> str:
 def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
     actionVerb = ACTION_TAKEN.get(key, key).lower()
     if isinstance(value, list):
-        return f"\n{__section_handler__(actionVerb, value, hdrDepth, f"{actionVerb.capitalize()} {header.capitalize()}")}"
+        return (
+            f"\n{__section_handler__(actionVerb, value, hdrDepth, f"{actionVerb.capitalize()} {header.capitalize()}")}"
+        )
     elif isinstance(value, dict):
         key = MISSING_SUB_KEY[header]
         headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}: {actionVerb.capitalize()}"
@@ -280,7 +288,11 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
             )
         ).to_markdown()  # used to have key?
     elif key in KEYS_TO_COMPARE_A2E:
-        return pd.DataFrame(__dict_embed_key_in_subdict__(value, keyColName=COLUMN_RENAME_MAP.get(key, None), valColName=KEY_CHILD_NAME.get(key, None))).to_markdown()
+        return pd.DataFrame(
+            __dict_embed_key_in_subdict__(
+                value, keyColName=COLUMN_RENAME_MAP.get(key, None), valColName=KEY_CHILD_NAME.get(key, None)
+            )
+        ).to_markdown()
     elif key in KEYS_TO_SKIP_A_LEVEL:
         return "\n".join([__key_handler__(k, v, f"{hdrDepth}", key) for k, v in value.items()])
     elif key in ACTION_TAKEN.keys():
@@ -297,7 +309,9 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
         return "\n".join([__section_handler__(k, v, f"{hdrDepth}") for k, v in value.items()])
 
 
-def __section_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None, messages: list[str] = None) -> str:
+def __section_handler__(
+    key: str, value: Any, hdrDepth: str = "#", header: str = None, messages: list[str] = None
+) -> str:
     header = KEY_TO_CATEGORY.get(key.lower(), key).capitalize() if header is None else header
     actions_toolkit.debug(f"Generating markdown for differences in {header}")
     body = f"\n{hdrDepth} {header}:\n\n"
@@ -314,5 +328,5 @@ def generate(markdown: dict[str, Any], messages: dict[str, list[str]], hdrDepth:
         body += f"{hdrDepth} {messages["open"]}:\n\n"
         hdrDepth += "#"
     for key, value in markdown.items():
-        body += __section_handler__(key, value, hdrDepth, messages = messages.get(key, None))
+        body += __section_handler__(key, value, hdrDepth, messages=messages.get(key, None))
     return body

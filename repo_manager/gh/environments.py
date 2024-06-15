@@ -311,7 +311,9 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                         actions_toolkit.info(f"Deleted Deployment Environment {env_name}")
                     except GithubException as exc:
                         if exc.status == 404 and repo.private:
-                            actions_toolkit.warning(f"Environment {env_name} may be hidden due to repository being private")
+                            actions_toolkit.warning(
+                                f"Environment {env_name} may be hidden due to repository being private"
+                            )
                         else:
                             raise exc
             except Exception as exc:

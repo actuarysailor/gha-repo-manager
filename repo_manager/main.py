@@ -101,7 +101,9 @@ def main():  # noqa: C901
             update_name, to_update, categorical_diffs = to_update
             if categorical_diffs is not None:
                 try:
-                    application_errors, application_summary = update(inputs["repo_object"], to_update, categorical_diffs)
+                    application_errors, application_summary = update(
+                        inputs["repo_object"], to_update, categorical_diffs
+                    )
                     if len(application_errors) > 0:
                         errors.append(application_errors)
                     if len(application_summary) > 0:

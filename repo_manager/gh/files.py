@@ -325,7 +325,9 @@ def update_files(
 
                 # this should occur in the logging of main
                 messages.append(f"PR @ {repo.full_name} - [#{pr.number} {prTitle}]({pr.comments_url})\n\n")
-                actions_toolkit.info(f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}")
+                actions_toolkit.info(
+                    f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}"
+                )
 
     dir = Path(repo_dir.working_tree_dir)
     repo_dir.close()
