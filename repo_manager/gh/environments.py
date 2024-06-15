@@ -316,4 +316,5 @@ def update_environments(repo: Repository, environments: list[Environment], diffs
                             raise exc
             except Exception as exc:
                 errors.append({env_name: f"environment-{action}", "error": f"{exc}"})
-    return errors
+
+    return errors, []

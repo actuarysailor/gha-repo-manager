@@ -69,7 +69,7 @@ def update_settings(
     repo: Repository,
     settings: Settings,
     diffs: tuple[dict[str, list[str] | dict[str, Any]]],
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     errors = []
     kwargs = {"name": None}
 
@@ -102,7 +102,7 @@ def update_settings(
     if settings.topics is not None:
         repo.replace_topics(settings.topics)
 
-    return errors
+    return errors, []
 
 
 def update(repo: Repository, setting_name: str, new_value: Any):

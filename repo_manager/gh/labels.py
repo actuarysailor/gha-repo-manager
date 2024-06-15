@@ -92,7 +92,7 @@ def check_repo_labels(
 
 def update_labels(
     repo: Repository, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's labels to match the expected settings
 
     Args:
@@ -155,4 +155,4 @@ def update_labels(
                             "error": f"{exc}",
                         }
                     )
-    return errors
+    return errors, []

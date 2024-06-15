@@ -481,7 +481,7 @@ def update_branch_protections(
     repo: Repository,
     config_branch_protections: list[BranchProtection],
     diffs: tuple[dict[str, list[str] | dict[str, Any]]],
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's branch protection policies to match the expected settings
 
     Args:
@@ -528,4 +528,4 @@ def update_branch_protections(
             except Exception as exc:  # this should be tighter
                 errors.append({"type": "bp-delete", "name": branch_name, "error": f"{exc}"})
 
-    return errors
+    return errors, []

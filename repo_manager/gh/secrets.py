@@ -72,7 +72,7 @@ def update_secrets(
     repo: Repository,
     secrets: list[Secret],
     diffs: tuple[dict[str, list[str] | dict[str, Any]]],
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """Updates a repo's secrets to match the expected settings
 
     Args:
@@ -114,4 +114,4 @@ def update_secrets(
                             "error": f"{exc}",
                         }
                     )
-    return errors
+    return errors, []

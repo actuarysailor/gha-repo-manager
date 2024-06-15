@@ -72,7 +72,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            issue_file_command("STEP_SUMMARY", generate(diffs))
+            issue_file_command("STEP_SUMMARY", generate(diffs, {"open": "Proposed Changes"}))
             if inputs["fail_on_diff"] == "true":
                 actions_toolkit.set_output("result", "Check failed, diff detected")
                 actions_toolkit.set_failed("Diff detected")
@@ -83,6 +83,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "apply":
         errors = []
+        messages = {"open": "Implemented Changes"}
         for update, to_update in {
             update_settings: ("settings", config.settings, diffs.get("settings", None)),
             update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
@@ -100,13 +101,18 @@ def main():  # noqa: C901
             update_name, to_update, categorical_diffs = to_update
             if categorical_diffs is not None:
                 try:
-                    application_errors = update(inputs["repo_object"], to_update, categorical_diffs)
+                    application_errors, application_summary = update(inputs["repo_object"], to_update, categorical_diffs)
                     if len(application_errors) > 0:
                         errors.append(application_errors)
+                    if len(application_summary) > 0:
+                        messages[update_name] = application_summary
                     else:
                         actions_toolkit.info(f"Synced {update_name}")
                 except Exception as exc:
                     errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
+
+        if len(messages) > 0:
+            issue_file_command("STEP_SUMMARY", generate(diffs, messages))
 
         if len(errors) > 0:
             actions_toolkit.error(json.dumps(errors))

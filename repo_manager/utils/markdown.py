@@ -7,11 +7,13 @@ MISSING_SUB_KEY = {
     "labels": "label",
     "branch_protections": "ruleset",
     "variables": "variable",
+    "environments": "environment",
 }
 
 SUBKEY_HEADER_SYNTAX = {
-    "branch": "branch <key>",
-    "label": "Updated Label <key>",
+    # "branch": "Branch <key>",
+    # "label": "Updated Label <key>",
+    # "environment": "Environment <key>",
 }
 
 KEY_TO_CATEGORY = {}
@@ -264,7 +266,7 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
         return f"\n{__section_handler__(actionVerb, value, hdrDepth, f"{actionVerb.capitalize()} {header.capitalize()}")}"
     elif isinstance(value, dict):
         key = MISSING_SUB_KEY[header]
-        headerSyntax = SUBKEY_HEADER_SYNTAX[key]
+        headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}: {actionVerb.capitalize()}"
         return "\n".join(
             [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
         )
@@ -287,7 +289,7 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
         return __list_handler__(value)
     elif key in MISSING_SUB_KEY.keys():
         key = MISSING_SUB_KEY[key]
-        headerSyntax = SUBKEY_HEADER_SYNTAX[key]
+        headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}"
         return "\n".join(
             [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
         )
@@ -295,17 +297,22 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
         return "\n".join([__section_handler__(k, v, f"{hdrDepth}") for k, v in value.items()])
 
 
-def __section_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
+def __section_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None, messages: list[str] = None) -> str:
     header = KEY_TO_CATEGORY.get(key.lower(), key).capitalize() if header is None else header
     actions_toolkit.debug(f"Generating markdown for differences in {header}")
     body = f"\n{hdrDepth} {header}:\n\n"
+    if messages is not None:
+        body += "\n".join([f"- {m}\n" for m in messages])
     body += __key_handler__(key, value, f"{hdrDepth}#")
     actions_toolkit.debug(f"Generated markdown for {header}:\n\n{body}")
     return body
 
 
-def generate(markdown: dict[str, Any], hdrDepth: str = "#") -> str:
+def generate(markdown: dict[str, Any], messages: dict[str, list[str]], hdrDepth: str = "#") -> str:
     body = ""
+    if messages.get("open", None) is not None:
+        body += f"{hdrDepth} {messages["open"]}:\n\n"
+        hdrDepth += "#"
     for key, value in markdown.items():
-        body += __section_handler__(key, value, hdrDepth)
+        body += __section_handler__(key, value, hdrDepth, messages = messages.get(key, None))
     return body
