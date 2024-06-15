@@ -4,16 +4,21 @@ import pandas as pd
 
 MISSING_SUB_KEY = {
     "files": "branch",
+    "labels": "label",
+    "branch_protections": "ruleset",
+    "variables": "variable",
 }
 
 SUBKEY_HEADER_SYNTAX = {
     "branch": "branch <key>",
+    "label": "Updated Label <key>",
 }
 
 KEY_TO_CATEGORY = {}
 
 KEY_CHILD_NAME = {
     # "settings": "Setting",
+    "labels": "Label",
     # "environments": "Environment",
     # "secrets": "Secret",
     "branch": "File",
@@ -34,6 +39,8 @@ COLUMN_VALUE_TO_NAME = {
 }
 
 COLUMN_RENAME_MAP = {
+    "settings": "Setting",
+    "label": "Setting",
     "missing": "Expected",
     "extra": "Found",
     "renamed": "Change",
@@ -55,9 +62,13 @@ ACTION_TAKEN = {
     "diff": "Updated",
 }
 
-KEYS_TO_DATAFRAME = ["settings", "collaborators", "branch_policies", "secrets", "branch"]
+KEYS_TO_DATAFRAME = ["collaborators", "branch_policies", "secrets", "branch", "updated"]
 
-KEYS_TO_SKIP_A_LEVEL = ["environments"]
+KEYS_TO_COMPARE_A2E = ["settings", "label"]
+
+KEYS_TO_SKIP_A_LEVEL = ["environments", "labels", "branch_protections", "variables"]
+
+KEYS_TO_TREAT_AS_LIST = ["created", "deleted"]
 
 
 def __depth__(v: Any) -> int:
@@ -72,11 +83,11 @@ def __depth__(v: Any) -> int:
 
 
 def __maximum_depth__(input_dict: dict) -> int:
-    return 1 + max([__depth__(v) for v in input_dict.values()])
+    return max([__depth__(v) for v in input_dict.values()])
 
 
 def __minimum_depth__(input_dict: dict) -> int:
-    return 1 + min([__depth__(v) for v in input_dict.values()])
+    return min([__depth__(v) for v in input_dict.values()])
 
 
 def __transform_diffs__(diffs: dict[str, Any], depth: int = 1) -> dict:
@@ -120,7 +131,7 @@ def __dict_key_to_columns__(key: str, dfDict: dict | list, keyColName: str = Non
         if set(ACTION_TAKEN.keys()).intersection(dfDict.keys()):
             if not __validate_df_dict__(dfDict):
                 raise ValueError(f"Dictionary {dfDict} is not DataFrame compatible!")
-            result = __dict_diff_to_columns__(dfDict, keyColName, valColName)
+            result = __dict_embed_key_in_subdict__(dfDict, keyColName, valColName)
         else:
             for k, v in dfDict.items():
                 # iterating through the dictioary means that we are at the next level down
@@ -142,32 +153,62 @@ def __dict_key_to_columns__(key: str, dfDict: dict | list, keyColName: str = Non
     return result
 
 
-def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> dict:
-    result = {}
+def __dict_embed_key_in_subdict__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> pd.DataFrame:
+    df: pd.DataFrame = pd.DataFrame({})
+    dfDict = {}
     for k, v in input_dict.items():
         if k.lower() in ACTION_TAKEN.keys():
             _keyColName = COLUMN_VALUE_TO_NAME.get(k, k).capitalize()
             _keyColValue = ACTION_TAKEN.get(k, k).capitalize()
             if isinstance(v, list):
-                result[_keyColName] = [_keyColValue] * len(v)
-                result[COLUMN_RENAME_MAP[k]] = v
-                result[OPPOSSING_COLUMN_MAP[k]] = [None] * len(v)
+                dfDict[_keyColName] = [_keyColValue] * len(v)
+                dfDict[valColName] = v
             elif isinstance(v, dict):
-                if __maximum_depth__(v) == 1:
-                    for k1, v1 in v.items():
-                        # what is the logic here?  I would think we only check key
-                        v1ColName = (KEY_CHILD_NAME.get(k1.lower(), k1)).capitalize()
-                        result[v1ColName] = list([v1])
-                else:
-                    result = __dict_to_dfDict__(v, keyColName, valColName)
-                if result.get(_keyColName, None) is None:  # files sometimes have this accounted for already
-                    result[_keyColName] = [_keyColValue]
+                r = __dict_embed_key_in_subdict__(v, keyColName, valColName)
+                df = pd.concat([df, r])
+                
+            #     dfDict = v
+            #     sample = next(iter(dfDict.values()))
+            #     if isinstance(sample, list):
+            #         dfDict[_keyColName] = [_keyColValue] * len(sample)
+            #     elif isinstance(sample, dict):
+            #         dfDict[_keyColName] = [_keyColValue] * len(sample.keys())
+            #     else:
+            #         raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
             else:
                 raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
+        elif keyColName == "Setting":
+            v[keyColName] = [k] if isinstance(next(iter(v.values())), list) else k
+            df = pd.concat([df, __dict_diff_to_columnsNew__(v, None, None)])
         else:
             raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
 
-    return result
+    return df
+
+
+def __dict_diff_to_columnsNew__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> pd.DataFrame:
+    """Maps the typical expected, found difference columns to the appropriate column names and values."""
+    dfDict = {}
+    expectedLength = __maximum_depth__(input_dict)
+    for k, v in input_dict.items():
+        if isinstance(v, list):
+            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = v if len(v) == expectedLength else v.extend([None] * (expectedLength - len(v)))
+            if OPPOSSING_COLUMN_MAP.get(k, None) is not None:
+                dfDict[OPPOSSING_COLUMN_MAP[k]] = [None] * expectedLength
+        elif isinstance(v, dict):
+            raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
+            # if __maximum_depth__(v) == 1:
+            #     for k1, v1 in v.items():
+            # else:
+            #     dfDict = __dict_to_dfDict__(v, keyColName, valColName)
+        else:
+            _keyColName = COLUMN_RENAME_MAP.get(k,k).capitalize()
+            # _valColName = COLUMN_RENAME_MAP.get(k, k).capitalize()
+            if _keyColName not in dfDict.keys():
+                dfDict[_keyColName] = []
+            dfDict[_keyColName].extend([v])
+
+    return pd.DataFrame(dfDict)
 
 
 def __dict_to_dfDict__(
@@ -189,8 +230,8 @@ def __dict_to_dfDict__(
                 result[_keyColName].extend([_keyValue] * len(value))
                 result[_valColName].extend(value)
         elif isinstance(value, dict):
-            if __maximum_depth__(value) == 1 or (
-                __minimum_depth__(value) == 2 and len(set(ACTION_TAKEN.keys()).intersection(value.keys())) > 0
+            if __maximum_depth__(value) == 0 or (
+                __minimum_depth__(value) == 1 and len(set(ACTION_TAKEN.keys()).intersection(value.keys())) > 0
             ):
                 dfDict = __dict_key_to_columns__(key, value, keyColName, valColName)  # used to have category
             else:
@@ -210,32 +251,54 @@ def __dict_to_dfDict__(
     return result
 
 
-def __key_handler__(key: str, value: Any, hdrDepth: str = "#") -> str:
+def __list_handler__(value: dict | list) -> str:
+    if isinstance(value, list):
+        return "\n".join([f"- {v}" for v in value])
+    elif isinstance(value, dict):
+        return "\n".join([f"- {k}: {v}\n" for k, v in value.items()])
+
+
+def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
+    actionVerb = ACTION_TAKEN.get(key, key).lower()
+    if isinstance(value, list):
+        return f"\n{__section_handler__(actionVerb, value, hdrDepth, f"{actionVerb.capitalize()} {header.capitalize()}")}"
+    elif isinstance(value, dict):
+        key = MISSING_SUB_KEY[header]
+        headerSyntax = SUBKEY_HEADER_SYNTAX[key]
+        return "\n".join(
+            [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
+        )
+
+
+def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
     if key in KEYS_TO_DATAFRAME:
         return pd.DataFrame(
             __dict_to_dfDict__(
                 value, keyColName=KEY_CHILD_NAME.get(key, None), valColName=VAL_CHILD_NAME.get(key, None)
             )
         ).to_markdown()  # used to have key?
+    elif key in KEYS_TO_COMPARE_A2E:
+        return pd.DataFrame(__dict_embed_key_in_subdict__(value, keyColName=COLUMN_RENAME_MAP.get(key, None), valColName=KEY_CHILD_NAME.get(key, None))).to_markdown()
     elif key in KEYS_TO_SKIP_A_LEVEL:
-        return "\n".join([__key_handler__(k, v, f"{hdrDepth}#") for k, v in value.items()])
+        return "\n".join([__key_handler__(k, v, f"{hdrDepth}", key) for k, v in value.items()])
     elif key in ACTION_TAKEN.keys():
-        actionVerb = ACTION_TAKEN.get(key, key).capitalize()
-        return "\n".join([__section_handler__(f"{actionVerb} {k}", v, f"{hdrDepth}#") for k, v in value.items()])
+        return __action_handler__(key, value, hdrDepth, header)
+    elif key in KEYS_TO_TREAT_AS_LIST:
+        return __list_handler__(value)
     elif key in MISSING_SUB_KEY.keys():
         key = MISSING_SUB_KEY[key]
         headerSyntax = SUBKEY_HEADER_SYNTAX[key]
         return "\n".join(
-            [__section_handler__(key, v, f"{hdrDepth}#", headerSyntax.replace("<key>", k)) for k, v in value.items()]
+            [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
         )
     else:
-        return "\n".join([__section_handler__(k, v, f"{hdrDepth}#") for k, v in value.items()])
+        return "\n".join([__section_handler__(k, v, f"{hdrDepth}") for k, v in value.items()])
 
 
 def __section_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
     header = KEY_TO_CATEGORY.get(key.lower(), key).capitalize() if header is None else header
     actions_toolkit.debug(f"Generating markdown for differences in {header}")
-    body = f"{hdrDepth} {header}:\n\n"
+    body = f"\n{hdrDepth} {header}:\n\n"
     body += __key_handler__(key, value, f"{hdrDepth}#")
     actions_toolkit.debug(f"Generated markdown for {header}:\n\n{body}")
     return body
