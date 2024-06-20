@@ -39,7 +39,7 @@ branch_protections:
         strict: true
         checks:
           - pre-commit 3.11 / ubuntu-latest
-          - Action Integration Testing
+          - Action Integration Testing (actuarysailor/test, test, ["examples/settings.yml","examples/settings...
           - Generate Docs
       enforce_admins: false
       allow_force_pushes: true

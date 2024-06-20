@@ -126,7 +126,7 @@ def update_variables(
                                 repo,
                                 variable,
                                 variables_dict[variable].value,
-                                variables_dict[variable].type.replace("environments/", ""),
+                                variables_dict[variable].type,
                             )
                         actions_toolkit.info(f"Updated variable {variable}")
                     else:
@@ -139,9 +139,12 @@ def update_variables(
                                 ).create_variable(variable, variables_dict[variable].value)
                             except GithubException as exc:
                                 if exc.status in [409, 422]:
-                                    repo.get_environment(
-                                        variables_dict[variable].type.replace("environments/", "")
-                                    ).update_variable(variable, variables_dict[variable].value)
+                                    __update_variable__(
+                                        repo,
+                                        variable,
+                                        variables_dict[variable].value,
+                                        variables_dict[variable].type,
+                                    )
                         actions_toolkit.info(f"Created variable {variable}")
                 except Exception as exc:  # this should be tighter
                     if variables_dict[variable].required:
