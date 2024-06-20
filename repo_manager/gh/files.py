@@ -250,9 +250,16 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
             continue
 
         branch.target_branch = repo.default_branch if branch.target_branch is None else branch.target_branch
+        new_branch = f"repomgr/updates-to-{branch.target_branch}"
 
+        # If the branch we would use for the update already exists, we should not proceed
+        if new_branch != repo.default_branch and new_branch in [
+            b.name for b in repo.get_branches()
+        ]:
+            actions_toolkit.warning(f"Branch {new_branch} already exists in {repo.full_name} - please merge or prune if you want to update!")
+            return False, None
         # Checkout the target branch if it exists
-        if branch.target_branch != repo.default_branch and branch.target_branch in [
+        elif branch.target_branch != repo.default_branch and branch.target_branch in [
             b.name for b in repo.get_branches()
         ]:
             repo_dir.git.checkout(branch.target_branch)
