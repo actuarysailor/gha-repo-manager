@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.9...v2.1.0) (2024-06-20)
+
+
+### Features
+
+* Add PRs and Job Summaries ([#64](https://github.com/actuarysailor/gha-repo-manager/issues/64)) ([a93d672](https://github.com/actuarysailor/gha-repo-manager/commit/a93d672dc0397b26c4b35b597800c14526fdb4ce))
+
 ## [2.0.9](https://github.com/actuarysailor/gha-repo-manager/compare/v2.0.8...v2.0.9) (2024-06-11)
 
 
