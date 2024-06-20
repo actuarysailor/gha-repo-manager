@@ -126,7 +126,7 @@ def update_variables(
                                 repo,
                                 variable,
                                 variables_dict[variable].value,
-                                variables_dict[variable].type.replace("environments/", ""),
+                                variables_dict[variable].type,
                             )
                         actions_toolkit.info(f"Updated variable {variable}")
                     else:
@@ -143,7 +143,7 @@ def update_variables(
                                         repo,
                                         variable,
                                         variables_dict[variable].value,
-                                        variables_dict[variable].type.replace("environments/", ""),
+                                        variables_dict[variable].type,
                                     )
                         actions_toolkit.info(f"Created variable {variable}")
                 except Exception as exc:  # this should be tighter
