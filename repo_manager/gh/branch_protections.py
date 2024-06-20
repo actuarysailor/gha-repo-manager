@@ -383,17 +383,25 @@ def check_repo_branch_protections(
                 "expected": config_bp.protection.enforce_admins,
                 "found": this_protection.enforce_admins,
             }
-        if config_bp.protection.require_linear_history is not None and config_bp.protection.require_linear_history != this_protection.required_linear_history:
+        if (
+            config_bp.protection.require_linear_history is not None
+            and config_bp.protection.require_linear_history != this_protection.required_linear_history
+        ):
             diffs["require_linear_history"] = {
                 "expected": config_bp.protection.require_linear_history,
                 "found": this_protection.required_linear_history,
             }
-        if config_bp.protection.allow_force_pushes is not None and config_bp.protection.allow_force_pushes != this_protection.allow_force_pushes:
+        if (
+            config_bp.protection.allow_force_pushes is not None
+            and config_bp.protection.allow_force_pushes != this_protection.allow_force_pushes
+        ):
             diffs["allow_force_pushes"] = {
                 "expected": config_bp.protection.allow_force_pushes,
                 "found": this_protection.allow_force_pushes,
             }
-        if config_bp.protection.allow_deletions is not None and config_bp.protection.allow_deletions != this_protection.allow_deletions:
+        if (config_bp.protection.allow_deletions is not None
+            and config_bp.protection.allow_deletions != this_protection.allow_deletions
+        ):
             diffs["allow_deletions"] = {
                 "expected": config_bp.protection.allow_deletions,
                 "found": this_protection.allow_deletions,
@@ -401,8 +409,7 @@ def check_repo_branch_protections(
         # block_creations missing? Not sure if it is supported by the pygithub library
         if (
             config_bp.protection.require_conversation_resolution is not None
-            and config_bp.protection.require_conversation_resolution
-            != this_protection.required_conversation_resolution
+            and config_bp.protection.require_conversation_resolution != this_protection.required_conversation_resolution
         ):
             diffs["require_conversation_resolution"] = {
                 "expected": config_bp.protection.require_conversation_resolution,
