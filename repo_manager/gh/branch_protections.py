@@ -399,7 +399,8 @@ def check_repo_branch_protections(
                 "expected": config_bp.protection.allow_force_pushes,
                 "found": this_protection.allow_force_pushes,
             }
-        if (config_bp.protection.allow_deletions is not None
+        if (
+            config_bp.protection.allow_deletions is not None
             and config_bp.protection.allow_deletions != this_protection.allow_deletions
         ):
             diffs["allow_deletions"] = {
