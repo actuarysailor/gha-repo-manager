@@ -43,6 +43,7 @@ COLUMN_VALUE_TO_NAME = {
 COLUMN_RENAME_MAP = {
     "settings": "Setting",
     "label": "Setting",
+    "ruleset": "Setting",
     "missing": "Expected",
     "extra": "Found",
     "renamed": "Change",
@@ -66,7 +67,7 @@ ACTION_TAKEN = {
 
 KEYS_TO_DATAFRAME = ["collaborators", "branch_policies", "secrets", "branch", "updated"]
 
-KEYS_TO_COMPARE_A2E = ["settings", "label"]
+KEYS_TO_COMPARE_A2E = ["settings", "label", "ruleset"]
 
 KEYS_TO_SKIP_A_LEVEL = ["environments", "labels", "branch_protections", "variables"]
 
