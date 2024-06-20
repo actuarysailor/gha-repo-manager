@@ -301,7 +301,7 @@ def check_repo_branch_protections(
         if not repo_bp.protected and config_bp.exists:
             missing_protections.append(config_bp.name)
             continue
-        if not config_bp.exists and repo_bp is not None:
+        if not config_bp.exists and repo_bp.protected:
             extra_protections.append(config_bp.name)
             continue
 
