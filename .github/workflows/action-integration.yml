@@ -88,7 +88,7 @@ jobs:
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: apply
 
-      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
+      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[1] }}
         id: final-check-action
         if: matrix.action == 'test'
         uses: ./
