@@ -6,11 +6,13 @@ on:
     paths:
       - '.github/workflows/generate-docs.yml'
       - 'action.yml'
+      - poetry.lock
       - 'README.md'
   pull_request:
     paths:
       - '.github/workflows/generate-docs.yml'
       - 'action.yml'
+      - poetry.lock
       - 'README.md'
 
 jobs:

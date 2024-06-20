@@ -9,6 +9,7 @@ on:
       - '.github/workflows/action-integration.yml'
       - 'action.yml'
       - 'Dockerfile'
+      - poetry.lock
       - '**/*.py'
 
   pull_request_target:
@@ -16,6 +17,7 @@ on:
       - '.github/workflows/action-integration.yml'
       - 'action.yml'
       - 'Dockerfile'
+      - poetry.lock
       - '**/*.py'
 
 jobs:
