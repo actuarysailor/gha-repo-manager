@@ -19,6 +19,7 @@ pip install pyyaml
 Create a `.env` file in your root-directory of the repo (this repo)
 
 ```
+RUNNER_WORKSPACE=C:\Temp
 INPUT_GITHUB_SERVER_URL=none
 INPUT_REPO=self
 INPUT_TOKEN=********
