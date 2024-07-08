@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.3](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.2...v2.1.3) (2024-07-08)
+
+
+### Bug Fixes
+
+* Handle missing directories ([#75](https://github.com/actuarysailor/gha-repo-manager/issues/75)) ([cd7d1c9](https://github.com/actuarysailor/gha-repo-manager/commit/cd7d1c93e7c0a3151629a257f43f494cf84a9928))
+
 ## [2.1.2](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.1...v2.1.2) (2024-07-08)
 
 
