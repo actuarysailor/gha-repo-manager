@@ -128,7 +128,7 @@ def __check_files__(
             if oldPath.exists():
                 if file_config.remote_src and not file_config.move:
                     missing[str(file_config.dest_file)] = {"insertions": 0, "deletions": 0, "lines": 0}
-                    newPath.parent.mkdir(parents=True, exist_ok=True). # Create the directory if it does not exist
+                    newPath.parent.mkdir(parents=True, exist_ok=True)  # Create the directory if it does not exist
                     shutil.copyfile(oldPath, newPath)
                     actions_toolkit.info(f"Copied {str(oldPath)} to {str(newPath)}")
                 else:
@@ -185,7 +185,7 @@ def __check_files__(
                 os.remove(destPath)  # Delete the file
             else:
                 missing[str(file_config.dest_file)] = {"insertions": 0, "deletions": 0, "lines": 0}
-            destPath.parent.mkdir(parents=True, exist_ok=True). # Create the directory if it does not exist
+            destPath.parent.mkdir(parents=True, exist_ok=True)  # Create the directory if it does not exist
             shutil.copyfile(srcPath, destPath)
             actions_toolkit.info(f"Copied {str(srcPath)} to {str(destPath)}")
 
