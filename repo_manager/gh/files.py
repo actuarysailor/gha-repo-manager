@@ -180,8 +180,8 @@ def __check_files__(
         srcPath = file_config.src_file
         destPath = Path(repo.working_tree_dir) / file_config.dest_file
         if file_config.exists:
-            if newPath.exists():
-                os.remove(newPath)  # Delete the file
+            if destPath.exists():
+                os.remove(destPath)  # Delete the file
             else:
                 missing[str(file_config.dest_file)] = {"insertions": 0, "deletions": 0, "lines": 0}
             shutil.copyfile(srcPath, destPath)
@@ -211,7 +211,7 @@ def __check_files__(
                 for m, c in v.items():
                     changed[str(Path(f))][m] += c
             else:
-                raise RuntimeError(f"File {file} has unaccounted changes!{commitCleanup.stats.files[file]}")
+                changed[str(Path(f))] = v
 
     if len(extra) > 0:
         diffs["extra"] = extra
