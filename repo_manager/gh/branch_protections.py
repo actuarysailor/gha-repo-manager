@@ -295,9 +295,10 @@ def check_repo_branch_protections(
 
     for config_bp in config_branch_protections:
         repo_bp = repo_branches.get(config_bp.name, None)
+        # Unfortunatly, the GitHub REST API does not support getting branch protection for a branch that does not exist
         if repo_bp is None and config_bp.exists:
-            # This should maybe be a regex pattern?
-            raise RuntimeError(f"Branch {config_bp.name} does not exist in repo {repo.full_name}")
+            actions_toolkit.warning(f"Branch {config_bp.name} does not exist in repo {repo.full_name} - skipping")
+            continue
         if not repo_bp.protected and config_bp.exists:
             missing_protections.append(config_bp.name)
             continue
