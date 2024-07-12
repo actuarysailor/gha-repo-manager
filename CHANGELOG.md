@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.4](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.3...v2.1.4) (2024-07-12)
+
+
+### Bug Fixes
+
+* Throw a warning instead of an error if a branch does not exist for protection ([#77](https://github.com/actuarysailor/gha-repo-manager/issues/77)) ([e61d702](https://github.com/actuarysailor/gha-repo-manager/commit/e61d702bc648e358407981f2e7a2c4364b179cb1))
+
 ## [2.1.3](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.2...v2.1.3) (2024-07-08)
 
 
