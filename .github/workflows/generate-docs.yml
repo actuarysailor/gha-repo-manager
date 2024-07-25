@@ -8,10 +8,6 @@ on:
       - 'action.yml'
       - 'README.md'
   pull_request:
-    paths:
-      - '.github/workflows/generate-docs.yml'
-      - 'action.yml'
-      - 'README.md'
 
 jobs:
   docs:
