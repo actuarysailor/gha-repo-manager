@@ -19,7 +19,7 @@ INPUTS = {
     },
     "token": {
         "description": "What github token to use with this action (one of token or app_id is required).",
-        "required": False, 
+        "required": False,
     },
     "app_id": {
         "description": "What github app id to use with this action (one of token or app_id is required).",
