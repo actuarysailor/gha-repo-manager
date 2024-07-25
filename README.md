@@ -80,7 +80,9 @@ jobs:
 | `settings_file` | <p>What yaml file to use as your settings. This is local to runner running this action.</p> | `false` | `.github/settings.yml` |
 | `repo` | <p>What repo to perform this action on. Default is self, as in the repo this action is running in</p> | `false` | `self` |
 | `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `none` |
-| `token` | <p>What github token to use with this action.</p> | `true` | `""` |
+| `token` | <p>What github token to use with this action (one of token or app_id is required).</p> | `false` | `""` |
+| `app_id` | <p>What github app id to use with this action (one of token or app_id is required).</p> | `false` | `""` |
+| `private_key` | <p>What github app private key to use with this action (required if using an app_id to authenticate).</p> | `false` | `""` |
 | `fail_on_diff` | <p>Fail the action if the repo settings differ from the settings file. Default is false. Note, this only applies if the action is set to 'check'</p> | `false` | `false` |
 <!-- action-docs-inputs source="action.yml" -->
 
