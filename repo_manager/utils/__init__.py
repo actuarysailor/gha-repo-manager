@@ -78,7 +78,7 @@ def __get_token_permissions__(requester: Requester) -> dict:
         "Authorization": f"Bearer {requester.auth.token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    response = requests.get(requester.base_url, headers=headers)
+    response = requests.get(requester.base_url, headers=headers, timeout=10)
     actions_toolkit.debug(f"response: {response}")
     # response.headers.get('X-Accepted-GitHub-Permissions')
     return {}
