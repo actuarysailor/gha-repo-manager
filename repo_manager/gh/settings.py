@@ -1,6 +1,6 @@
 from typing import Any
 
-from actions_toolkit import core as actions_toolkit
+# from actions_toolkit import core as actions_toolkit
 
 from github.Auth import AppInstallationAuth
 from github.GithubException import GithubException
@@ -27,7 +27,9 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
         if perms.get("administration", None) is None:
             raise GithubException(403, None, None, "App does not have access to repository settings.")
     elif repo._requester.oauth_scopes is None:
-        GithubException(403, None, None, f"Unable to access repository settings with OAUTH of {repo._requester.oauth_scopes}")
+        GithubException(
+            403, None, None, f"Unable to access repository settings with OAUTH of {repo._requester.oauth_scopes}"
+        )
 
     def get_repo_value(setting_name: str, repo: Repository) -> Any | None:
         """Get a value from the repo object"""

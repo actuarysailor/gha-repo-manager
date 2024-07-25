@@ -28,10 +28,12 @@ def __get_inputs__() -> dict:
     kwargs = dict()
     for input_name, input_config in INPUTS.items():
         if input_config.get("multiline", False):
-            this_input_value = '\n'.join(actions_toolkit.get_multiline_input(
-                input_name,
-                required=input_config.get("required", False),
-            ))
+            this_input_value = '\n'.join(
+                actions_toolkit.get_multiline_input(
+                    input_name,
+                    required=input_config.get("required", False),
+                )
+            )
         else:
             this_input_value = actions_toolkit.get_input(
                 input_name,
@@ -50,7 +52,10 @@ def __get_inputs__() -> dict:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
     kwargs["owner"] = kwargs["repo"].split("/")[0] if kwargs["repo"] is not None else None
     return kwargs
+ 
+ 
  # inputs["app_id"], inputs["private_key"], inputs.get("owner", None), inputs.get("repo", None)
+
 
 def __get_api_url__() -> str:
     global kwargs # this never gets added to the dictionary
@@ -63,14 +68,15 @@ def __get_api_url__() -> str:
     actions_toolkit.debug(f"api_url: {api_url}")
     return api_url
 
+
 def __get_token__() -> str:
     global kwargs
 
 
 def __get_token_permissions__(requester: Requester) -> dict:
     headers = {
-        'Authorization': f'Bearer {requester.auth.token}',
-        'X-GitHub-Api-Version': '2022-11-28',
+        "Authorization": f"Bearer {requester.auth.token}",
+        "X-GitHub-Api-Version": "2022-11-28",
     }
     response = requests.get(requester.base_url, headers=headers)
     actions_toolkit.debug(f"response: {response}")
