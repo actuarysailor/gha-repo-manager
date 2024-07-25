@@ -5,9 +5,19 @@ from typing import Any
 from actions_toolkit import core as actions_toolkit
 
 from github import GithubException
+from github.Auth import AppInstallationAuth
 from github.Repository import Repository
 
+from repo_manager.utils import get_permissions
 from repo_manager.schemas.secret import Secret
+
+
+def __verify_variable_access__(repo: Repository) -> bool:
+    """Verifies that the app has access to the secrets"""
+    perms = get_permissions()
+    if isinstance(repo._requester.auth, AppInstallationAuth) and perms.get("secrets", None) is None:
+        raise GithubException(403, None, None, "App does not have access to secrets")
+    return True
 
 
 def __get_repo_variable_dict__(repo: Repository, path: str = "actions") -> dict[str, Any]:

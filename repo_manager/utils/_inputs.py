@@ -16,9 +16,21 @@ INPUTS = {
     },
     "github_server_url": {
         "description": "Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB_SERVER_URL if left at default",
-        "default": "none",
+        "default": None,
     },
-    "token": {"description": "What github token to use with this action.", "required": True},
+    "token": {
+        "description": "What github token to use with this action.",
+        "default": None
+    },
+    "app_id": {
+        "description": "The GitHub App ID to use for authentication",
+        "default": None
+    },
+    "private_key": {
+        "description": "The private key for the GitHub App",
+        "default": None,
+        "multiline": True
+    },
     "fail_on_diff": {
         "description": "Fail the action if the repo settings differ from the settings file. Default is false. Note, this only applies if the action is set to 'check'",
         "default": False,

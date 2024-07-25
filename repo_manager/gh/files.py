@@ -72,7 +72,8 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     if repo_dir.is_dir():
         raise FileExistsError(f"Directory {repo_dir} already exists")
     actions_toolkit.info(f"Cloning {repo.full_name} to {repo_dir}")
-    cloned_repo = Repo.clone_from(repo.clone_url.replace("https://", f"https://{inputs['token']}@"), str(repo_dir))
+    # https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
+    cloned_repo = Repo.clone_from(repo.clone_url.replace("https://", f"https://{inputs['username']}:{inputs['token']}@"), str(repo_dir))
     cloned_repo.git.checkout(branch)
     return cloned_repo
 
@@ -287,8 +288,8 @@ def update_files(
     """Update files in a repository"""
     errors = []
     messages = []
-    if diffs is None:
-        return errors
+    if not isinstance(diffs, (tuple, dict)):
+        return errors, messages
     inputs = get_inputs()
 
     if inputs["repo"] == "self":

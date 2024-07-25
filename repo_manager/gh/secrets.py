@@ -2,15 +2,38 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
-from github.GithubException import GithubException
+from github import GithubException
+from github.Auth import AppInstallationAuth
 from github.Repository import Repository
 
+from repo_manager.utils import get_permissions
 from repo_manager.schemas.secret import Secret
 
 
-def __get_repo_secret_names__(repo: Repository, path: str = "actions") -> set[str]:
-    if "admin:org" not in repo._requester.oauth_scopes and path == "dependabot":
+def __verify_dependabot_access__(repo: Repository) -> bool:
+    """Verifies that the app has access to the dependabot secrets"""
+    perms = get_permissions()
+    if isinstance(repo._requester.auth, AppInstallationAuth) and perms.get("dependabot_secrets", None) is None:
+        raise GithubException(403, None, None, "App does not have access to dependabot secrets")
+    elif "admin:org" not in repo._requester.oauth_scopes:
         raise GithubException(403, None, None, "User token does not have access to dependabot secrets")
+    return True
+
+
+def __verify_secret_access__(repo: Repository) -> bool:
+    """Verifies that the app has access to the secrets"""
+    perms = get_permissions()
+    if isinstance(repo._requester.auth, AppInstallationAuth) and perms.get("secrets", None) is None:
+        raise GithubException(403, None, None, "App does not have access to secrets")
+    return True
+
+
+def __get_repo_secret_names__(repo: Repository, path: str = "actions") -> set[str]:
+    """Gets the names of the secrets in a repo"""
+    if path == "dependabot":
+        __verify_dependabot_access__(repo)
+    elif isinstance(repo._requester.auth, AppInstallationAuth):
+        __verify_secret_access__(repo)
     if path in ["actions", "dependabot"]:
         return {secret.name for secret in repo.get_secrets(path)}
     else:

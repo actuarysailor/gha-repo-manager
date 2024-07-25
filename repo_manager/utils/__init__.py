@@ -1,9 +1,11 @@
 import os
 from typing import Any
+import requests
 
 from actions_toolkit import core as actions_toolkit
 
-from github import Github, Repository, Organization
+from github import Github, Repository, Organization, Requester
+from github.Auth import AppInstallationAuth, Token
 
 # Needed to handle extracting certain attributes/fields from nested objects and lists
 from itertools import repeat
@@ -22,71 +24,115 @@ def __get_inputs__() -> dict:
     Returns:
         Dict[str, Any]: [description]
     """
-    global parsed_inputs
-    parsed_inputs = dict()
+    global kwargs
+    kwargs = dict()
     for input_name, input_config in INPUTS.items():
-        this_input_value = actions_toolkit.get_input(
-            input_name,
-            required=input_config.get("required", input_config.get("default", None) is None),
-        )
-        parsed_inputs[input_name] = this_input_value if this_input_value != "" else None
-        # set defaults if not running in github, this is to ease local testing
+        if input_config.get("multiline", False):
+            this_input_value = '\n'.join(actions_toolkit.get_multiline_input(
+                input_name,
+                required=input_config.get("required", False),
+            ))
+        else:
+            this_input_value = actions_toolkit.get_input(
+                input_name,
+                required=input_config.get("required", False),
+            )
+        kwargs[input_name] = this_input_value if this_input_value != "" else None
+        # use a .env file to set defaults for local testing
         # https://docs.github.com/en/actions/learn-github-actions/environment-variables
-        if (
-            os.environ.get("CI", "false").lower() == "false"
-            and os.environ.get("GITHUB_ACTIONS", "false").lower() == "false"
-        ):
-            if parsed_inputs[input_name] is None:
-                parsed_inputs[input_name] = input_config.get("default", None)
-                if parsed_inputs[input_name] is None:
-                    actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
-    return parsed_inputs
-
+        # if (
+        #     os.environ.get("CI", "false").lower() == "false"
+        #     and os.environ.get("GITHUB_ACTIONS", "false").lower() == "false"
+        # ):
+        #     if kwargs[input_name] is None:
+        #         kwargs[input_name] = input_config.get("default", None)
+        #         if kwargs[input_name] is None:
+        #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
+    kwargs["owner"] = kwargs["repo"].split("/")[0] if kwargs["repo"] is not None else None
+    return kwargs
+ # inputs["app_id"], inputs["private_key"], inputs.get("owner", None), inputs.get("repo", None)
 
 def __get_api_url__() -> str:
-    global parsed_inputs
-    parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
+    global kwargs # this never gets added to the dictionary
+    kwargs = __get_inputs__() if "kwargs" not in globals() else kwargs
     global api_url
-    if parsed_inputs["github_server_url"] == "https://github.com":
+    if kwargs["github_server_url"] == "https://github.com":
         api_url = "https://api.github.com"
     else:
-        api_url = parsed_inputs["github_server_url"] + "/api/v3"
+        api_url = kwargs["github_server_url"] + "/api/v3"
     actions_toolkit.debug(f"api_url: {api_url}")
     return api_url
 
+def __get_token__() -> str:
+    global kwargs
+
+
+def __get_token_permissions__(requester: Requester) -> dict:
+    headers = {
+        'Authorization': f'Bearer {requester.auth.token}',
+        'X-GitHub-Api-Version': '2022-11-28',
+    }
+    response = requests.get(requester.base_url, headers=headers)
+    actions_toolkit.debug(f"response: {response}")
+    # response.headers.get('X-Accepted-GitHub-Permissions')
+    return {}
+
 
 def get_client() -> Github:
-    global parsed_inputs
-    parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
+    global client
+    if "client" in globals():
+        return client
+    global kwargs
+    kwargs = __get_inputs__() if "kwargs" not in globals() else kwargs
     global api_url
     api_url = __get_api_url__() if "api_url" not in globals() else api_url
     try:
-        client = get_github_client(parsed_inputs["token"], api_url=api_url)
+        global permissions
+        client, permissions = get_github_client(api_url, **kwargs)
+        if isinstance(client._Github__requester.auth, AppInstallationAuth):
+            kwargs["username"] = "x-access-token"
+            kwargs["token"] = client._Github__requester.auth.token
+        elif isinstance(client._Github__requester.auth, Token):
+            kwargs["username"] = os.environ.get("GITHUB_ACTOR", None)
+            permissions = __get_token_permissions__(client._Github__requester)
+        else:
+            raise ValueError("Unknown authentication method")
     except Exception as exc:  # this should be tighter
         actions_toolkit.set_failed(f"Error while retrieving GitHub REST API Client from {api_url}. {exc}")
+    actions_toolkit.debug(f"permissions: {permissions}")
     return client
 
 
 def get_repo() -> Repository:
-    global parsed_inputs
-    parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
-    client = get_client()
+    global kwargs
+    if kwargs.get("repo_object", None) is not None:
+        return kwargs["repo_object"]
+    kwargs = __get_inputs__() if "kwargs" not in globals() else kwargs
+    global client
+    client = get_client() if "client" not in globals() else client
     try:
-        repo = client.get_repo(parsed_inputs["repo"])
+        repo = client.get_repo(kwargs["repo"])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retrieving {parsed_inputs['repo']} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {kwargs['repo']} from Github. {exc}")
     return repo
 
 
 def get_organization() -> Organization:
-    global parsed_inputs
-    parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
-    client = get_client()
+    global kwargs
+    kwargs = __get_inputs__() if "kwargs" not in globals() else kwargs
+    global client
+    client = get_client() if "client" not in globals() else client
     try:
-        org = client.get_organization(parsed_inputs["repo"].split("/")[0])
+        org = client.get_organization(kwargs["repo"].split("/")[0])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retrieving {parsed_inputs['repo'].split('/')[0]} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {kwargs['repo'].split('/')[0]} from Github. {exc}")
     return org
+
+
+def get_permissions() -> set[str]:
+    if "permissions" not in globals():
+        raise ValueError("Permissions not set. Please run get_client() first")
+    return permissions
 
 
 def get_inputs() -> dict[str, Any]:
@@ -96,9 +142,9 @@ def get_inputs() -> dict[str, Any]:
     Returns:
         Dict[str, Any]: [description]
     """
-    global parsed_inputs
-    parsed_inputs = __get_inputs__() if "parsed_inputs" not in globals() else parsed_inputs
-    return validate_inputs(parsed_inputs)
+    global kwargs
+    kwargs = __get_inputs__() if "kwargs" not in globals() else kwargs
+    return validate_inputs(kwargs)
 
 
 def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
