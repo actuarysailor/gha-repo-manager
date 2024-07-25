@@ -193,7 +193,7 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
             "Error getting inputs. RUNNER_WORKSPACE env var is not set. Job likely not running on a GitHub agent."
         )
 
-    if parsed_inputs["github_server_url"].lower() == "none":
+    if parsed_inputs["github_server_url"] is None:
         parsed_inputs["github_server_url"] = os.environ.get("GITHUB_SERVER_URL", None)
         if parsed_inputs["github_server_url"] is None:
             actions_toolkit.set_failed(
