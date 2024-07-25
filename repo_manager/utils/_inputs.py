@@ -15,19 +15,18 @@ INPUTS = {
         "default": "self",
     },
     "github_server_url": {
-        "description": "Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB_SERVER_URL if left at default",
-        "default": "none",
+        "description": "Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB_SERVER_URL if left at default"
     },
     "token": {
-        "description": "What github token to use with this action.",
+        "description": "What github token to use with this action (one of token or app_id is required).",
         "required": False, 
     },
     "app_id": {
-        "description": "The GitHub App ID to use for authentication",
+        "description": "What github app id to use with this action (one of token or app_id is required).",
         "required": False,
     },
     "private_key": {
-        "description": "The private key for the GitHub App",
+        "description": "What github app private key to use with this action (required if using an app_id to authenticate).",
         "multiline": True,
         "required": False,
     },
