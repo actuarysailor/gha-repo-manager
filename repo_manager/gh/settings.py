@@ -1,11 +1,13 @@
 from typing import Any
 
-from actions_toolkit import core as actions_toolkit
+# from actions_toolkit import core as actions_toolkit
 
+from github.Auth import AppInstallationAuth
+from github.GithubException import GithubException
 from github.Repository import Repository
 
+from repo_manager.utils import attr_to_kwarg, get_permissions
 from repo_manager.schemas.settings import Settings
-from repo_manager.utils import attr_to_kwarg
 
 
 def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, list[str | None]]:
@@ -18,6 +20,16 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
     Returns:
         Tuple[bool, Optional[List[str]]]: [description]
     """
+
+    # TODO: Unresolved issues when new Fine Grain Tokens have OAUTH SCOPE of none...
+    if isinstance(repo._requester.auth, AppInstallationAuth):
+        perms = get_permissions()
+        if perms.get("administration", None) is None:
+            raise GithubException(403, None, None, "App does not have access to repository settings.")
+    elif repo._requester.oauth_scopes is None:
+        GithubException(
+            403, None, None, f"Unable to access repository settings with OAUTH of {repo._requester.oauth_scopes}"
+        )
 
     def get_repo_value(setting_name: str, repo: Repository) -> Any | None:
         """Get a value from the repo object"""
@@ -38,17 +50,6 @@ def check_repo_settings(repo: Repository, settings: Settings) -> tuple[bool, lis
         # These are dependabot settings and access to them needs to be modified; not part of settings
         if setting_name in ["enable_automated_security_fixes", "enable_vulnerability_alerts"]:
             continue
-        # TODO: Unresolved issues when new Fine Grain Tokens have OAUTH SCOPE of none...
-        if setting_name in [
-            "allow_squash_merge",
-            "allow_merge_commit",
-            "allow_rebase_merge",
-            "delete_branch_on_merge",
-        ]:
-            if repo._requester.oauth_scopes is None:
-                continue
-            elif repo_value is None:
-                actions_toolkit.info(f"Unable to access {setting_name} with OAUTH of {repo._requester.oauth_scopes}")
         # We don't want to flag differences omitted in the YAML file
         if settings_value is None:
             continue
