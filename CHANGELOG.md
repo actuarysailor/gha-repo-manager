@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.4...v2.2.0) (2024-07-25)
+
+
+### Features
+
+* Update action to be able to use GitHub Apps ([#81](https://github.com/actuarysailor/gha-repo-manager/issues/81)) ([83a5f81](https://github.com/actuarysailor/gha-repo-manager/commit/83a5f817677af6e52a830a151499424e9db07866))
+
 ## [2.1.4](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.3...v2.1.4) (2024-07-12)
 
 
