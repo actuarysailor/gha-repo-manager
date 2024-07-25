@@ -28,7 +28,7 @@ def __get_inputs__() -> dict:
     kwargs = dict()
     for input_name, input_config in INPUTS.items():
         if input_config.get("multiline", False):
-            this_input_value = '\n'.join(
+            this_input_value = "\n".join(
                 actions_toolkit.get_multiline_input(
                     input_name,
                     required=input_config.get("required", False),
@@ -52,13 +52,13 @@ def __get_inputs__() -> dict:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
     kwargs["owner"] = kwargs["repo"].split("/")[0] if kwargs["repo"] is not None else None
     return kwargs
- 
- 
- # inputs["app_id"], inputs["private_key"], inputs.get("owner", None), inputs.get("repo", None)
+
+
+# inputs["app_id"], inputs["private_key"], inputs.get("owner", None), inputs.get("repo", None)
 
 
 def __get_api_url__() -> str:
-    global kwargs # this never gets added to the dictionary
+    global kwargs  # this never gets added to the dictionary
     kwargs = __get_inputs__() if "kwargs" not in globals() else kwargs
     global api_url
     if kwargs["github_server_url"] == "https://github.com":

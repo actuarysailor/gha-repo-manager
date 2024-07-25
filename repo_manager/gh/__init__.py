@@ -13,6 +13,7 @@ def __get_app_auth__(api_url: str, app_id: int, private_key: str) -> GithubInteg
     auth = Auth.AppAuth(app_id=app_id, private_key=private_key)
     return GithubIntegration(auth=auth, base_url=api_url)
 
+
 def __run_as_installed_app__(
     api_url: str, app_id: int, private_key: str, owner: str | None, repo: str | None
 ) -> tuple[Github, dict]:
@@ -35,7 +36,7 @@ def get_github_client(
     private_key: str | None,
     owner: str | None,
     repo: str | None,
-    **kwargs
+    **kwargs,
 ) -> tuple[Github, dict]:
     """Returns an instantiated interface with the GitHub API"""
     if token is None:
