@@ -9,7 +9,6 @@ on:
       - poetry.lock
       - 'README.md'
   pull_request:
-    paths:
 
 jobs:
   docs:
