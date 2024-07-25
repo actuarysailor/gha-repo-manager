@@ -50,7 +50,9 @@ def __get_inputs__() -> dict:
         #         kwargs[input_name] = input_config.get("default", None)
         #         if kwargs[input_name] is None:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
-    kwargs["owner"] = kwargs["repo"].split("/")[0] if kwargs["repo"] is not None else None
+    kwargs["owner"] = (
+        kwargs["repo"].split("/")[0] if kwargs["repo"] != "self" else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
+    )
     return kwargs
 
 
