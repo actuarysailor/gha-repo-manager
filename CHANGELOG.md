@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.0...v2.2.1) (2024-07-25)
+
+
+### Bug Fixes
+
+* Error when repo is self and cannot identify owner from repo name ([#83](https://github.com/actuarysailor/gha-repo-manager/issues/83)) ([7c9e56b](https://github.com/actuarysailor/gha-repo-manager/commit/7c9e56b10ab8ad4388730a8dfa2cb858c3b65bb3))
+
 ## [2.2.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.1.4...v2.2.0) (2024-07-25)
 
 
