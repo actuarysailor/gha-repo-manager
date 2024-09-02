@@ -13,12 +13,6 @@ on:
       - '**/*.py'
 
   pull_request_target:
-    paths:
-      - '.github/workflows/action-integration.yml'
-      - 'action.yml'
-      - 'Dockerfile'
-      - poetry.lock
-      - '**/*.py'
 
 jobs:
 
