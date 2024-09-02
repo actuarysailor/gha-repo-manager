@@ -42,7 +42,7 @@ jobs:
       FORCE_COLOR: "1"
       PRE_COMMIT_COLOR: "always"
       GITHUB_SERVER_URL: ${{ github.server_url }}
-      INPUT_TOKEN: ${{ secrets.THIS_PAT }}
+      INPUT_TOKEN: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
     steps:
       - name: Check out the repository
