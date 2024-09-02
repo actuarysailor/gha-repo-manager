@@ -60,7 +60,9 @@ jobs:
         if: contains(fromJSON('["check","test"]'), matrix.action)
         uses: ./
         with:
-          token: ${{ secrets.THIS_PAT || github.token }}
+          # token: ${{ secrets.THIS_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
           repo: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
           action: check
@@ -73,7 +75,9 @@ jobs:
         if: matrix.action == 'test'
         uses: ./
         with:
-          token: ${{ secrets.THIS_PAT || github.token }}
+          # token: ${{ secrets.THIS_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
           repo: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
           action: apply
@@ -85,7 +89,9 @@ jobs:
         if: matrix.action == 'test'
         uses: ./
         with:
-          token: ${{ secrets.THIS_PAT || github.token }}
+          # token: ${{ secrets.THIS_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
           repo: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: apply
@@ -95,7 +101,9 @@ jobs:
         if: matrix.action == 'test'
         uses: ./
         with:
-          token: ${{ secrets.THIS_PAT || github.token }}
+          # token: ${{ secrets.THIS_PAT || github.token }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
           repo: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: check

@@ -61,7 +61,7 @@ class RepoManagerConfig(BaseModel):
 
 def load_config(filename: str) -> RepoManagerConfig:
     """Loads a yaml file into a RepoManagerconfig"""
-    with open(filename) as fh:
+    with open(filename, encoding="utf-8") as fh:
         this_dict = yaml.safe_load(fh)
 
     return RepoManagerConfig.model_validate(this_dict)

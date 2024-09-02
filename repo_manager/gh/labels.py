@@ -73,12 +73,20 @@ def check_repo_labels(
         if config_label_dict[label_name].color is not None:
             if config_label_dict[label_name].color_no_hash.lower() != repo_labels[label_name].color.lower():
                 diff[label_name] = {
-                    "color": f"Expected {config_label_dict[label_name].color} found {repo_labels[label_name].color}"
+                    "color": {
+                        "expected": config_label_dict[label_name].color_no_hash.lower(),
+                        "found": None if (repo_labels[label_name].color is None) else repo_labels[label_name].color,
+                    }
                 }
         if config_label_dict[label_name].description is not None:
             if config_label_dict[label_name].description != repo_labels[label_name].description:
                 diff[label_name] = {
-                    "description": f"Expected {config_label_dict[label_name].description} found {repo_labels[label_name].description}"
+                    "description": {
+                        "expected": config_label_dict[label_name].description,
+                        "found": None
+                        if (repo_labels[label_name].description is None)
+                        else repo_labels[label_name].description,
+                    }
                 }
 
     if len(diff) > 0:
@@ -104,6 +112,7 @@ def update_labels(
     """
     errors = []
     label_dict = {label.name: label for label in labels}
+    label_dict.update({label.expected_name: label for label in labels})
     for issue_type in diffs.keys():
         label_names = diffs[issue_type] if issue_type != "diff" else diffs[issue_type].keys()
         for label_name in label_names:
@@ -121,9 +130,9 @@ def update_labels(
                         "ffffff"
                         if label_dict[label_name].color_no_hash is None
                         else label_dict[label_name].color_no_hash,
-                        label_dict[label_name].expected_name
-                        if label_dict[label_name].expected_name is not None
-                        else "",
+                        label_dict[label_name].description
+                        if label_dict[label_name].description is not None
+                        else label_dict[label_name].expected_name,
                     )
                     actions_toolkit.info(f"Created label {label_name}")
                 except Exception as exc:  # this should be tighter

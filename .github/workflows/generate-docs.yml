@@ -23,7 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.6
         with:
-          token: ${{ secrets.THIS_PAT }}
+          token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
       - name: Run doc generation
         uses: npalm/action-docs-action@v3.1.1
