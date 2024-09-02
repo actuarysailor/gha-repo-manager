@@ -73,12 +73,22 @@ def check_repo_labels(
         if config_label_dict[label_name].color is not None:
             if config_label_dict[label_name].color_no_hash.lower() != repo_labels[label_name].color.lower():
                 diff[label_name] = {
-                    "color": f"Expected {config_label_dict[label_name].color} found {repo_labels[label_name].color}"
+                    "color": {
+                        "expected": config_label_dict[label_name].color_no_hash.lower(),
+                        "found": None
+                        if (repo_labels[label_name].color is None)
+                        else repo_labels[label_name].color
+                    }
                 }
         if config_label_dict[label_name].description is not None:
             if config_label_dict[label_name].description != repo_labels[label_name].description:
                 diff[label_name] = {
-                    "description": f"Expected {config_label_dict[label_name].description} found {repo_labels[label_name].description}"
+                    "description": {
+                        "expected": config_label_dict[label_name].description,
+                        "found": None
+                        if (repo_labels[label_name].description is None)
+                        else repo_labels[label_name].description
+                    }
                 }
 
     if len(diff) > 0:
