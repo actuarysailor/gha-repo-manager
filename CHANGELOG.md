@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.2.2](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.1...v2.2.2) (2024-09-02)
+
+
+### Bug Fixes
+
+* Allow app to run on individual accounts ([5e905ca](https://github.com/actuarysailor/gha-repo-manager/commit/5e905ca5fc5640f492510c38f4f513d6b6b322f1))
+* Handling of access to dependabot secrets ([1c578a8](https://github.com/actuarysailor/gha-repo-manager/commit/1c578a8c64e946b5ba05fa7022691beabbe02d8f))
+* Minor tweaks to address some short coming ([#86](https://github.com/actuarysailor/gha-repo-manager/issues/86)) ([366aea9](https://github.com/actuarysailor/gha-repo-manager/commit/366aea9e7284298a5b6d3beabca9855160b45747))
+
 ## [2.2.1](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.0...v2.2.1) (2024-07-25)
 
 
