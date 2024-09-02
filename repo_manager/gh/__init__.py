@@ -14,9 +14,7 @@ def __get_app_auth__(api_url: str, app_id: int, private_key: str) -> GithubInteg
     return GithubIntegration(auth=auth, base_url=api_url)
 
 
-def __run_as_installed_app__(
-    api_url: str, app_id: int, private_key: str, owner: str
-) -> tuple[Github, dict]:
+def __run_as_installed_app__(    api_url: str, app_id: int, private_key: str, owner: str) -> tuple[Github, dict]:
     """Uses the repo or owner to authenticate as an installed app"""
     ga = __get_app_auth__(api_url, app_id, private_key)
     for gi in ga.get_installations():
