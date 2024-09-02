@@ -15,14 +15,16 @@ def __get_app_auth__(api_url: str, app_id: int, private_key: str) -> GithubInteg
 
 
 def __run_as_installed_app__(
-    api_url: str, app_id: int, private_key: str, owner: str | None, repo: str | None
+    api_url: str, app_id: int, private_key: str, owner: str
 ) -> tuple[Github, dict]:
     """Uses the repo or owner to authenticate as an installed app"""
-    if owner is not None:
-        gi = __get_app_auth__(api_url, app_id, private_key).get_org_installation(owner)
-    elif repo is not None:
-        gi = __get_app_auth__(api_url, app_id, private_key).get_repo_installation(repo)
-    else:
+    ga = __get_app_auth__(api_url, app_id, private_key)
+    for gi in ga.get_installations():
+        if gi.raw_data["account"]["login"] == owner:
+            break
+    if gi.raw_data["account"]["login"] != owner:
+        gi = None
+    if gi is None:
         raise ValueError("Either owner or repo must be provided")
     perms = gi.raw_data["permissions"]
     return gi.get_github_for_installation(), perms
@@ -31,16 +33,15 @@ def __run_as_installed_app__(
 @lru_cache
 def get_github_client(
     api_url: str,
+    owner: str,
     token: str | None,
     app_id: int | None,
     private_key: str | None,
-    owner: str | None,
-    repo: str | None,
     **kwargs,
 ) -> tuple[Github, dict]:
     """Returns an instantiated interface with the GitHub API"""
     if token is None:
-        return __run_as_installed_app__(api_url, app_id, private_key, owner, repo)
+        return __run_as_installed_app__(api_url, app_id, private_key, owner)
     else:
         auth = Auth.Token(token)
         return Github(auth=auth, base_url=api_url), {}
