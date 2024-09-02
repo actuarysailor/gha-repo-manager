@@ -121,9 +121,9 @@ def update_labels(
                         "ffffff"
                         if label_dict[label_name].color_no_hash is None
                         else label_dict[label_name].color_no_hash,
-                        label_dict[label_name].expected_name
-                        if label_dict[label_name].expected_name is not None
-                        else "",
+                        label_dict[label_name].description
+                        if label_dict[label_name].description is not None
+                        else label_dict[label_name].expected_name,
                     )
                     actions_toolkit.info(f"Created label {label_name}")
                 except Exception as exc:  # this should be tighter
