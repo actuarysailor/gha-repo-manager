@@ -75,7 +75,7 @@ def check_repo_labels(
                 diff[label_name] = {
                     "color": {
                         "expected": config_label_dict[label_name].color_no_hash.lower(),
-                        "found": None if (repo_labels[label_name].color is None) else repo_labels[label_name].color
+                        "found": None if (repo_labels[label_name].color is None) else repo_labels[label_name].color,
                     }
                 }
         if config_label_dict[label_name].description is not None:
