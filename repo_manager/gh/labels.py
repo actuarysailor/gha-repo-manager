@@ -112,6 +112,7 @@ def update_labels(
     """
     errors = []
     label_dict = {label.name: label for label in labels}
+    label_dict.update({label.expected_name: label for label in labels})
     for issue_type in diffs.keys():
         label_names = diffs[issue_type] if issue_type != "diff" else diffs[issue_type].keys()
         for label_name in label_names:
