@@ -13,8 +13,9 @@ from repo_manager.schemas.secret import Secret
 def __verify_dependabot_access__(repo: Repository) -> bool:
     """Verifies that the app has access to the dependabot secrets"""
     perms = get_permissions()
-    if isinstance(repo._requester.auth, AppInstallationAuth) and perms.get("dependabot_secrets", None) is None:
-        raise GithubException(403, None, None, "App does not have access to dependabot secrets")
+    if isinstance(repo._requester.auth, AppInstallationAuth):
+        if perms.get("dependabot_secrets", None) is None:
+            raise GithubException(403, None, None, "App does not have access to dependabot secrets")
     elif "admin:org" not in repo._requester.oauth_scopes:
         raise GithubException(403, None, None, "User token does not have access to dependabot secrets")
     return True
