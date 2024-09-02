@@ -72,7 +72,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "check":
         if not check_result:
-            issue_file_command("STEP_SUMMARY", generate(diffs, {"open": "Proposed Changes"}))
+            issue_file_command("STEP_SUMMARY", generate(diffs, {"open": "Differences found"}))
             if inputs["fail_on_diff"] == "true":
                 actions_toolkit.set_output("result", "Check failed, diff detected")
                 actions_toolkit.set_failed("Diff detected")
@@ -85,7 +85,7 @@ def main():  # noqa: C901
 
     if inputs["action"] == "apply":
         errors = []
-        messages = {"open": "Implemented Changes"}
+        messages = {"open": "Changes applied"}
         for update, to_update in {
             update_settings: ("settings", config.settings, diffs.get("settings", None)),
             update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
