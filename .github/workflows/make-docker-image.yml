@@ -1,4 +1,4 @@
-name: Release
+name: Create Docker Image
 on:
   workflow_dispatch:
     inputs:
@@ -34,6 +34,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Docker metadata
         uses: docker/metadata-action@v5.5.1
         id: meta
@@ -62,33 +69,3 @@ jobs:
           cache-to: type=gha,mode=max
           github-token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
-      - name: Update Action Dockerfile with Jinja
-        id: update_action-dockerfile
-        uses: cuchi/jinja2-action@v1.2.2
-        with:
-          template: Docker/ActionDockerfile.j2
-          output_file: Dockerfile
-          strict: true
-          variables: |
-            image_version=${{ inputs.version }}
-
-      - name: Commit Dockerfile changes
-        uses: stefanzweifel/git-auto-commit-action@v5.0.1
-        with:
-          commit_message: "ci: update actions dockerfile for release"
-          file_pattern: Dockerfile
-          tagging_message: ${{ inputs.version }}
-
-  release:
-    runs-on: ubuntu-latest
-    needs: update-dockerfile
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1.1.4
-        with:
-          tag_name: ${{ inputs.version }}
-          release_name: ${{ inputs.version }}
-          body: ${{ inputs.releaseNotes }}
-          draft: false
-          prerelease: ${{ inputs.prerelease }}
