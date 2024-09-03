@@ -1,4 +1,11 @@
 # Changelog
+<!-- Not sure why it is not running -->
+## [2.2.3](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.2...v2.2.3) (2024-09-03)
+
+
+### Bug Fixes
+
+* Make labels case sensitive ([#98](https://github.com/actuarysailor/gha-repo-manager/issues/98)) ([4915512](https://github.com/actuarysailor/gha-repo-manager/commit/4915512eab5b06f7f273b09fc4d589bfe818ab2a))
 
 ## [2.2.2](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.1...v2.2.2) (2024-09-02)
 
