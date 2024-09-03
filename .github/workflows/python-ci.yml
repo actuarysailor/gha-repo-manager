@@ -14,15 +14,6 @@ on:
       - '**/*.py'
       - '**/*.md'
   pull_request:
-    paths:
-      - '.github/workflows/python-ci.yml'
-      - 'action.yml'
-      - '.pre-commit-config.yaml'
-      - 'package-requirements.txt'
-      - 'pyproject.toml'
-      - poetry.lock
-      - '**/*.py'
-      - '**/*.md'
 
 jobs:
   python-ci:
@@ -122,7 +113,7 @@ jobs:
     needs: python-ci
     steps:
       - name: Download coverage data
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4.1.8
         with:
           name: coverage-data
 
