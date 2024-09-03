@@ -3,7 +3,7 @@
 name: Release Docker Images
 on:
   release:
-    types: [released]
+    types: [released,published]
   push:
     branches:
       - main
