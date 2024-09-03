@@ -5,15 +5,6 @@ on:
       version:
         description: "Version to release, like v1.0.0. Must increment current versions"
         required: true
-      releaseNotes:
-        description: "Any notes for this release"
-        required: false
-        default: ""
-      prerelease:
-        description: "Is this a prerelease"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   update-dockerfile:
