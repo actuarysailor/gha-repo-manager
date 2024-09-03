@@ -1,5 +1,5 @@
 # Changelog
-
+<!-- Not sure why it is not running -->
 ## [2.2.3](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.2...v2.2.3) (2024-09-03)
 
 
