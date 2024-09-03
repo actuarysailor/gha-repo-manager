@@ -14,15 +14,6 @@ on:
       - '**/*.py'
       - '**/*.md'
   pull_request:
-    paths:
-      - '.github/workflows/python-ci.yml'
-      - 'action.yml'
-      - '.pre-commit-config.yaml'
-      - 'package-requirements.txt'
-      - 'pyproject.toml'
-      - poetry.lock
-      - '**/*.py'
-      - '**/*.md'
 
 jobs:
   python-ci:
