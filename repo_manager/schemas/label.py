@@ -19,7 +19,7 @@ class Label(BaseModel):
     def validate_name(cls, v: str, info: ValidationInfo) -> str:
         if v is None:
             raise ValueError("Missing name of label!")
-        return v.lower()
+        return v
 
     @property
     def expected_name(self) -> str:
