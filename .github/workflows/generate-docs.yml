@@ -21,7 +21,7 @@ jobs:
           node-version: 20
 
       - name: Checkout
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v4.1.7
         with:
           token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
