@@ -10,7 +10,7 @@ toml==0.10.2
 pyinstaller==6.7.0
 staticx==0.14.1
 Annotated==0.0.2
-pydantic==2.7.2
+pydantic==2.9.0
 pydantic_extra_types==2.7.0
 pygithub==2.3.0
 actions-toolkit==0.1.15
