@@ -1,5 +1,6 @@
 import sys
 import json
+import requests
 
 from actions_toolkit import core as actions_toolkit
 from actions_toolkit.file_command import issue_file_command
@@ -23,54 +24,92 @@ from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.environments import check_repo_environments, update_environments
 from repo_manager.gh.files import check_files, update_files
 
-# Maps each settings category to its required GitHub App permission and PAT scope
+# Maps each settings category to its required GitHub App permission, PAT scope,
+# and a representative API endpoint to probe when a 403 is encountered.
 REQUIRED_PERMISSIONS = {
     "settings": {
         "app_permission": "administration: write",
         "pat_scope": "repo",
         "description": "Repository settings (description, merge strategies, branch defaults, security alerts, etc.)",
+        "probe_path": "",  # GET /repos/{owner}/{repo}
     },
     "collaborators": {
         "app_permission": "members: write (org repos) / administration: write (user repos)",
         "pat_scope": "repo",
         "description": "Collaborator and team access management",
+        "probe_path": "/collaborators",
     },
     "labels": {
         "app_permission": "issues: write",
         "pat_scope": "repo",
         "description": "Issue and pull-request labels",
+        "probe_path": "/labels",
     },
     "branch_protections": {
         "app_permission": "administration: write",
         "pat_scope": "repo",
         "description": "Branch protection rules",
+        "probe_path": "/branches",
     },
     "secrets": {
         "app_permission": "secrets: write",
         "pat_scope": "repo",
         "description": "Actions secrets (repo-level)",
+        "probe_path": "/actions/secrets",
     },
     "secrets_dependabot": {
         "app_permission": "dependabot_secrets: write",
         "pat_scope": "repo, admin:org",
         "description": "Dependabot secrets",
+        "probe_path": "/dependabot/secrets",
     },
     "variables": {
         "app_permission": "variables: write",
         "pat_scope": "repo",
         "description": "Actions variables",
+        "probe_path": "/actions/variables",
     },
     "environments": {
-        "app_permission": "environments: write",
+        "app_permission": "environments: write, actions: read",
         "pat_scope": "repo",
         "description": "Deployment environments (including environment secrets and variables)",
+        "probe_path": "/environments",
     },
     "files": {
         "app_permission": "contents: write, pull_requests: write",
         "pat_scope": "repo",
         "description": "File copy/move/delete operations and pull-request creation",
+        "probe_path": "/contents",
     },
 }
+
+
+def _debug_probe_endpoint(
+    category: str, repo_full_name: str, token: str, api_url: str = "https://api.github.com"
+) -> None:
+    """Probe a representative endpoint for a category and log what permissions GitHub says are required."""
+    probe_path = REQUIRED_PERMISSIONS.get(category, {}).get("probe_path")
+    if probe_path is None:
+        return
+    url = f"{api_url}/repos/{repo_full_name}{probe_path}"
+    try:
+        resp = requests.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            timeout=10,
+        )
+        actions_toolkit.debug(
+            f"Permission probe [{category}] GET {url}: "
+            f"status={resp.status_code} "
+            f"x-accepted-github-permissions={resp.headers.get('x-accepted-github-permissions')} "
+            f"x-oauth-scopes={resp.headers.get('x-oauth-scopes')} "
+            f"body={resp.text[:300]}"
+        )
+    except Exception as probe_exc:
+        actions_toolkit.debug(f"Permission probe [{category}] failed: {probe_exc}")
 
 
 def _format_permission_warning(category: str, exc: Exception) -> str:
@@ -115,6 +154,13 @@ def main():  # noqa: C901
         actions_toolkit.set_failed(f"{inputs['settings_file']} is invalid - {exc}")
 
     actions_toolkit.debug(f"Inputs: {inputs}")
+    try:
+        from repo_manager.utils import get_client, get_permissions
+
+        get_client()
+        actions_toolkit.debug(f"App installation permissions: {get_permissions()}")
+    except Exception as exc:
+        actions_toolkit.debug(f"Could not retrieve installation permissions for debug: {exc}")
     if inputs["action"] == "validate":
         actions_toolkit.set_output("result", f"Validated {inputs['settings_file']}")
         actions_toolkit.debug(json_diff := json.dumps({}))
@@ -150,6 +196,11 @@ def main():  # noqa: C901
                     warning_msg = _format_permission_warning(check_name, exc)
                     actions_toolkit.warning(warning_msg)
                     permission_warnings.append(warning_msg)
+                    _token = inputs.get("token")
+                    _repo = inputs.get("repo_object")
+                    _api_url = inputs.get("github_server_url", "https://api.github.com")
+                    if _token and _repo:
+                        _debug_probe_endpoint(check_name, _repo.full_name, _token, _api_url)
                 else:
                     raise
 
