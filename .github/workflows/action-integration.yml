@@ -1,4 +1,4 @@
-# Tests athe github action on each push
+# Tests the github action on each push
 name: Action Integration Test
 on:
   workflow_dispatch:
@@ -16,7 +16,29 @@ on:
 
 jobs:
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ github.event_name != 'pull_request_target' || steps.filter.outputs.relevant == 'true' }}
+    steps:
+      - uses: actions/checkout@v4.1.6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request_target'
+        with:
+          filters: |
+            relevant:
+              - '.github/workflows/action-integration.yml'
+              - 'action.yml'
+              - 'Dockerfile'
+              - 'poetry.lock'
+              - '**/*.py'
+
   action-integration-testing:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     strategy:
       matrix:
         include:
@@ -107,3 +129,22 @@ jobs:
         run: |
           test "${{ steps.test-check-action.outputs.result }}" == "Check passed"
           test "${{ steps.final-check-action.outputs.result || 'Check passed' }}" == "Check passed"
+
+  action-integration-status:
+    name: Action Integration Status
+    needs: [changes, action-integration-testing]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [[ "${{ needs.changes.outputs.relevant }}" != "true" ]]; then
+            echo "No relevant changes detected — integration test skipped."
+            exit 0
+          fi
+          if [[ "${{ needs.action-integration-testing.result }}" == "success" ]]; then
+            echo "Integration tests passed."
+            exit 0
+          fi
+          echo "Integration tests failed or were cancelled."
+          exit 1
