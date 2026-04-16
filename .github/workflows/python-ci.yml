@@ -14,6 +14,8 @@ on:
       - '**/*.py'
       - '**/*.md'
   pull_request:
+    branches:
+      - main
 
 jobs:
   python-ci:
@@ -23,10 +25,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { python: "3.11", os: "ubuntu-latest", session: "pre-commit" }
-          - { python: "3.11", os: "ubuntu-latest", session: "safety" }
+          - { python: "3.12", os: "ubuntu-latest", session: "pre-commit" }
+          - { python: "3.12", os: "ubuntu-latest", session: "safety" }
           # - { python: "3.11", os: "ubuntu-latest", session: "mypy" }
-          - { python: "3.11", os: "ubuntu-latest", session: "tests" }
+          - { python: "3.12", os: "ubuntu-latest", session: "tests" }
 
     env:
       NOXSESSION: ${{ matrix.session }}
