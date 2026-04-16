@@ -8,16 +8,16 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/action-integration.yml'
-      - 'action.yml'
-      - 'Dockerfile'
+      - ".github/workflows/action-integration.yml"
+      - "action.yml"
+      - "Dockerfile"
       - poetry.lock
-      - '**/*.py'
+      - "*requirements*.txt"
+      - "**/*.py"
 
   pull_request_target:
 
 jobs:
-
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -34,6 +34,7 @@ jobs:
               - 'action.yml'
               - 'Dockerfile'
               - 'poetry.lock'
+              - '*requirements*.txt'
               - '**/*.py'
 
   action-integration-testing:
@@ -42,14 +43,14 @@ jobs:
     strategy:
       matrix:
         include:
-        - repo: self
-          action: check
-          settings_file: '[".github/settings.yml"]'
-          fail_on_diff: true
-        - repo: actuarysailor/test
-          action: test
-          settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
-          fail_on_diff: false
+          - repo: self
+            action: check
+            settings_file: '[".github/settings.yml"]'
+            fail_on_diff: true
+          - repo: actuarysailor/test
+            action: test
+            settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
+            fail_on_diff: false
 
     name: Action Integration Testing
     runs-on: ubuntu-latest

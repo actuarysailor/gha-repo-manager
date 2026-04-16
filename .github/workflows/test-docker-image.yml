@@ -5,16 +5,20 @@ on:
     branches:
       - main
     paths:
-      - 'Dockerfile'
+      - "Dockerfile"
       - pyproject.toml
-      - '.github/scripts/replace_inputs.sh'
-      - '**/*.py'
+      - poetry.lock
+      - "*requirements*.txt"
+      - ".github/scripts/replace_inputs.sh"
+      - "**/*.py"
   pull_request:
     paths:
-      - 'Dockerfile'
+      - "Dockerfile"
       - pyproject.toml
-      - '.github/scripts/replace_inputs.sh'
-      - '**/*.py'
+      - poetry.lock
+      - "*requirements*.txt"
+      - ".github/scripts/replace_inputs.sh"
+      - "**/*.py"
 
 jobs:
   test-docker-image:

@@ -13,7 +13,7 @@ staticx==0.14.1
 Annotated==0.0.2
 pydantic==2.7.2
 pydantic_extra_types==2.7.0
-pygithub==2.3.0
+pygithub==2.9.1
 actions-toolkit==0.1.15
 pyyaml==6.0.2
 GitPython==3.1.43
