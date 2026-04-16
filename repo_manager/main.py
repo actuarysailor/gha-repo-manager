@@ -147,9 +147,9 @@ def main():  # noqa: C901
                     diffs[check_name] = this_diffs
             except GithubException as exc:
                 if exc.status in (401, 403):
-                    actions_toolkit.warning(
-                        f"Skipping {check_name} check: insufficient permissions ({exc.status}) - {exc.data.get('message', exc)}"
-                    )
+                    warning_msg = _format_permission_warning(check_name, exc)
+                    actions_toolkit.warning(warning_msg)
+                    permission_warnings.append(warning_msg)
                 else:
                     raise
 
@@ -217,8 +217,10 @@ def main():  # noqa: C901
                         errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
 
         perm_section = _permission_warnings_section()
-        if len(messages) > 1 or perm_section:
+        if perm_section and len(messages) > 1:
             issue_file_command("STEP_SUMMARY", perm_section + generate(diffs, messages))
+        elif len(messages) > 1:
+            issue_file_command("STEP_SUMMARY", generate(diffs, messages))
         elif perm_section:
             issue_file_command("STEP_SUMMARY", perm_section)
 
