@@ -84,7 +84,9 @@ REQUIRED_PERMISSIONS = {
 }
 
 
-def _debug_probe_endpoint(category: str, repo_full_name: str, token: str, api_url: str = "https://api.github.com") -> None:
+def _debug_probe_endpoint(
+    category: str, repo_full_name: str, token: str, api_url: str = "https://api.github.com"
+) -> None:
     """Probe a representative endpoint for a category and log what permissions GitHub says are required."""
     probe_path = REQUIRED_PERMISSIONS.get(category, {}).get("probe_path")
     if probe_path is None:
@@ -154,6 +156,7 @@ def main():  # noqa: C901
     actions_toolkit.debug(f"Inputs: {inputs}")
     try:
         from repo_manager.utils import get_client, get_permissions
+
         get_client()
         actions_toolkit.debug(f"App installation permissions: {get_permissions()}")
     except Exception as exc:
