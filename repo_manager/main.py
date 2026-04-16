@@ -121,6 +121,7 @@ def main():  # noqa: C901
         get_client()
         actions_toolkit.debug(f"App installation permissions: {get_permissions()}")
         import requests as _requests
+
         _repo = inputs.get("repo_object")
         if _repo is not None:
             _token = inputs.get("token") or (
