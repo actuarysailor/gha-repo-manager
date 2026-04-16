@@ -16,6 +16,8 @@ on:
       - "**/*.py"
 
   pull_request_target:
+    branches:
+      - main
 
 jobs:
   changes:
