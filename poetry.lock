@@ -1304,7 +1304,7 @@ name = "pygithub"
 version = "2.5.0"
 description = "Use the full Github API v3"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
     {file = "PyGithub-2.5.0-py3-none-any.whl", hash = "sha256:b0b635999a658ab8e08720bdd3318893ff20e2275f6446fcf35bf3f44f2c0fd2"},
@@ -2128,4 +2128,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "94e3f79e3df757141e3c49ba3ec0c01b11056db37fcf3f2077eca0bdfff4fb2a"
+content-hash = "ce1cf505bb44b8132ab90859de546f4f356f1fb3a18a7ee7a446e4a48bd72eb6"
