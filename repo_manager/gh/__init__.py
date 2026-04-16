@@ -3,6 +3,9 @@ from functools import lru_cache
 from github import Github, GithubIntegration, Auth
 from github.GithubException import GithubException, UnknownObjectException
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # https://github.com/PyGithub/PyGithub/blob/main/doc/examples/Authentication.rst
 # https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/about-authentication-with-a-github-app
@@ -25,6 +28,9 @@ def __run_as_installed_app__(api_url: str, app_id: int, private_key: str, owner:
     if gi is None:
         raise ValueError("Either owner or repo must be provided")
     perms = gi.raw_data["permissions"]
+    logger.debug("App installation raw_data keys: %s", list(gi.raw_data.keys()))
+    logger.debug("App installation permissions granted: %s", perms)
+    logger.debug("App installation repository_selection: %s", gi.raw_data.get("repository_selection"))
     return gi.get_github_for_installation(), perms
 
 

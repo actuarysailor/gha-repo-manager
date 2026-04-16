@@ -115,6 +115,13 @@ def main():  # noqa: C901
         actions_toolkit.set_failed(f"{inputs['settings_file']} is invalid - {exc}")
 
     actions_toolkit.debug(f"Inputs: {inputs}")
+    try:
+        from repo_manager.utils import get_client, get_permissions
+        get_client()
+        actions_toolkit.debug(f"App installation permissions: {get_permissions()}")
+        actions_toolkit.info(f"App installation permissions: {get_permissions()}")
+    except Exception as exc:
+        actions_toolkit.warning(f"Could not retrieve installation permissions for debug: {exc}")
     if inputs["action"] == "validate":
         actions_toolkit.set_output("result", f"Validated {inputs['settings_file']}")
         actions_toolkit.debug(json_diff := json.dumps({}))
