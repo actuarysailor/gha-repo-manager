@@ -151,7 +151,7 @@ branch_protections:
       required_status_checks:
         strict: true
         checks:
-          - pre-commit 3.11 / ubuntu-latest
+          - pre-commit 3.12 / ubuntu-latest
           - Action Integration Status
           - Generate Docs
       enforce_admins: false
