@@ -1,6 +1,6 @@
 from typing import Any
 from actions_toolkit import core as actions_toolkit
-import pandas as pd
+from tabulate import tabulate
 
 MISSING_SUB_KEY = {
     "files": "branch",
@@ -158,8 +158,8 @@ def __dict_key_to_columns__(key: str, dfDict: dict | list, keyColName: str = Non
 
 def __dict_embed_key_in_subdict__(
     input_dict: dict | list, keyColName: str = None, valColName: str = None
-) -> pd.DataFrame:
-    df: pd.DataFrame = pd.DataFrame({})
+) -> list[dict]:
+    rows: list[dict] = []
     dfDict = {}
     for k, v in input_dict.items():
         if k.lower() in ACTION_TAKEN.keys():
@@ -170,27 +170,27 @@ def __dict_embed_key_in_subdict__(
                 dfDict[valColName] = v
             elif isinstance(v, dict):
                 r = __dict_embed_key_in_subdict__(v, keyColName, valColName)
-                df = pd.concat([df, r])
+                rows.extend(r)
             else:
                 raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
         elif keyColName == "Setting":
             v[keyColName] = [k] if isinstance(next(iter(v.values())), list) else k
-            df = pd.concat([df, __dict_diff_to_columns__(v, None, None)])
+            rows.extend(__dict_diff_to_columns__(v, None, None))
         else:
             raise NotImplementedError(f"Unhandled case for {k} in {input_dict}")
 
-    return df
+    return rows
 
 
-def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> pd.DataFrame:
+def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, valColName: str = None) -> list[dict]:
     """Maps the typical expected, found difference columns to the appropriate column names and values."""
     dfDict = {}
     expectedLength = __maximum_depth__(input_dict)
     for k, v in input_dict.items():
         if isinstance(v, list):
-            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = (
-                v if len(v) == expectedLength else v.extend([None] * (expectedLength - len(v)))
-            )
+            if len(v) < expectedLength:
+                v = v + [None] * (expectedLength - len(v))
+            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = v
             if OPPOSSING_COLUMN_MAP.get(k, None) is not None:
                 dfDict[OPPOSSING_COLUMN_MAP[k]] = [None] * expectedLength
         elif isinstance(v, dict):
@@ -206,7 +206,10 @@ def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, va
                 dfDict[_keyColName] = []
             dfDict[_keyColName].extend([v])
 
-    return pd.DataFrame(dfDict)
+    if not dfDict:
+        return []
+    keys = list(dfDict.keys())
+    return [dict(zip(keys, vals)) for vals in zip(*[dfDict[k] for k in keys])]
 
 
 def __dict_to_dfDict__(
@@ -272,17 +275,17 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
 
 def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
     if key in KEYS_TO_DATAFRAME:
-        return pd.DataFrame(
-            __dict_to_dfDict__(
-                value, keyColName=KEY_CHILD_NAME.get(key, None), valColName=VAL_CHILD_NAME.get(key, None)
-            )
-        ).to_markdown()  # used to have key?
+        dfDict = __dict_to_dfDict__(
+            value, keyColName=KEY_CHILD_NAME.get(key, None), valColName=VAL_CHILD_NAME.get(key, None)
+        )
+        keys = list(dfDict.keys())
+        rows = [dict(zip(keys, vals)) for vals in zip(*[dfDict[k] for k in keys])]
+        return tabulate(rows, headers="keys", tablefmt="pipe")
     elif key in KEYS_TO_COMPARE_A2E:
-        return pd.DataFrame(
-            __dict_embed_key_in_subdict__(
-                value, keyColName=COLUMN_RENAME_MAP.get(key, None), valColName=KEY_CHILD_NAME.get(key, None)
-            )
-        ).to_markdown()
+        rows = __dict_embed_key_in_subdict__(
+            value, keyColName=COLUMN_RENAME_MAP.get(key, None), valColName=KEY_CHILD_NAME.get(key, None)
+        )
+        return tabulate(rows, headers="keys", tablefmt="pipe")
     elif key in KEYS_TO_SKIP_A_LEVEL:
         return "\n".join([__key_handler__(k, v, f"{hdrDepth}", key) for k, v in value.items()])
     elif key in ACTION_TAKEN.keys():
