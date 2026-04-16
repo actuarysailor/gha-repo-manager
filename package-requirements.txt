@@ -12,7 +12,7 @@ pyinstaller==6.7.0
 staticx==0.14.1
 Annotated==0.0.2
 pydantic==2.7.2
-pydantic_extra_types==2.7.0
+pydantic_extra_types==2.11.1
 pygithub==2.9.1
 actions-toolkit==0.1.15
 pyyaml==6.0.2
