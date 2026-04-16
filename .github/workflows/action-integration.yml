@@ -21,13 +21,11 @@ jobs:
     outputs:
       relevant: ${{ github.event_name != 'pull_request_target' || steps.filter.outputs.relevant == 'true' }}
     steps:
-      - uses: actions/checkout@v4.1.6
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
       - uses: dorny/paths-filter@v3
         id: filter
         if: github.event_name == 'pull_request_target'
         with:
+          token: ${{ github.token }}
           filters: |
             relevant:
               - '.github/workflows/action-integration.yml'
