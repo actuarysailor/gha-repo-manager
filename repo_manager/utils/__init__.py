@@ -96,7 +96,8 @@ def get_client() -> Github:
     api_url = __get_api_url__() if "api_url" not in globals() else api_url
     try:
         global permissions
-        client, permissions = get_github_client(api_url, **kwargs)
+        client, permissions, repo_selection = get_github_client(api_url, **kwargs)
+        actions_toolkit.debug(f"App installation repository_selection: {repo_selection}")
         if isinstance(client._Github__requester.auth, AppInstallationAuth):
             kwargs["username"] = "x-access-token"
             kwargs["token"] = client._Github__requester.auth.token
