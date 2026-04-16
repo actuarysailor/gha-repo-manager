@@ -1,5 +1,7 @@
 # Tests the github action on each push
 name: Action Integration Test
+permissions:
+  contents: read
 on:
   workflow_dispatch:
   push:
