@@ -11,8 +11,35 @@ jobs:
   auto-merge:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for all other checks to complete
+        run: |
+          while true; do
+            statuses=$(gh pr checks ${{ github.event.pull_request.number }} \
+              --repo ${{ github.repository }} \
+              --json name,state \
+              --jq '.[] | select(.name != "${{ github.job }}") | {name, state}')
+
+            echo "$statuses"
+
+            if echo "$statuses" | grep -qE '"state": "pending"'; then
+              echo "Checks still running, waiting 30s..."
+              sleep 30
+            else
+              break
+            fi
+          done
+
+          if echo "$statuses" | grep -qE '"state": "(fail|error)"'; then
+            echo "One or more checks failed."
+            exit 1
+          fi
+
+          echo "All other checks passed."
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/checkout@v6.0.2
       - uses: ahmadnassri/action-dependabot-auto-merge@v2.6.6
         with:
           target: minor
-          github-token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
+          command: squash and merge
+          github-token: ${{ github.token }} #${{ secrets.THIS_PAT }}
