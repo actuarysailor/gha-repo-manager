@@ -1,4 +1,6 @@
 name: Generate Docs
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 on:
   push:
     branches:
@@ -18,7 +20,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6.3.0
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Checkout
         uses: actions/checkout@v6.0.2

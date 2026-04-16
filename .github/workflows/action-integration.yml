@@ -1,5 +1,7 @@
 # Tests the github action on each push
 name: Action Integration Test
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 permissions:
   contents: read
 on:
@@ -63,11 +65,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
 
-      - name: Update action.yml to use dockerfile
-        uses: rmeneely/update-yaml@v1
-        with:
-          infile: action.yml
-          varlist: "runs.image=Dockerfile"
+      - name: Update action.yml to use Dockerfile
+        run: sed -i -E 's|^(\s*image:\s*).*$|\1Dockerfile|' action.yml
 
       - name: cat action.yml
         run: cat action.yml
