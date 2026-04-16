@@ -1,5 +1,17 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [2.3.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.3...v2.3.0) (2026-04-16)
+
+
+### Features
+
+* **files:** improve sync idempotency and PR update handling ([#154](https://github.com/actuarysailor/gha-repo-manager/issues/154)) ([09a08c4](https://github.com/actuarysailor/gha-repo-manager/commit/09a08c4101e3dd961f7bdfa1abb7466cda9fcdef))
+
+
+### Bug Fixes
+
+* Permission errors are warnings, not failures ([#123](https://github.com/actuarysailor/gha-repo-manager/issues/123)) ([d54bfbc](https://github.com/actuarysailor/gha-repo-manager/commit/d54bfbcc6f4b7e2e90d5d8b53981f4573b0ac753))
+
 ## [2.2.3](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.2...v2.2.3) (2024-09-03)
 
 
