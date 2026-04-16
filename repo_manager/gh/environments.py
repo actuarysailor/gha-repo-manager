@@ -3,7 +3,7 @@ from typing import Any
 
 from actions_toolkit import core as actions_toolkit
 
-from github.GithubException import GithubException, UnknownObjectException
+from github.GithubException import GithubException
 from github.Repository import Repository
 
 from repo_manager.schemas.environment import (
