@@ -10,7 +10,6 @@ from pydantic import ValidationError
 
 from yaml import YAMLError
 
-from github.GithubException import GithubException
 
 from repo_manager.utils import get_inputs
 from repo_manager.utils.markdown import generate
