@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Node
-        uses: actions/setup-node@v4.0.3
+        uses: actions/setup-node@v6.3.0
         with:
           node-version: 20
 
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v6.0.2
         with:
           token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
       - name: Run doc generation
-        uses: npalm/action-docs-action@v3.1.1
+        uses: npalm/action-docs-action@v3.1.2
 
       # https://github.com/stefanzweifel/git-auto-commit-action#commits-made-by-this-action-do-not-trigger-new-workflow-runs
       - name: Commit doc changes
