@@ -120,7 +120,30 @@ def main():  # noqa: C901
 
         get_client()
         actions_toolkit.debug(f"App installation permissions: {get_permissions()}")
-        actions_toolkit.info(f"App installation permissions: {get_permissions()}")
+        import requests as _requests
+        _repo = inputs.get("repo_object")
+        if _repo is not None:
+            _token = inputs.get("token") or (
+                get_client()._Github__requester.auth.token
+                if hasattr(get_client()._Github__requester.auth, "token")
+                else None
+            )
+            if _token:
+                _resp = _requests.get(
+                    f"https://api.github.com/repos/{_repo.full_name}/environments",
+                    headers={
+                        "Authorization": f"Bearer {_token}",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                    timeout=10,
+                )
+                actions_toolkit.debug(
+                    f"Direct environments API probe for {_repo.full_name}: "
+                    f"status={_resp.status_code} "
+                    f"x-accepted-github-permissions={_resp.headers.get('x-accepted-github-permissions')} "
+                    f"x-oauth-scopes={_resp.headers.get('x-oauth-scopes')} "
+                    f"body={_resp.text[:300]}"
+                )
     except Exception as exc:
         actions_toolkit.warning(f"Could not retrieve installation permissions for debug: {exc}")
     if inputs["action"] == "validate":

@@ -32,7 +32,7 @@ def __run_as_installed_app__(api_url: str, app_id: int, private_key: str, owner:
     logger.debug("App installation raw_data keys: %s", list(gi.raw_data.keys()))
     logger.debug("App installation permissions granted: %s", perms)
     logger.debug("App installation repository_selection: %s", gi.raw_data.get("repository_selection"))
-    return gi.get_github_for_installation(), perms
+    return gi.get_github_for_installation(), perms, gi.raw_data.get("repository_selection")
 
 
 @lru_cache
@@ -43,13 +43,13 @@ def get_github_client(
     app_id: int | None,
     private_key: str | None,
     **kwargs,
-) -> tuple[Github, dict]:
+) -> tuple[Github, dict, str | None]:
     """Returns an instantiated interface with the GitHub API"""
     if token is None:
         return __run_as_installed_app__(api_url, app_id, private_key, owner)
     else:
         auth = Auth.Token(token)
-        return Github(auth=auth, base_url=api_url), {}
+        return Github(auth=auth, base_url=api_url), {}, None
 
 
 __all__ = ["get_github_client", "GithubException", "UnknownObjectException"]
