@@ -9,9 +9,73 @@
 Manage all Github repo settings from a YAML file, enabling greater change control, transparency, and auditability.
 <!-- action-docs-description source="action.yml" -->
 
-## Usage
+## Authentication
 
-Manage Administrative Repository Settings from within a repository - via a YAML file!
+This action supports two authentication methods. Choose the one that best fits your use case.
+
+### GitHub App (recommended for automated / scheduled workflows)
+
+When this action runs on a schedule or is triggered by repository events (e.g., merges to `main`), commits, pull-requests, and API calls are attributed to **the actor that triggered the workflow** — usually a human user. Using a GitHub App instead means all activity is attributed to the **bot/app identity**, which provides a cleaner audit trail and avoids consuming a person's rate-limit quota.
+
+**Setup steps:**
+
+1. [Create a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) in your organization with the permissions listed in the table below.
+2. Install the app on the organizations and/or repositories you want it to manage.
+3. Store the **App ID** as an organization variable (e.g. `REPO_MANAGER_APP_ID`) — it is not a secret.
+4. Store the **Private Key** as an organization secret (e.g. `REPO_MANAGER_PRIVATE_KEY`) — treat it like a password.
+
+```yaml
+- name: Run RepoManager (GitHub App)
+  uses: actuarysailor/gha-repo-manager@v2.0.0
+  with:
+    action: apply
+    settings_file: .github/settings.yml
+    app_id: ${{ vars.REPO_MANAGER_APP_ID }}
+    private_key: ${{ secrets.REPO_MANAGER_PRIVATE_KEY }}
+```
+
+### Personal Access Token (PAT) (recommended for ad-hoc / manual runs)
+
+If you are manually triggering this action to make bulk changes across multiple repositories — effectively performing actions *on your own behalf* — a PAT is a simpler choice. All activity will be attributed to your user account, which is fine when you intentionally want your identity visible in the audit log.
+
+```yaml
+- name: Run RepoManager (PAT)
+  uses: actuarysailor/gha-repo-manager@v2.0.0
+  with:
+    action: apply
+    settings_file: .github/settings.yml
+    token: ${{ secrets.GITHUB_PAT }}
+```
+
+> **Tip:** Prefer a [fine-grained PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-fine-grained-personal-access-token) scoped to only the repositories and permissions you actually need.
+
+### Required Permissions
+
+The action will **not fail** if the token or app lacks permission for a particular settings category. It will emit a warning in the run log and step summary, clearly listing the missing permissions, and then continue processing the remaining categories.
+
+Grant only the permissions you need for the features you use:
+
+| `settings.yml` section | GitHub App permission | PAT scope | Notes |
+|---|---|---|---|
+| `settings` | `administration: write` | `repo` | Repository-level settings, merge strategies, default branch |
+| `collaborators` | `members: write` (org repos)<br>`administration: write` (user repos) | `repo` | User and team access control |
+| `labels` | `issues: write` | `repo` | Issue and pull-request labels |
+| `branch_protections` | `administration: write` | `repo` | Branch protection rules |
+| `secrets` (actions) | `secrets: write` | `repo` | Actions secrets |
+| `secrets` (dependabot) | `dependabot_secrets: write` | `repo`, `admin:org` | Dependabot secrets |
+| `variables` | `variables: write` | `repo` | Actions variables |
+| `environments` | `environments: write` | `repo` | Deployment environments, environment secrets & variables |
+| `batch_file_operations` | `contents: write`<br>`pull_requests: write` | `repo` | File copy/move/delete; creates PRs for file changes |
+
+#### Minimum permissions for common use cases
+
+| Use case | GitHub App permissions | PAT scopes |
+|---|---|---|
+| Read-only drift check (`action: check`) | `administration: read`, `contents: read`, `issues: read`, `secrets: read` | `repo` (read-only fine-grained PAT) |
+| Manage labels only | `issues: write` | `repo` |
+| Full management | All permissions in the table above | `repo`, `admin:org` (for Dependabot secrets) |
+
+
 
 **Why would you want to do this?**
 * Adhere to principal of least-privilegas for developers and other contributors.
@@ -65,8 +129,8 @@ jobs:
         # file is valid
         action: apply
         settings_file: .github/settings.yml
-        # need a PAT that can edit repo settings
-        # note, some settings may require additional permissions; see comments in examples/settings.yml for details
+        # See the Authentication section above for when to use a PAT vs a GitHub App.
+        # See the Required Permissions table for the exact scopes/permissions needed.
         token: ${{ secrets.GITHUB_PAT }}
 
 ```
