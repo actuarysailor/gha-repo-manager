@@ -188,9 +188,9 @@ def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, va
     expectedLength = __maximum_depth__(input_dict)
     for k, v in input_dict.items():
         if isinstance(v, list):
-            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = (
-                v if len(v) == expectedLength else v.extend([None] * (expectedLength - len(v)))
-            )
+            if len(v) < expectedLength:
+                v = v + [None] * (expectedLength - len(v))
+            dfDict[COLUMN_RENAME_MAP.get(k, k).capitalize()] = v
             if OPPOSSING_COLUMN_MAP.get(k, None) is not None:
                 dfDict[OPPOSSING_COLUMN_MAP[k]] = [None] * expectedLength
         elif isinstance(v, dict):
