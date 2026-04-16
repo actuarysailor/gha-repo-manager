@@ -41,3 +41,4 @@ repos:
         entry: make generate-inputs
         language: system
         pass_filenames: false
+        stages: [manual]
