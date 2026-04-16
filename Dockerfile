@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y binutils patchelf build-essential scons
 COPY ./ /app
 
 # install python build requirements
-RUN pip install --no-warn-script-location --upgrade virtualenv pip poetry pyinstaller staticx --constraint=package-requirements.txt
+RUN pip install --no-warn-script-location --upgrade setuptools virtualenv pip poetry pyinstaller staticx --constraint=package-requirements.txt
 
 # build the app
 RUN poetry build
