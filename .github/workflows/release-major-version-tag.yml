@@ -6,12 +6,36 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   update-majorver:
     name: Update Major Version Tag
     if: github.repository_owner == 'actuarysailor'
     runs-on: ubuntu-latest
     steps:
-      - uses: nowactions/update-majorver@v1.1.2
+      - uses: actions/github-script@v7
         with:
-          github_token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
+          github-token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
+          script: |
+            const fullTag = context.ref.replace('refs/tags/', '');
+            const match = fullTag.match(/^v(\d+)(?:\..*)?$/);
+            if (!match) {
+              core.setFailed(`Expected semantic tag like v1.2.3, got: ${fullTag}`);
+              return;
+            }
+            const majorTag = `v${match[1]}`;
+            const ref = `tags/${majorTag}`;
+            const { owner, repo } = context.repo;
+            const sha = context.sha;
+
+            try {
+              await github.rest.git.updateRef({ owner, repo, ref, sha, force: true });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.git.createRef({ owner, repo, ref: `refs/${ref}`, sha });
+              } else {
+                throw error;
+              }
+            }
