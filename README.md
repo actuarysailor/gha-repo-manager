@@ -7,7 +7,7 @@
 <!-- action-docs-description source="action.yml" -->
 ### Description
 
-Manage all GitHub repo settings from a YAML file, enabling greater change control, transparency, and auditability.
+Manage all Github repo settings from a YAML file, enabling greater change control, transparency, and auditability.
 <!-- action-docs-description source="action.yml" -->
 
 ---
@@ -151,14 +151,14 @@ Grant only the permissions you need for the features you use:
 
 | name | description | required | default |
 | --- | --- | --- | --- |
-| `action` | <p>What action to take. One of:<br>• `validate` — validate the settings file without touching the repo<br>• `check` — compare repo state against the settings file and report drift<br>• `apply` — apply the settings file to the repo</p> | `false` | `check` |
-| `settings_file` | <p>Path to your settings YAML file, relative to the runner workspace.</p> | `false` | `.github/settings.yml` |
-| `repo` | <p>The repo to act on. Use `owner/repo-name` for a different repo, or leave as `self` to act on the repo the workflow is running in.</p> | `false` | `self` |
-| `github_server_url` | <p>Custom GitHub server URL for GitHub Enterprise Server (GHES). Auto-detected from `GITHUB_SERVER_URL` if not set.</p> | `false` | `""` |
-| `token` | <p>GitHub PAT to authenticate with. One of `token` or `app_id` is required.</p> | `false` | `""` |
-| `app_id` | <p>GitHub App ID to authenticate with. One of `token` or `app_id` is required.</p> | `false` | `""` |
-| `private_key` | <p>GitHub App private key. Required when using `app_id`.</p> | `false` | `""` |
-| `fail_on_diff` | <p>Exit with a non-zero code if drift is detected. Only applies when `action: check`.</p> | `false` | `false` |
+| `action` | <p>What action to take with this action. One of validate, check, or apply. Validate will validate your settings file, but not touch your repo. Check will check your repo with your settings file and output a report of any drift. Apply will apply the settings in your settings file to your repo</p> | `false` | `check` |
+| `settings_file` | <p>What yaml file to use as your settings. This is local to runner running this action.</p> | `false` | `.github/settings.yml` |
+| `repo` | <p>What repo to perform this action on. Default is self, as in the repo this action is running in</p> | `false` | `self` |
+| `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `""` |
+| `token` | <p>What github token to use with this action (one of token or app_id is required).</p> | `false` | `""` |
+| `app_id` | <p>What github app id to use with this action (one of token or app_id is required).</p> | `false` | `""` |
+| `private_key` | <p>What github app private key to use with this action (required if using an app_id to authenticate).</p> | `false` | `""` |
+| `fail_on_diff` | <p>Fail the action if the repo settings differ from the settings file. Default is false. Note, this only applies if the action is set to 'check'</p> | `false` | `false` |
 <!-- action-docs-inputs source="action.yml" -->
 
 <!-- action-docs-outputs source="action.yml" -->
@@ -166,8 +166,8 @@ Grant only the permissions you need for the features you use:
 
 | name | description |
 | --- | --- |
-| `result` | Human-readable result string (e.g. `Check passed`, `Applied successfully`). |
-| `diff` | JSON string containing all detected differences between the settings file and the repo. |
+| `result` | <p>Result of the action</p> |
+| `diff` | <p>Diff of this action, dumped to a json string</p> |
 <!-- action-docs-outputs source="action.yml" -->
 
 <!-- action-docs-runs source="action.yml" -->
