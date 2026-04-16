@@ -180,11 +180,23 @@ def __check_files__(
             if file_config.exists and file_config.remote_src and not oldPath.exists():
                 raise FileNotFoundError(f"File {file_config.src_file} does not exist in target repo")  # {repo}
             if file_config.remote_src and file_config.move and newPath.exists():
-                raise FileExistsError(f"File {file_config.dest_file} already exists in target repo")  # {repo}
+                # The move was already applied in a prior sync run on this branch — skip it
+                actions_toolkit.debug(
+                    f"Skipping move of {file_config.src_file} → {file_config.dest_file}: "
+                    "destination already exists (already applied on this branch)"
+                )
+                continue
             if oldPath == newPath:
                 continue  # Nothing to do
             if oldPath.exists():
                 if file_config.remote_src and not file_config.move:
+                    if newPath.exists():
+                        # Copy was already applied on this branch — will be re-evaluated in content-sync phase
+                        actions_toolkit.debug(
+                            f"Skipping copy of {file_config.src_file} → {file_config.dest_file}: "
+                            "destination already exists (already applied on this branch)"
+                        )
+                        continue
                     missing[str(file_config.dest_file)] = {"insertions": 0, "deletions": 0, "lines": 0}
                     newPath.parent.mkdir(parents=True, exist_ok=True)  # Create the directory if it does not exist
                     shutil.copyfile(oldPath, newPath)
