@@ -4,9 +4,13 @@ repos:
     rev: v4.6.0
     hooks:
       - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
       - id: debug-statements
       - id: end-of-file-fixer
+        stages: [pre-commit, pre-push, manual]
       - id: trailing-whitespace
+        stages: [pre-commit, pre-push, manual]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.4.4
@@ -23,43 +27,13 @@ repos:
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.0
     hooks:
-      - id: actionlint-docker
+      - id: actionlint
         name: Actionlint
-  - repo: local
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
     hooks:
       - id: bandit
-        name: bandit
-        entry: bandit
-        language: system
-        types: [python]
-        require_serial: true
         args: ["-c", "pyproject.toml"]
-      - id: check-added-large-files
-        name: Check for added large files
-        entry: check-added-large-files
-        language: system
-      - id: check-toml
-        name: Check Toml
-        entry: check-toml
-        language: system
-        types: [toml]
-      - id: check-yaml
-        name: Check Yaml
-        entry: check-yaml
-        language: system
-        types: [yaml]
-      - id: end-of-file-fixer
-        name: Fix End of Files
-        entry: end-of-file-fixer
-        language: system
-        types: [text]
-        stages: [commit, push, manual]
-      - id: trailing-whitespace
-        name: Trim Trailing Whitespace
-        entry: trailing-whitespace-fixer
-        language: system
-        types: [text]
-        stages: [commit, push, manual]
   - repo: local
     hooks:
       - id: update-inputs
@@ -67,3 +41,4 @@ repos:
         entry: make generate-inputs
         language: system
         pass_filenames: false
+        stages: [manual]

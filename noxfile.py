@@ -116,12 +116,10 @@ def precommit(session: Session) -> None:
 
 @session(python=python_versions[0])
 def safety(session: Session) -> None:
-    """Scan dependencies for insecure packages."""
+    """Scan dependencies for insecure packages using pip-audit."""
     requirements = session.poetry.export_requirements()
-    session.install("safety")
-    # ignore https://github.com/pytest-dev/py/issues/287
-    # its an irresposnbily filed CVE causing nose
-    session.run("safety", "check", "--full-report", f"--file={requirements}", "--ignore=51457")
+    session.install("pip-audit")
+    session.run("pip-audit", f"--requirement={requirements}", "--desc")
 
 
 @session(python=python_versions)
