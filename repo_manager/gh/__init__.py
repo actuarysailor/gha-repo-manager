@@ -4,6 +4,7 @@ from github import Github, GithubIntegration, Auth
 from github.GithubException import GithubException, UnknownObjectException
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 

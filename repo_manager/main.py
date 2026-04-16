@@ -117,6 +117,7 @@ def main():  # noqa: C901
     actions_toolkit.debug(f"Inputs: {inputs}")
     try:
         from repo_manager.utils import get_client, get_permissions
+
         get_client()
         actions_toolkit.debug(f"App installation permissions: {get_permissions()}")
         actions_toolkit.info(f"App installation permissions: {get_permissions()}")
