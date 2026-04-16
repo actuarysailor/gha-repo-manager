@@ -85,6 +85,10 @@ labels:
     description: Pull requests that update a dependency file
     color: 95A5A6
 
+  - name: 🐍 Python
+    description: Indicates the change is related to Python
+    color: 3572A5
+
   - name: 👀 Feature Requested
     description: Request for a feature
     color: 07D90A

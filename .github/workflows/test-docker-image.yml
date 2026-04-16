@@ -5,16 +5,20 @@ on:
     branches:
       - main
     paths:
-      - 'Dockerfile'
+      - "Dockerfile"
       - pyproject.toml
-      - '.github/scripts/replace_inputs.sh'
-      - '**/*.py'
+      - poetry.lock
+      - "*requirements*.txt"
+      - ".github/scripts/replace_inputs.sh"
+      - "**/*.py"
   pull_request:
     paths:
-      - 'Dockerfile'
+      - "Dockerfile"
       - pyproject.toml
-      - '.github/scripts/replace_inputs.sh'
-      - '**/*.py'
+      - poetry.lock
+      - "*requirements*.txt"
+      - ".github/scripts/replace_inputs.sh"
+      - "**/*.py"
 
 jobs:
   test-docker-image:
@@ -27,7 +31,7 @@ jobs:
       - # Add support for more platforms with QEMU (optional)
         # https://github.com/docker/setup-qemu-action
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.2.0
+        uses: docker/setup-qemu-action@v4.0.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
@@ -35,7 +39,7 @@ jobs:
       # The build runs some tests on the built binary to make sure it works as part of its build
       - name: Test Build
         id: docker_build
-        uses: docker/build-push-action@v6.7.0
+        uses: docker/build-push-action@v7.1.0
         with:
           context: .
           file: Dockerfile

@@ -1,18 +1,60 @@
 name: Auto Merge Dependabot
 
 on:
+  pull_request:
+    # Runs from source branch - safe for wait/check logic (read-only)
   pull_request_target:
+    # Runs from base branch - used only for the privileged merge command
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
+  wait-for-checks:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+      pull-requests: read
+    steps:
+      - name: Wait for all other checks to complete
+        run: |
+          while true; do
+            statuses=$(gh pr checks ${{ github.event.pull_request.number }} \
+              --repo ${{ github.repository }} \
+              --json name,state \
+              --jq '.[] | select(.name != "wait-for-checks") | {name, state}')
+
+            echo "$statuses"
+
+            if echo "$statuses" | grep -qiE '"state":"(QUEUED|IN_PROGRESS|WAITING|PENDING)"'; then
+              echo "Checks still running, waiting 30s..."
+              sleep 30
+            else
+              break
+            fi
+          done
+
+          if echo "$statuses" | grep -qiE '"state":"(FAILURE|ERROR|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE)"'; then
+            echo "One or more checks failed."
+            exit 1
+          fi
+
+          echo "All other checks passed."
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   auto-merge:
+    # Only runs on pull_request_target (base branch code) and only for dependabot
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.actor == 'dependabot[bot]'
+    needs: wait-for-checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: ahmadnassri/action-dependabot-auto-merge@v2.6.6
         with:
           target: minor
-          github-token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
+          command: squash and merge
+          github-token: ${{ github.token }} #${{ secrets.THIS_PAT }}
