@@ -27,7 +27,7 @@ jobs:
 
             echo "$statuses"
 
-            if echo "$statuses" | grep -qiE '"state": "(QUEUED|IN_PROGRESS|WAITING|PENDING)"'; then
+            if echo "$statuses" | grep -qiE '"state":"(QUEUED|IN_PROGRESS|WAITING|PENDING)"'; then
               echo "Checks still running, waiting 30s..."
               sleep 30
             else
@@ -35,7 +35,7 @@ jobs:
             fi
           done
 
-          if echo "$statuses" | grep -qiE '"state": "(FAILURE|ERROR|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE)"'; then
+          if echo "$statuses" | grep -qiE '"state":"(FAILURE|ERROR|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE)"'; then
             echo "One or more checks failed."
             exit 1
           fi
