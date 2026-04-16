@@ -4,6 +4,8 @@ import json
 from actions_toolkit import core as actions_toolkit
 from actions_toolkit.file_command import issue_file_command
 
+from github.GithubException import GithubException
+
 from pydantic import ValidationError
 
 from yaml import YAMLError
@@ -19,6 +21,80 @@ from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.environments import check_repo_environments, update_environments
 from repo_manager.gh.files import check_files, update_files
+
+# Maps each settings category to its required GitHub App permission and PAT scope
+REQUIRED_PERMISSIONS = {
+    "settings": {
+        "app_permission": "administration: write",
+        "pat_scope": "repo",
+        "description": "Repository settings (description, merge strategies, branch defaults, security alerts, etc.)",
+    },
+    "collaborators": {
+        "app_permission": "members: write (org repos) / administration: write (user repos)",
+        "pat_scope": "repo",
+        "description": "Collaborator and team access management",
+    },
+    "labels": {
+        "app_permission": "issues: write",
+        "pat_scope": "repo",
+        "description": "Issue and pull-request labels",
+    },
+    "branch_protections": {
+        "app_permission": "administration: write",
+        "pat_scope": "repo",
+        "description": "Branch protection rules",
+    },
+    "secrets": {
+        "app_permission": "secrets: write",
+        "pat_scope": "repo",
+        "description": "Actions secrets (repo-level)",
+    },
+    "secrets_dependabot": {
+        "app_permission": "dependabot_secrets: write",
+        "pat_scope": "repo, admin:org",
+        "description": "Dependabot secrets",
+    },
+    "variables": {
+        "app_permission": "variables: write",
+        "pat_scope": "repo",
+        "description": "Actions variables",
+    },
+    "environments": {
+        "app_permission": "environments: write",
+        "pat_scope": "repo",
+        "description": "Deployment environments (including environment secrets and variables)",
+    },
+    "files": {
+        "app_permission": "contents: write, pull_requests: write",
+        "pat_scope": "repo",
+        "description": "File copy/move/delete operations and pull-request creation",
+    },
+}
+
+
+def _format_permission_warning(category: str, exc: Exception) -> str:
+    """Build a human-readable warning message for a permission error."""
+    info = REQUIRED_PERMISSIONS.get(category, {})
+    lines = [
+        f"⚠️  Insufficient permissions to manage **{category}** — skipping.",
+        f"   Error: {exc}",
+    ]
+    if info:
+        lines += [
+            f"   Scope/feature: {info.get('description', '')}",
+            f"   Required GitHub App permission: `{info.get('app_permission', 'unknown')}`",
+            f"   Required PAT scope: `{info.get('pat_scope', 'unknown')}`",
+            "   Add the missing permission to your GitHub App or Personal Access Token and re-run.",
+        ]
+    return "\n".join(lines)
+
+
+def _is_permission_error(exc: Exception) -> bool:
+    """Return True when an exception represents a 401/403 authorization failure."""
+    if isinstance(exc, GithubException) and exc.status in (401, 403):
+        return True
+    msg = str(exc).lower()
+    return any(kw in msg for kw in ("403", "401", "forbidden", "not have access", "resource not accessible"))
 
 
 def main():  # noqa: C901
@@ -47,6 +123,7 @@ def main():  # noqa: C901
 
     check_result = True
     diffs = {}
+    permission_warnings = []
     for check, to_check in {
         check_repo_settings: ("settings", config.settings),
         check_collaborators: ("collaborators", config.collaborators),
@@ -62,24 +139,42 @@ def main():  # noqa: C901
     }.items():
         check_name, to_check = to_check
         if to_check is not None:
-            this_check, this_diffs = check(inputs["repo_object"], to_check)
-            check_result &= this_check
-            if this_diffs is not None:
-                diffs[check_name] = this_diffs
+            try:
+                this_check, this_diffs = check(inputs["repo_object"], to_check)
+                check_result &= this_check
+                if this_diffs is not None:
+                    diffs[check_name] = this_diffs
+            except Exception as exc:
+                if _is_permission_error(exc):
+                    warning_msg = _format_permission_warning(check_name, exc)
+                    actions_toolkit.warning(warning_msg)
+                    permission_warnings.append(warning_msg)
+                else:
+                    raise
 
     actions_toolkit.debug(json_diff := json.dumps(diffs))
     actions_toolkit.set_output("diff", json_diff)
 
+    def _permission_warnings_section() -> str:
+        if not permission_warnings:
+            return ""
+        lines = ["## ⚠️ Permission Warnings", ""]
+        lines += ["> " + line for w in permission_warnings for line in w.splitlines()]
+        lines.append("")
+        return "\n".join(lines)
+
     if inputs["action"] == "check":
         if not check_result:
-            issue_file_command("STEP_SUMMARY", generate(diffs, {"open": "Differences found"}))
+            summary = _permission_warnings_section() + generate(diffs, {"open": "Differences found"})
+            issue_file_command("STEP_SUMMARY", summary)
             if inputs["fail_on_diff"] == "true":
                 actions_toolkit.set_output("result", "Check failed, diff detected")
                 actions_toolkit.set_failed("Diff detected")
             else:
                 actions_toolkit.warning("Diff detected")
         else:
-            issue_file_command("STEP_SUMMARY", "# No changes detected")
+            summary = _permission_warnings_section() or "# No changes detected"
+            issue_file_command("STEP_SUMMARY", summary)
         actions_toolkit.set_output("result", "Check passed")
         sys.exit(0)
 
@@ -113,10 +208,18 @@ def main():  # noqa: C901
                     else:
                         actions_toolkit.info(f"Synced {update_name}")
                 except Exception as exc:
-                    errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
+                    if _is_permission_error(exc):
+                        warning_msg = _format_permission_warning(update_name, exc)
+                        actions_toolkit.warning(warning_msg)
+                        permission_warnings.append(warning_msg)
+                    else:
+                        errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
 
-        if len(messages) > 0:
-            issue_file_command("STEP_SUMMARY", generate(diffs, messages))
+        perm_section = _permission_warnings_section()
+        if len(messages) > 1 or perm_section:
+            issue_file_command("STEP_SUMMARY", perm_section + generate(diffs, messages))
+        elif perm_section:
+            issue_file_command("STEP_SUMMARY", perm_section)
 
         if len(errors) > 0:
             actions_toolkit.error(json.dumps(errors))

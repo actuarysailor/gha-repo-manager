@@ -1,6 +1,6 @@
 from typing import Any
 
-# from actions_toolkit import core as actions_toolkit
+from actions_toolkit import core as actions_toolkit
 
 from github.Auth import AppInstallationAuth
 from github.GithubException import GithubException
