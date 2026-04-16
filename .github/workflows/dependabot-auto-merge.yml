@@ -16,12 +16,12 @@ jobs:
           while true; do
             statuses=$(gh pr checks ${{ github.event.pull_request.number }} \
               --repo ${{ github.repository }} \
-              --json name,status,conclusion \
-              --jq '.[] | select(.name != "${{ github.job }}") | {name, status, conclusion}')
+              --json name,state \
+              --jq '.[] | select(.name != "${{ github.job }}") | {name, state}')
 
             echo "$statuses"
 
-            if echo "$statuses" | grep -qE '"status": "(queued|in_progress)"'; then
+            if echo "$statuses" | grep -qE '"state": "pending"'; then
               echo "Checks still running, waiting 30s..."
               sleep 30
             else
@@ -29,7 +29,7 @@ jobs:
             fi
           done
 
-          if echo "$statuses" | grep -qE '"conclusion": "(failure|cancelled|timed_out|action_required)"'; then
+          if echo "$statuses" | grep -qE '"state": "(fail|error)"'; then
             echo "One or more checks failed."
             exit 1
           fi
