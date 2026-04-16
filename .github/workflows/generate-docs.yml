@@ -16,12 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Node
-        uses: actions/setup-node@v4.0.3
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v5
         with:
           token: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
