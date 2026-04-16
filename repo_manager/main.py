@@ -10,6 +10,8 @@ from pydantic import ValidationError
 
 from yaml import YAMLError
 
+from github.GithubException import GithubException
+
 from repo_manager.utils import get_inputs
 from repo_manager.utils.markdown import generate
 from repo_manager.schemas import load_config
@@ -144,11 +146,11 @@ def main():  # noqa: C901
                 check_result &= this_check
                 if this_diffs is not None:
                     diffs[check_name] = this_diffs
-            except Exception as exc:
-                if _is_permission_error(exc):
-                    warning_msg = _format_permission_warning(check_name, exc)
-                    actions_toolkit.warning(warning_msg)
-                    permission_warnings.append(warning_msg)
+            except GithubException as exc:
+                if exc.status in (401, 403):
+                    actions_toolkit.warning(
+                        f"Skipping {check_name} check: insufficient permissions ({exc.status}) - {exc.data.get('message', exc)}"
+                    )
                 else:
                     raise
 
