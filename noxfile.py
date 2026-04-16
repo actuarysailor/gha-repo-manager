@@ -116,16 +116,10 @@ def precommit(session: Session) -> None:
 
 @session(python=python_versions[0])
 def safety(session: Session) -> None:
-    """Scan dependencies for insecure packages."""
+    """Scan dependencies for insecure packages using pip-audit."""
     requirements = session.poetry.export_requirements()
-    session.install("safety>=3.2,<4")
-    session.run(
-        "safety",
-        "scan",
-        "--full-report",
-        f"--file={requirements}",
-        "--output=text",
-    )
+    session.install("pip-audit")
+    session.run("pip-audit", f"--requirement={requirements}", "--desc")
 
 
 @session(python=python_versions)
