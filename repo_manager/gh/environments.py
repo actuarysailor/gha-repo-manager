@@ -190,8 +190,8 @@ def check_repo_environments(
     repo_environments = repo.get_environments()
     try:
         repo_environment_names = {environment.name for environment in repo_environments}
-    except UnknownObjectException as exc:
-        # Github throughts a 404 if there are no environments
+    except GithubException as exc:
+        # GitHub throws 404 if there are no environments, 403 if the token lacks permission
         if exc.status == 404:
             repo_environment_names = set()
         else:
