@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import shutil
 
 from pathlib import Path
@@ -16,7 +17,10 @@ from github.Repository import Repository
 from repo_manager.schemas.file import BranchFiles, FileConfig
 from repo_manager.utils import get_inputs
 from repo_manager.utils.markdown import generate
-import re
+
+# Marker embedded in sync commit messages so we can detect already-synced source SHAs
+_SYNC_SHA_MARKER = "synced-from-sha"
+_SYNC_SHA_RE = re.compile(rf"\[{_SYNC_SHA_MARKER}:([a-f0-9]+)\]")
 
 
 commitChanges: Commit = None
@@ -80,6 +84,55 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     return cloned_repo
 
 
+def __get_source_file_sha__(src_path: str | Path) -> str | None:
+    """Return the last commit SHA that touched src_path in its own git repo (the runner workspace).
+    Returns None if the path is not tracked or the repo cannot be found."""
+    try:
+        src_path = Path(src_path).resolve()
+        source_repo = Repo(src_path, search_parent_directories=True)
+        sha = source_repo.git.log("--format=%H", "-n", "1", "--", str(src_path))
+        return sha.strip() or None
+    except Exception:
+        return None
+
+
+def __has_source_sha_in_history__(dest_repo: Repo, branch: str, source_sha: str) -> bool:
+    """Return True if any commit on *branch* in dest_repo has already recorded source_sha
+    in its message (i.e. the file was synced from that source version before)."""
+    try:
+        log = dest_repo.git.log(branch, "--format=%B", "--")
+        return f"[{_SYNC_SHA_MARKER}:{source_sha}]" in log
+    except Exception:
+        return False
+
+
+def __append_sync_sha__(commit_msg: str, source_sha: str | None) -> str:
+    """Append the source SHA marker to a commit message if we have one."""
+    if source_sha:
+        return f"{commit_msg} [{_SYNC_SHA_MARKER}:{source_sha}]"
+    return commit_msg
+
+
+def __checkout_or_create_branch__(repo_dir: Repo, new_branch_name: str, base_branch: str) -> bool:
+    """Checkout an existing local/remote branch or create it from base_branch.
+    Returns True if the branch already existed (i.e. we may be updating a prior sync)."""
+    local_branches = [h.name for h in repo_dir.heads]
+    remote_refs = [r.name for r in repo_dir.remotes[0].refs] if repo_dir.remotes else []
+
+    remote_branch_ref = f"origin/{new_branch_name}"
+    if new_branch_name in local_branches:
+        repo_dir.git.checkout(new_branch_name)
+        return True
+    elif remote_branch_ref in remote_refs:
+        repo_dir.git.checkout("-b", new_branch_name, "--track", remote_branch_ref)
+        return True
+    else:
+        base = repo_dir.heads[base_branch] if base_branch in local_branches else repo_dir.create_head(base_branch)
+        new_branch = repo_dir.create_head(new_branch_name, base)
+        new_branch.checkout()
+        return False
+
+
 def __check_files__(
     repo: Repo, commit_msg: str, files: list[FileConfig]
 ) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
@@ -103,6 +156,8 @@ def __check_files__(
     extra = {}
     missing = {}
     changed = {}
+    # Collect per-file source SHAs for files being copied from the runner workspace
+    source_shas: list[str] = []
 
     # First we handle file movement and removal
     for file_config in files:
@@ -125,18 +180,29 @@ def __check_files__(
             if file_config.exists and file_config.remote_src and not oldPath.exists():
                 raise FileNotFoundError(f"File {file_config.src_file} does not exist in target repo")  # {repo}
             if file_config.remote_src and file_config.move and newPath.exists():
-                raise FileExistsError(f"File {file_config.dest_file} already exists in target repo")  # {repo}
+                # The move was already applied in a prior sync run on this branch — skip it
+                actions_toolkit.debug(
+                    f"Skipping move of {file_config.src_file} → {file_config.dest_file}: "
+                    "destination already exists (already applied on this branch)"
+                )
+                continue
             if oldPath == newPath:
                 continue  # Nothing to do
             if oldPath.exists():
                 if file_config.remote_src and not file_config.move:
+                    if newPath.exists():
+                        # Copy was already applied on this branch — will be re-evaluated in content-sync phase
+                        actions_toolkit.debug(
+                            f"Skipping copy of {file_config.src_file} → {file_config.dest_file}: "
+                            "destination already exists (already applied on this branch)"
+                        )
+                        continue
                     missing[str(file_config.dest_file)] = {"insertions": 0, "deletions": 0, "lines": 0}
                     newPath.parent.mkdir(parents=True, exist_ok=True)  # Create the directory if it does not exist
                     shutil.copyfile(oldPath, newPath)
                     actions_toolkit.info(f"Copied {str(oldPath)} to {str(newPath)}")
                 else:
                     os.rename(oldPath, newPath)
-                    # changed[str(file_config.src_file)] = {"renamed": f"to {str(file_config.dest_file)}"}
                     changed[str(file_config.dest_file)] = {
                         "renamed": f"from {str(file_config.src_file)}",
                         "insertions": 0,
@@ -183,6 +249,19 @@ def __check_files__(
             continue  # we already handled this file
         srcPath = file_config.src_file
         destPath = Path(repo.working_tree_dir) / file_config.dest_file
+
+        # Check if this source file's current commit SHA has already been synced into
+        # this branch's history — if so, skip it (already up to date from source).
+        source_sha = __get_source_file_sha__(srcPath)
+        if source_sha and __has_source_sha_in_history__(repo, repo.active_branch.name, source_sha):
+            actions_toolkit.debug(
+                f"Skipping {str(srcPath)} — source SHA {source_sha[:12]} already present in branch history"
+            )
+            continue
+
+        if source_sha:
+            source_shas.append(source_sha)
+
         if file_config.exists:
             if destPath.exists():
                 os.remove(destPath)  # Delete the file
@@ -191,6 +270,11 @@ def __check_files__(
             destPath.parent.mkdir(parents=True, exist_ok=True)  # Create the directory if it does not exist
             shutil.copyfile(srcPath, destPath)
             actions_toolkit.info(f"Copied {str(srcPath)} to {str(destPath)}")
+
+    # Embed collected source SHAs into the commit message so future runs can detect them
+    if source_shas:
+        sha_tags = " ".join(f"[{_SYNC_SHA_MARKER}:{sha}]" for sha in source_shas)
+        commitUpdateMsg = f"{commitUpdateMsg} {sha_tags}"
 
     # we commit the file updates (e.g. content changes)
     global commitChanges
@@ -255,25 +339,28 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
             continue
 
         branch.target_branch = repo.default_branch if branch.target_branch is None else branch.target_branch
-        new_branch = f"repomgr/updates-to-{branch.target_branch}"
+        new_branch_name = f"repomgr/updates-to-{branch.target_branch}"
 
-        # If the branch we would use for the update already exists, we should not proceed
-        if new_branch != repo.default_branch and new_branch in [b.name for b in repo.get_branches()]:
-            actions_toolkit.warning(
-                f"Branch {new_branch} already exists in {repo.full_name} - please merge or prune if you want to update!"
+        # Fetch latest remote state so we can detect existing branches
+        if repo_dir.remotes:
+            repo_dir.remotes[0].fetch()
+
+        # Checkout the target base branch first (so we branch from the right place)
+        base_branch = branch.target_branch
+        if base_branch in [h.name for h in repo_dir.heads]:
+            repo_dir.git.checkout(base_branch)
+        elif f"origin/{base_branch}" in [r.name for r in repo_dir.remotes[0].refs]:
+            repo_dir.git.checkout("-b", base_branch, "--track", f"origin/{base_branch}")
+
+        # Checkout existing sync branch or create a new one from base
+        branch_existed = __checkout_or_create_branch__(repo_dir, new_branch_name, base_branch)
+        if branch_existed:
+            actions_toolkit.info(
+                f"Branch {new_branch_name} already exists in {repo.full_name} — "
+                "adding new commits on top of existing sync branch"
             )
-            return False, None
-        # Checkout the target branch if it exists
-        elif branch.target_branch != repo.default_branch and branch.target_branch in [
-            b.name for b in repo.get_branches()
-        ]:
-            repo_dir.git.checkout(branch.target_branch)
 
-        # Create and checkout a new branch
-        new_branch = repo_dir.create_head(f"repomgr/updates-to-{branch.target_branch}")
-        new_branch.checkout()
-
-        # Check the files
+        # Check the files (will skip files whose source SHA is already in branch history)
         success, diff = __check_files__(repo_dir, branch.commit_msg, branch.files)
         if not success:
             diffs[branch.target_branch] = diff
@@ -312,37 +399,41 @@ def update_files(
             diff = diffs[branch.target_branch]
             target_branch = f"repomgr/updates-to-{branch.target_branch}"
             repo_dir.git.checkout(target_branch)
-            prTitle = repo_dir.active_branch.commit.message
+            prTitle = repo_dir.active_branch.commit.message.splitlines()[0]
 
             origin = repo_dir.remote()
             pushInfo = origin.push(repo_dir.active_branch.name)
 
-            if pushInfo.error is not None:
-                for info in pushInfo:
-                    if info.ERROR == 1024:
-                        actions_toolkit.warning(
-                            f"Branch {repo_dir.active_branch.name} already exists in {repo.full_name}!"
-                        )
-                    if info.ERROR:
-                        errors.append(
-                            {
-                                "type": "file-update",
-                                "key": info.local_ref.commit.hexsha,
-                                "error": f"{GithubException(info.ERROR, message = info.summary)}",
-                            }
-                        )
+            push_errors = [info for info in pushInfo if info.ERROR]
+            if push_errors:
+                for info in push_errors:
+                    errors.append(
+                        {
+                            "type": "file-update",
+                            "key": info.local_ref.commit.hexsha,
+                            "error": f"{GithubException(info.ERROR, message=info.summary)}",
+                        }
+                    )
             else:
                 actions_toolkit.info(f"Pushed changes to remote {repo.full_name} branch {repo_dir.active_branch.name}")
                 body = generate({"files": {branch.target_branch: diff}}, {"files": []})
-                # body += f"\n\nCommit SHA: {repo_dir.active_branch.commit.hexsha}"
                 body += f"\n\nGenerated by [Repo Manager]({inputs['github_server_url']}/{os.getenv('GITHUB_REPOSITORY')}/actions/runs/{os.getenv('GITHUB_RUN_ID')})"
-                pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch.target_branch)
 
-                # this should occur in the logging of main
-                messages.append(f"PR @ {repo.full_name} - [#{pr.number} {prTitle}]({pr.comments_url})\n\n")
-                actions_toolkit.info(
-                    f"Created pull request for branch {repo_dir.active_branch.name} to {target_branch}"
+                # Find an existing open PR for this sync branch rather than creating a duplicate
+                existing_prs = list(
+                    repo.get_pulls(state="open", head=f"{repo.owner.login}:{target_branch}", base=branch.target_branch)
                 )
+                if existing_prs:
+                    pr = existing_prs[0]
+                    pr.edit(body=body)
+                    actions_toolkit.info(
+                        f"Updated existing PR #{pr.number} for branch {target_branch} → {branch.target_branch}"
+                    )
+                else:
+                    pr = repo.create_pull(title=prTitle, body=body, head=target_branch, base=branch.target_branch)
+                    actions_toolkit.info(f"Created pull request for branch {target_branch} → {branch.target_branch}")
+
+                messages.append(f"PR @ {repo.full_name} - [#{pr.number} {prTitle}]({pr.html_url})\n\n")
 
     dir = Path(repo_dir.working_tree_dir)
     repo_dir.close()
