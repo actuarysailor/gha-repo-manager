@@ -34,14 +34,13 @@ repos:
     hooks:
       - id: bandit
         args: ["-c", "pyproject.toml"]
-  - repo: local
+  - repo: https://github.com/python-poetry/poetry
+    rev: 2.3.3
     hooks:
       - id: poetry-lock
-        name: Poetry lock
-        entry: poetry lock
-        language: system
-        pass_filenames: false
         files: ^pyproject\.toml$
+  - repo: local
+    hooks:
       - id: update-inputs
         name: Update inputs
         entry: make generate-inputs
