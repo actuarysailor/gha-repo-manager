@@ -36,6 +36,12 @@ repos:
         args: ["-c", "pyproject.toml"]
   - repo: local
     hooks:
+      - id: poetry-lock
+        name: Poetry lock
+        entry: poetry lock
+        language: system
+        pass_filenames: false
+        files: ^pyproject\.toml$
       - id: update-inputs
         name: Update inputs
         entry: make generate-inputs
