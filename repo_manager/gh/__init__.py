@@ -22,9 +22,10 @@ def __run_as_installed_app__(api_url: str, app_id: int, private_key: str, owner:
     """Uses the repo or owner to authenticate as an installed app"""
     ga = __get_app_auth__(api_url, app_id, private_key)
     for gi in ga.get_installations():
-        if gi.raw_data["account"]["login"] == owner:
+        logger.debug("App installation raw_data: %s", gi.raw_data)
+        if gi.raw_data.get("account", {}).get("login") == owner:
             break
-    if gi.raw_data["account"]["login"] != owner:
+    if gi.raw_data.get("account", {}).get("login") != owner:
         gi = None
     if gi is None:
         raise ValueError("Either owner or repo must be provided")
