@@ -48,18 +48,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - repo: self
+          - target: self
             action: check
             settings_file: '[".github/settings.yml"]'
             fail_on_diff: true
-          - repo: actuarysailor/test
+          - target: actuarysailor/test
             action: test
             settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
             fail_on_diff: false
     # Serialize all runs that mutate external repos across every branch/PR.
     # cancel-in-progress: false ensures queuing rather than skipping tests.
     concurrency:
-      group: action-integration-testing-${{ matrix.repo }}
+      group: action-integration-testing-${{ matrix.target }}
       cancel-in-progress: false
 
     name: Action Integration Testing
@@ -80,7 +80,7 @@ jobs:
       - name: cat action.yml
         run: cat action.yml
 
-      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
+      - name: Checking ${{ matrix.target }} against ${{ fromJSON(matrix.settings_file)[0] }}
         id: test-check-action
         if: contains(fromJSON('["check","test"]'), matrix.action)
         uses: ./
@@ -88,14 +88,14 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.target }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
           action: check
           fail_on_diff: ${{ matrix.fail_on_diff }}
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
-      - name: Applying ${{ fromJSON(matrix.settings_file)[0] }} to ${{ matrix.repo }}
+      - name: Applying ${{ fromJSON(matrix.settings_file)[0] }} to ${{ matrix.target }}
         id: test-apply-action
         if: matrix.action == 'test'
         uses: ./
@@ -103,13 +103,13 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.target }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
           action: apply
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
-      - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.repo }}
+      - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.target }}
         id: undo-apply-action
         if: matrix.action == 'test'
         uses: ./
@@ -117,11 +117,11 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.target }}
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: apply
 
-      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[1] }}
+      - name: Checking ${{ matrix.target }} against ${{ fromJSON(matrix.settings_file)[1] }}
         id: final-check-action
         if: matrix.action == 'test'
         uses: ./
@@ -129,7 +129,7 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.target }}
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: check
           fail_on_diff: true
