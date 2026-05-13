@@ -85,51 +85,75 @@ labels:
     # set exists: false to delete a label. A delete that results in a "not found" will not fail a run
     exists: true
 
+# DEPRECATED: branch_protections — use rulesets instead.
+# Set exists: false to remove any existing branch protection rules after migrating to rulesets.
 branch_protections:
-  # branch protection can only be created for branches that exist.
   - name: main
-    # Set exists to false to delete branch protection
+    exists: false
+
+# Rulesets are the modern replacement for branch protection rules.
+# They support pattern-based targeting, bypass actor lists, and a richer rule set.
+# See https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+rulesets:
+  - name: Protect main
+    target: branch         # branch | tag | push
+    enforcement: active    # active | disabled | evaluate
+
+    # Optional: actors who can bypass this ruleset
+    # bypass_actors:
+    #   - actor_id: 1                  # Team/app/role ID
+    #     actor_type: Team             # Integration | OrganizationAdmin | RepositoryRole | Team | DeployKey
+    #     bypass_mode: pull_request    # always | pull_request
+
+    # Which refs the ruleset applies to
+    conditions:
+      ref_name:
+        include:
+          - ~DEFAULT_BRANCH   # Magic token for the repo's default branch
+          # - refs/heads/main   # Or specify an explicit ref
+          # - ~ALL              # All branches
+        exclude: []
+
+    rules:
+      # Prevent deletion of matching branches
+      - type: deletion
+
+      # Prevent force pushes (remove this rule to allow force pushes)
+      - type: non_fast_forward
+
+      # Require signed commits
+      # - type: required_signatures
+
+      # No merge commits — linear history only
+      - type: required_linear_history
+
+      # Pull request review requirements
+      - type: pull_request
+        parameters:
+          required_approving_review_count: 1    # 0–10
+          dismiss_stale_reviews_on_push: true
+          require_code_owner_review: true
+          require_last_push_approval: false
+          required_review_thread_resolution: true
+
+      # Required status checks
+      - type: required_status_checks
+        parameters:
+          strict_required_status_checks_policy: true   # Require branch to be up to date
+          do_not_enforce_on_create: false
+          required_status_checks:
+            - context: lint
+            - context: test
+            # - context: deploy
+            #   integration_id: 12345   # Optional: pin check to a specific app
+
+      # Restrict who can push (org repos only) — use bypass_actors for fine-grained control instead
+      # - type: restrict_pushes
+      #   parameters:
+      #     allow_forks_to_bypass: false
+
+    # Set to false to delete this ruleset
     exists: true
-    # https://docs.github.com/en/rest/reference/repos#update-branch-protection
-    # Branch Protection settings. Leave a value out to leave set at current repo settings
-    protection:
-      # Require at least one approving review on a pull request, before merging. Set to null to disable.
-      pr_options:
-        # The number of approvals required. (1-6)
-        required_approving_review_count: 1
-        # Dismiss approved reviews automatically when a new commit is pushed.
-        dismiss_stale_reviews: true
-        # Blocks merge until code owners have reviewed.
-        require_code_owner_reviews: true
-        # Specify which users and teams can dismiss pull request reviews. Pass an empty dismissal_restrictions object to disable. User and team dismissal_restrictions are only available for organization-owned repositories. Omit this parameter for personal repositories.
-        # dismissal_restrictions:
-        #   users: []
-        #   teams: []
-      # Require status checks to pass before merging. Set to null to disable
-      # required_status_checks:
-      #   # Require branches to be up to date before merging.
-      #   strict: true
-      #   # The list of status checks to require in order to merge into this branch
-      # checks:
-      #   - lint
-      #   - test
-      #   - docker
-      # Blocks merge until all conversations on a pull request have been resolved
-      # require_conversation_resolution: true
-      # Enforce all configured restrictions for administrators. Set to true to enforce required status checks for repository administrators. Set to null to disable.
-      enforce_admins: true
-      # Prevent merge commits from being pushed to matching branches
-      require_linear_history: true
-      # Permit force pushes for all users with push access.
-      allow_force_pushes: true
-      # Allow users with push access to delete matching branches.
-      allow_deletions: true
-      # If set to true, the restrictions branch protection settings which limits who can push will also block pushes which create new branches, unless the push is initiated by a user, team, or app which has the ability to push. Set to true to restrict new branch creation.
-      block_creations: true
-      # Restrict who can push to this branch. Team and user restrictions are only available for organization-owned repositories. Set to null to disable.
-      restrictions:
-        users: []
-        teams: []
 
 # For users, it is the login id
 # For teams, it is the slug id

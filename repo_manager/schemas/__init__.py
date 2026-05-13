@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field  # pylint: disable=E0611
 from .branch_protection import BranchProtection
 from .file import BranchFiles
 from .label import Label
+from .ruleset import Ruleset
 from .secret import Secret
 from .settings import Settings
 from .environment import Environment
@@ -15,6 +16,7 @@ class RepoManagerConfig(BaseModel):
     branch_protections: list[BranchProtection] | None = Field(
         None, description="Branch protections in the repo to manage"
     )
+    rulesets: list[Ruleset] | None = Field(None, description="Branch/tag rulesets in the repo to manage")
     secrets: list[Secret] | None = Field(None, description="Secrets in the repo to manage")
     variables: list[Secret] | None = Field(None, description="Variables in the repo to manage")
     labels: list[Label] | None = Field(None, description="Labels in the repo to manage")

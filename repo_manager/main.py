@@ -19,6 +19,7 @@ from repo_manager.gh.settings import check_repo_settings, update_settings
 from repo_manager.gh.labels import check_repo_labels, update_labels
 from repo_manager.gh.collaborators import check_collaborators, update_collaborators
 from repo_manager.gh.branch_protections import check_repo_branch_protections, update_branch_protections
+from repo_manager.gh.rulesets import check_repo_rulesets, update_rulesets
 from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.environments import check_repo_environments, update_environments
@@ -50,6 +51,12 @@ REQUIRED_PERMISSIONS = {
         "pat_scope": "repo",
         "description": "Branch protection rules",
         "probe_path": "/branches",
+    },
+    "rulesets": {
+        "app_permission": "administration: write",
+        "pat_scope": "repo",
+        "description": "Branch/tag rulesets",
+        "probe_path": "/rulesets",
     },
     "secrets": {
         "app_permission": "secrets: write",
@@ -179,6 +186,7 @@ def main():  # noqa: C901
             "branch_protections",
             config.branch_protections,
         ),
+        check_repo_rulesets: ("rulesets", config.rulesets),
         check_repo_secrets: ("secrets", config.secrets),
         check_variables: ("variables", config.variables),
         check_repo_environments: ("environments", config.environments),
@@ -241,6 +249,11 @@ def main():  # noqa: C901
                 "branch_protections",
                 config.branch_protections,
                 diffs.get("branch_protections", None),
+            ),
+            update_rulesets: (
+                "rulesets",
+                config.rulesets,
+                diffs.get("rulesets", None),
             ),
             update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
             update_variables: ("variables", config.variables, diffs.get("variables", None)),

@@ -89,6 +89,10 @@ labels:
     description: Indicates the change is related to Python
     color: 3572A5
 
+  - name: 🐳 Docker
+    description: Indicates the change is related to Docker
+    color: 1D63ED
+
   - name: 👀 Feature Requested
     description: Request for a feature
     color: 07D90A
@@ -143,16 +147,32 @@ labels:
 
 branch_protections:
   - name: main
+    exists: false   # Removed — replaced by rulesets below
 
-    protection:
-      pr_options:
-
-        dismiss_stale_reviews: true
-      required_status_checks:
-        strict: true
-        checks:
-          - pre-commit 3.12 / ubuntu-latest
-          - Action Integration Status
-          - Generate Docs
-      enforce_admins: false
-      allow_force_pushes: true
+rulesets:
+  - name: Protect main
+    target: branch
+    enforcement: active
+    conditions:
+      ref_name:
+        include:
+          - ~DEFAULT_BRANCH
+        exclude: []
+    rules:
+      - type: pull_request
+        parameters:
+          required_approving_review_count: 1
+          dismiss_stale_reviews_on_push: true
+          require_code_owner_review: false
+          require_last_push_approval: false
+          required_review_thread_resolution: false
+      - type: required_status_checks
+        parameters:
+          strict_required_status_checks_policy: true
+          do_not_enforce_on_create: false
+          required_status_checks:
+            - context: pre-commit 3.12 / ubuntu-latest
+            - context: Action Integration Status
+            - context: Generate Docs
+      # enforce_admins: false is the default for rulesets (no bypass_actors = everyone is subject)
+      # allow_force_pushes: true => do NOT add non_fast_forward rule
