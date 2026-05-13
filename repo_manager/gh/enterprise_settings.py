@@ -34,7 +34,10 @@ def check_enterprise_settings(
             return False, {"error": str(exc)}
 
         perms_diff: dict[str, Any] = {}
-        if ap.enabled_organizations is not None and actual.get("enabled_organizations") != ap.enabled_organizations.value:
+        if (
+            ap.enabled_organizations is not None
+            and actual.get("enabled_organizations") != ap.enabled_organizations.value
+        ):
             perms_diff["enabled_organizations"] = {
                 "expected": ap.enabled_organizations.value,
                 "found": actual.get("enabled_organizations"),
@@ -46,14 +49,10 @@ def check_enterprise_settings(
             }
 
         if ap.allowed_actions == AllowedActions.selected and (
-            ap.github_owned_allowed is not None
-            or ap.verified_allowed is not None
-            or ap.patterns_allowed is not None
+            ap.github_owned_allowed is not None or ap.verified_allowed is not None or ap.patterns_allowed is not None
         ):
             try:
-                _, actual_sel = requester.requestJsonAndCheck(
-                    "GET", f"{base}/actions/permissions/selected-actions"
-                )
+                _, actual_sel = requester.requestJsonAndCheck("GET", f"{base}/actions/permissions/selected-actions")
             except Exception as exc:
                 actions_toolkit.warning(f"Could not fetch enterprise selected-actions: {exc}")
                 actual_sel = {}
@@ -94,9 +93,7 @@ def update_enterprise_settings(
         sel_payload = ap.to_selected_actions_payload()
         if sel_payload:
             try:
-                requester.requestJsonAndCheck(
-                    "PUT", f"{base}/actions/permissions/selected-actions", input=sel_payload
-                )
+                requester.requestJsonAndCheck("PUT", f"{base}/actions/permissions/selected-actions", input=sel_payload)
                 actions_toolkit.info("Updated enterprise selected-actions policy")
                 messages.append("Updated enterprise selected-actions policy")
             except Exception as exc:

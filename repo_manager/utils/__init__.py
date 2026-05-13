@@ -194,9 +194,7 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
     # Resolve 'self' for repo scope
     if target == "self":
         if scope not in (None, "repo"):
-            actions_toolkit.set_failed(
-                f"Error: target='self' is only valid for scope='repo', got scope='{scope}'"
-            )
+            actions_toolkit.set_failed(f"Error: target='self' is only valid for scope='repo', got scope='{scope}'")
         target = os.environ.get("GITHUB_REPOSITORY", None)
         if target is None:
             actions_toolkit.set_failed(
@@ -215,9 +213,7 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
         parsed_inputs["scope"] = scope
 
     if scope == "repo" and "/" not in target:
-        actions_toolkit.set_failed(
-            f"Error: scope='repo' requires target in 'owner/repo' format, got '{target}'."
-        )
+        actions_toolkit.set_failed(f"Error: scope='repo' requires target in 'owner/repo' format, got '{target}'.")
 
     parsed_inputs["workspace_path"] = os.environ.get("RUNNER_WORKSPACE", None)
     if parsed_inputs["workspace_path"] is None:
@@ -247,9 +243,7 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
         client = get_client() if "client" not in globals() else client
         parsed_inputs["enterprise_requester"] = client._Github__requester
     else:
-        actions_toolkit.set_failed(
-            f"Error: unknown scope '{scope}'. Must be 'repo', 'org', or 'enterprise'."
-        )
+        actions_toolkit.set_failed(f"Error: unknown scope '{scope}'. Must be 'repo', 'org', or 'enterprise'.")
 
     return parsed_inputs
 

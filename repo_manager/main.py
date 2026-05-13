@@ -28,8 +28,10 @@ from repo_manager.gh.org_settings import check_org_settings, update_org_settings
 from repo_manager.gh.teams import check_teams, update_teams
 from repo_manager.gh.org_rulesets import check_org_rulesets, update_org_rulesets
 from repo_manager.gh.org_secrets import (
-    check_org_secrets, update_org_secrets,
-    check_org_variables, update_org_variables,
+    check_org_secrets,
+    update_org_secrets,
+    check_org_variables,
+    update_org_variables,
 )
 from repo_manager.gh.enterprise_settings import check_enterprise_settings, update_enterprise_settings
 from repo_manager.gh.enterprise_rulesets import check_enterprise_rulesets, update_enterprise_rulesets
@@ -229,20 +231,24 @@ def main():  # noqa: C901
     check_result = True
     diffs = {}
     permission_warnings = []
-    for check, to_check in ({} if inputs.get("scope") != "repo" else {
-        check_repo_settings: ("settings", config.settings),
-        check_collaborators: ("collaborators", config.collaborators),
-        check_repo_labels: ("labels", config.labels),
-        check_repo_branch_protections: (
-            "branch_protections",
-            config.branch_protections,
-        ),
-        check_repo_rulesets: ("rulesets", config.rulesets),
-        check_repo_secrets: ("secrets", config.secrets),
-        check_variables: ("variables", config.variables),
-        check_repo_environments: ("environments", config.environments),
-        check_files: ("files", config.batch_file_operations),
-    }).items():
+    for check, to_check in (
+        {}
+        if inputs.get("scope") != "repo"
+        else {
+            check_repo_settings: ("settings", config.settings),
+            check_collaborators: ("collaborators", config.collaborators),
+            check_repo_labels: ("labels", config.labels),
+            check_repo_branch_protections: (
+                "branch_protections",
+                config.branch_protections,
+            ),
+            check_repo_rulesets: ("rulesets", config.rulesets),
+            check_repo_secrets: ("secrets", config.secrets),
+            check_variables: ("variables", config.variables),
+            check_repo_environments: ("environments", config.environments),
+            check_files: ("files", config.batch_file_operations),
+        }
+    ).items():
         check_name, to_check = to_check
         if to_check is not None:
             try:
@@ -343,25 +349,29 @@ def main():  # noqa: C901
     if inputs["action"] == "apply":
         errors = []
         messages = {"open": "Changes applied"}
-        for update, to_update in ({} if inputs.get("scope") != "repo" else {
-            update_settings: ("settings", config.settings, diffs.get("settings", None)),
-            update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
-            update_labels: ("labels", config.labels, diffs.get("labels", None)),
-            update_branch_protections: (
-                "branch_protections",
-                config.branch_protections,
-                diffs.get("branch_protections", None),
-            ),
-            update_rulesets: (
-                "rulesets",
-                config.rulesets,
-                diffs.get("rulesets", None),
-            ),
-            update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
-            update_variables: ("variables", config.variables, diffs.get("variables", None)),
-            update_environments: ("environments", config.environments, diffs.get("environments", None)),
-            update_files: ("files", config.batch_file_operations, diffs.get("files", None)),
-        }).items():
+        for update, to_update in (
+            {}
+            if inputs.get("scope") != "repo"
+            else {
+                update_settings: ("settings", config.settings, diffs.get("settings", None)),
+                update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
+                update_labels: ("labels", config.labels, diffs.get("labels", None)),
+                update_branch_protections: (
+                    "branch_protections",
+                    config.branch_protections,
+                    diffs.get("branch_protections", None),
+                ),
+                update_rulesets: (
+                    "rulesets",
+                    config.rulesets,
+                    diffs.get("rulesets", None),
+                ),
+                update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
+                update_variables: ("variables", config.variables, diffs.get("variables", None)),
+                update_environments: ("environments", config.environments, diffs.get("environments", None)),
+                update_files: ("files", config.batch_file_operations, diffs.get("files", None)),
+            }
+        ).items():
             update_name, to_update, categorical_diffs = to_update
             if categorical_diffs is not None:
                 try:
@@ -397,9 +407,7 @@ def main():  # noqa: C901
                 update_name, to_update_val, categorical_diffs = to_update
                 if categorical_diffs is not None:
                     try:
-                        application_errors, application_summary = update(
-                            org_object, to_update_val, categorical_diffs
-                        )
+                        application_errors, application_summary = update(org_object, to_update_val, categorical_diffs)
                         if len(application_errors) > 0:
                             errors.append(application_errors)
                         if len(application_summary) > 0:
@@ -421,8 +429,18 @@ def main():  # noqa: C901
             ent_requester = inputs.get("enterprise_requester")
             ent_slug = inputs.get("enterprise_slug")
             for update_fn, update_name, update_val, categorical_diffs in [
-                (update_enterprise_settings, "enterprise_settings", config.enterprise_settings, diffs.get("enterprise_settings")),
-                (update_enterprise_rulesets, "enterprise_rulesets", config.enterprise_rulesets, diffs.get("enterprise_rulesets")),
+                (
+                    update_enterprise_settings,
+                    "enterprise_settings",
+                    config.enterprise_settings,
+                    diffs.get("enterprise_settings"),
+                ),
+                (
+                    update_enterprise_rulesets,
+                    "enterprise_rulesets",
+                    config.enterprise_rulesets,
+                    diffs.get("enterprise_rulesets"),
+                ),
             ]:
                 if categorical_diffs is not None:
                     try:

@@ -87,9 +87,7 @@ def _diff_repos(org: Organization, github_team, config_repos: list[TeamRepositor
     return diffs
 
 
-def check_teams(
-    org: Organization, config_teams: list[Team]
-) -> tuple[bool, dict[str, Any] | None]:
+def check_teams(org: Organization, config_teams: list[Team]) -> tuple[bool, dict[str, Any] | None]:
     """Check org teams against expected configuration."""
     existing = {t.slug: t for t in org.get_teams()}
 
@@ -142,6 +140,7 @@ def check_teams(
 
 def _sync_members(org: Organization, github_team, members: list[TeamMember], errors: list) -> None:
     from repo_manager.utils import get_client
+
     gh_client = get_client()
     for m in members:
         try:
@@ -153,7 +152,9 @@ def _sync_members(org: Organization, github_team, members: list[TeamMember], err
                 github_team.add_membership(user, role=m.role.value)
                 actions_toolkit.info(f"Synced '{m.username}' in '{github_team.name}' as {m.role.value}")
         except Exception as exc:
-            errors.append({"type": "team-member-sync", "team": github_team.name, "member": m.username, "error": str(exc)})
+            errors.append(
+                {"type": "team-member-sync", "team": github_team.name, "member": m.username, "error": str(exc)}
+            )
 
 
 def _sync_repos(org: Organization, github_team, repos: list[TeamRepository], errors: list) -> None:

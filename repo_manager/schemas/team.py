@@ -7,8 +7,8 @@ OptStr = str | None
 
 
 class TeamPrivacy(str, Enum):
-    secret = "secret"   # only visible to org owners and team members
-    closed = "closed"   # visible to all org members
+    secret = "secret"  # only visible to org owners and team members
+    closed = "closed"  # visible to all org members
 
 
 class TeamRole(str, Enum):
@@ -58,7 +58,5 @@ class Team(BaseModel):
         description="Slug of the parent team (creates a nested team hierarchy). Set to null to make it a top-level team.",
     )
     members: list[TeamMember] | None = Field(None, description="Members of the team")
-    repositories: list[TeamRepository] | None = Field(
-        None, description="Repositories the team should have access to"
-    )
+    repositories: list[TeamRepository] | None = Field(None, description="Repositories the team should have access to")
     exists: OptBool = Field(True, description="Set to false to delete this team")

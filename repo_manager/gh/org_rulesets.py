@@ -10,14 +10,10 @@ from repo_manager.gh.rulesets import (
 )
 
 
-def check_org_rulesets(
-    org: Organization, config_rulesets: list[Ruleset]
-) -> tuple[bool, dict[str, Any] | None]:
+def check_org_rulesets(org: Organization, config_rulesets: list[Ruleset]) -> tuple[bool, dict[str, Any] | None]:
     """Check an org's rulesets against the expected configuration."""
     try:
-        _, existing_list = org._requester.requestJsonAndCheck(
-            "GET", f"{org.url}/rulesets"
-        )
+        _, existing_list = org._requester.requestJsonAndCheck("GET", f"{org.url}/rulesets")
     except Exception as exc:
         actions_toolkit.warning(f"Unable to fetch rulesets for org {org.login}: {exc}")
         return False, {"error": str(exc)}
@@ -44,13 +40,9 @@ def check_org_rulesets(
 
         match = matches[0]
         try:
-            _, full_actual = org._requester.requestJsonAndCheck(
-                "GET", f"{org.url}/rulesets/{match['id']}"
-            )
+            _, full_actual = org._requester.requestJsonAndCheck("GET", f"{org.url}/rulesets/{match['id']}")
         except Exception as exc:
-            actions_toolkit.warning(
-                f"Unable to fetch ruleset detail '{config_rs.name}' (id={match['id']}): {exc}"
-            )
+            actions_toolkit.warning(f"Unable to fetch ruleset detail '{config_rs.name}' (id={match['id']}): {exc}")
             full_actual = match
 
         ruleset_diffs = _diff_ruleset(config_rs, full_actual)

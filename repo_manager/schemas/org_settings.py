@@ -1,6 +1,5 @@
 import os
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
@@ -30,9 +29,7 @@ class OrgSettings(BaseModel):
         None,
         description="Default permission for org members on all org repos: none | read | write | admin",
     )
-    members_can_create_repositories: OptBool = Field(
-        None, description="Allow org members to create new repositories"
-    )
+    members_can_create_repositories: OptBool = Field(None, description="Allow org members to create new repositories")
     members_can_create_public_repositories: OptBool = Field(
         None, description="Allow org members to create public repositories"
     )
@@ -45,18 +42,12 @@ class OrgSettings(BaseModel):
     web_commit_signoff_required: OptBool = Field(
         None, description="Require contributors to sign off on web-based commits"
     )
-    members_can_create_pages: OptBool = Field(
-        None, description="Allow org members to create GitHub Pages sites"
-    )
+    members_can_create_pages: OptBool = Field(None, description="Allow org members to create GitHub Pages sites")
     members_can_create_public_pages: OptBool = Field(
         None, description="Allow org members to create public GitHub Pages sites"
     )
-    has_organization_projects: OptBool = Field(
-        None, description="Enable org-level Projects boards"
-    )
-    has_repository_projects: OptBool = Field(
-        None, description="Enable Projects boards on org repos by default"
-    )
+    has_organization_projects: OptBool = Field(None, description="Enable org-level Projects boards")
+    has_repository_projects: OptBool = Field(None, description="Enable Projects boards on org repos by default")
 
     def to_api_payload(self) -> dict:
         """Return only non-None fields mapped to the GitHub API's field names."""

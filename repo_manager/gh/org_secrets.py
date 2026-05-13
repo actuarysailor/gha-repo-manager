@@ -1,4 +1,5 @@
 """Manage org-level Actions and Dependabot secrets/variables."""
+
 from typing import Any
 
 from actions_toolkit import core as actions_toolkit
@@ -10,6 +11,7 @@ from repo_manager.schemas.org_settings import OrgSecret, OrgSecretVisibility, Se
 # --------------------------------------------------------------------------- #
 #  Helpers
 # --------------------------------------------------------------------------- #
+
 
 def _secret_api_base(org: Organization, secret_type: str) -> str:
     """Return the base API path for actions or dependabot org secrets."""
@@ -58,9 +60,8 @@ def _resolve_selected_repo_ids(org: Organization, names: list[str]) -> list[int]
 #  Secrets check / update
 # --------------------------------------------------------------------------- #
 
-def check_org_secrets(
-    org: Organization, config_secrets: list[OrgSecret]
-) -> tuple[bool, dict[str, Any] | None]:
+
+def check_org_secrets(org: Organization, config_secrets: list[OrgSecret]) -> tuple[bool, dict[str, Any] | None]:
     """Check org-level secrets against expected configuration.
 
     We can only verify existence (not value) for secrets.
@@ -97,9 +98,7 @@ def update_org_secrets(
     messages: list[str] = []
 
     # Build lookup keyed by (name, type)
-    config_by_key: dict[tuple[str, str], OrgSecret] = {
-        (s.key, s.type): s for s in config_secrets
-    }
+    config_by_key: dict[tuple[str, str], OrgSecret] = {(s.key, s.type): s for s in config_secrets}
 
     for entry in diffs.get("missing", []):
         name, stype = entry["name"], entry["type"]
@@ -120,6 +119,7 @@ def update_org_secrets(
             box = public.SealedBox(pub_key)
             encrypted = box.encrypt(value.encode())
             import base64
+
             encrypted_b64 = base64.b64encode(encrypted).decode()
 
             payload: dict[str, Any] = {
@@ -155,9 +155,8 @@ def update_org_secrets(
 #  Variables check / update
 # --------------------------------------------------------------------------- #
 
-def check_org_variables(
-    org: Organization, config_variables: list[OrgSecret]
-) -> tuple[bool, dict[str, Any] | None]:
+
+def check_org_variables(org: Organization, config_variables: list[OrgSecret]) -> tuple[bool, dict[str, Any] | None]:
     """Check org-level Actions variables against expected configuration."""
     existing_names = _get_existing_variable_names(org)
 

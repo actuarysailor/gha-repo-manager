@@ -9,7 +9,7 @@ from repo_manager.schemas.org_settings import OrgSettings
 # (after the 'website' -> 'blog' rename in to_api_payload).
 _READABLE_FIELDS = {
     "description",
-    "blog",           # website in our schema
+    "blog",  # website in our schema
     "email",
     "twitter_username",
     "location",
@@ -30,9 +30,7 @@ _READABLE_FIELDS = {
 _SCHEMA_TO_API = {"website": "blog"}
 
 
-def check_org_settings(
-    org: Organization, settings: OrgSettings
-) -> tuple[bool, dict[str, Any] | None]:
+def check_org_settings(org: Organization, settings: OrgSettings) -> tuple[bool, dict[str, Any] | None]:
     """Check org settings against expected config.
 
     Args:

@@ -72,35 +72,19 @@ class RepoManagerConfig(BaseModel):
 
     @property
     def teams_dict(self):
-        return (
-            {team.name: team for team in self.teams}
-            if self.teams is not None
-            else {}
-        )
+        return {team.name: team for team in self.teams} if self.teams is not None else {}
 
     @property
     def org_rulesets_dict(self):
-        return (
-            {ruleset.name: ruleset for ruleset in self.org_rulesets}
-            if self.org_rulesets is not None
-            else {}
-        )
+        return {ruleset.name: ruleset for ruleset in self.org_rulesets} if self.org_rulesets is not None else {}
 
     @property
     def org_secrets_dict(self):
-        return (
-            {secret.key: secret for secret in self.org_secrets}
-            if self.org_secrets is not None
-            else {}
-        )
+        return {secret.key: secret for secret in self.org_secrets} if self.org_secrets is not None else {}
 
     @property
     def org_variables_dict(self):
-        return (
-            {variable.key: variable for variable in self.org_variables}
-            if self.org_variables is not None
-            else {}
-        )
+        return {variable.key: variable for variable in self.org_variables} if self.org_variables is not None else {}
 
 
 def load_config(filename: str) -> RepoManagerConfig:
