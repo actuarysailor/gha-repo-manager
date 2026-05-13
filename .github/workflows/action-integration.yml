@@ -15,7 +15,10 @@ on:
       - "*requirements*.txt"
       - "**/*.py"
 
-  pull_request_target:
+  # pull_request (not pull_request_target) keeps fork PRs sandboxed — they
+  # won't have access to secrets, so the integration tests will be skipped for
+  # forks. Same-repo branch PRs retain secret access and run normally.
+  pull_request:
     branches:
       - main
 
@@ -23,11 +26,11 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ github.event_name != 'pull_request_target' || steps.filter.outputs.relevant == 'true' }}
+      relevant: ${{ github.event_name != 'pull_request' || steps.filter.outputs.relevant == 'true' }}
     steps:
       - uses: dorny/paths-filter@v4
         id: filter
-        if: github.event_name == 'pull_request_target'
+        if: github.event_name == 'pull_request'
         with:
           token: ${{ github.token }}
           filters: |
@@ -64,8 +67,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
