@@ -1,6 +1,9 @@
 # Updates major version tag for GHA ease of use
 name: Update Major Version Tag
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
