@@ -11,7 +11,7 @@ from .collaborator import Collaborator
 
 
 class RepoManagerConfig(BaseModel):
-    settings: Settings | None
+    settings: Settings | None = None
     branch_protections: list[BranchProtection] | None = Field(
         None, description="Branch protections in the repo to manage"
     )

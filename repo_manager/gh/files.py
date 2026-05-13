@@ -11,6 +11,8 @@ from git.types import Files_TD
 
 from actions_toolkit import core as actions_toolkit
 
+from git.exc import GitCommandError
+
 from github.GithubException import GithubException
 from github.Repository import Repository
 
@@ -33,6 +35,8 @@ def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, File
     for k in filter(lambda k: k in pathMap.keys(), diff.keys()):
         newPath = pathMap[k]
         for metric in diff[newPath].keys():
+            if not isinstance(diff[newPath][metric], (int, float)):
+                continue
             if metric == "deletions":
                 diff[newPath][metric] -= diff[k]["insertions"]
             elif metric == "insertions":
@@ -74,13 +78,25 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     inputs = get_inputs()
     repo_dir = Path(inputs["workspace_path"]) / repo.name
     if repo_dir.is_dir():
-        raise FileExistsError(f"Directory {repo_dir} already exists")
+        actions_toolkit.debug(f"Directory {repo_dir} already exists, removing before clone")
+        shutil.rmtree(repo_dir)
     actions_toolkit.info(f"Cloning {repo.full_name} to {repo_dir}")
     # https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
-    cloned_repo = Repo.clone_from(
-        repo.clone_url.replace("https://", f"https://{inputs['username']}:{inputs['token']}@"), str(repo_dir)
-    )
-    cloned_repo.git.checkout(branch)
+    try:
+        cloned_repo = Repo.clone_from(
+            repo.clone_url.replace("https://", f"https://{inputs['username']}:{inputs['token']}@"),
+            str(repo_dir),
+            branch=branch,
+        )
+    except GitCommandError as exc:
+        if "did not match any file" in str(exc) or "Remote branch" in str(exc) or "empty" in str(exc).lower():
+            actions_toolkit.warning(
+                f"Skipping file sync for {repo.full_name}: repository is empty or branch '{branch}' does not exist yet."
+            )
+            if repo_dir.exists():
+                shutil.rmtree(repo_dir)
+            return None
+        raise
     return cloned_repo
 
 
@@ -292,13 +308,22 @@ def __check_files__(
         for f, v in commitChgs.items():
             if str(Path(f)) in missing.keys():
                 for m, c in v.items():
-                    missing[str(Path(f))][m] += c
+                    if m in missing[str(Path(f))]:
+                        missing[str(Path(f))][m] += c
+                    else:
+                        missing[str(Path(f))][m] = c
             elif str(Path(f)) in extra.keys():
                 for m, c in v.items():
-                    extra[str(Path(f))][m] += c
+                    if m in extra[str(Path(f))]:
+                        extra[str(Path(f))][m] += c
+                    else:
+                        extra[str(Path(f))][m] = c
             elif str(Path(f)) in changed.keys():
                 for m, c in v.items():
-                    changed[str(Path(f))][m] += c
+                    if m in changed[str(Path(f))]:
+                        changed[str(Path(f))][m] += c
+                    else:
+                        changed[str(Path(f))][m] = c
             else:
                 changed[str(Path(f))] = v
 
@@ -331,6 +356,8 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
     else:
         # clone the repo
         repo_dir = __clone_repo__(repo, repo.default_branch)
+        if repo_dir is None:
+            return True, None
 
     diffs = {}
     for branch in branches:
