@@ -42,7 +42,7 @@ jobs:
           password: ${{ github.token }}  #${{ secrets.THIS_PAT }}
 
       - name: Docker metadata
-        uses: docker/metadata-action@v5.5.1
+        uses: docker/metadata-action@v6.0.0
         id: meta
         with:
           images: |
