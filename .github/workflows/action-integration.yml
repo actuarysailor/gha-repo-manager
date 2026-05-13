@@ -53,6 +53,11 @@ jobs:
             action: test
             settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
             fail_on_diff: false
+    # Serialize all runs that mutate external repos across every branch/PR.
+    # cancel-in-progress: false ensures queuing rather than skipping tests.
+    concurrency:
+      group: action-integration-testing-${{ matrix.repo }}
+      cancel-in-progress: false
 
     name: Action Integration Testing
     runs-on: ubuntu-latest
