@@ -188,23 +188,36 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
             f"Error while loading RepoManager Config. {parsed_inputs['settings_file']} does not exist"
         )
 
-    if parsed_inputs.get("is_org_scope"):
-        # org-only mode: repo input is just an org login (no '/')
-        pass  # no repo format validation needed
-    elif parsed_inputs["repo"] != "self":
-        if len(parsed_inputs["repo"].split("/")) != 2:
+    scope = parsed_inputs.get("scope")
+    target = parsed_inputs["target"]
+
+    # Resolve 'self' for repo scope
+    if target == "self":
+        if scope not in (None, "repo"):
             actions_toolkit.set_failed(
-                f"Error while loading RepoManager Config. {parsed_inputs['repo']} is not a valid github "
-                + "repo. Please be sure to enter in the style of 'owner/repo-name'."
+                f"Error: target='self' is only valid for scope='repo', got scope='{scope}'"
             )
-    else:
-        parsed_inputs["repo"] = os.environ.get("GITHUB_REPOSITORY", None)
-        if parsed_inputs["repo"] is None:
+        target = os.environ.get("GITHUB_REPOSITORY", None)
+        if target is None:
             actions_toolkit.set_failed(
-                "Error getting inputs. repo is 'self' and "
-                + "GITHUB_REPOSITORY env var is not set. Please set INPUT_REPO or GITHUB_REPOSITORY in the env"
+                "Error getting inputs. target is 'self' and GITHUB_REPOSITORY env var is not set."
             )
-        parsed_inputs["is_org_scope"] = False
+        parsed_inputs["target"] = target
+        parsed_inputs["scope"] = "repo"
+        scope = "repo"
+    elif scope is None:
+        if "/" in target:
+            scope = "repo"
+        else:
+            actions_toolkit.set_failed(
+                f"Error: target='{target}' has no '/' — please set 'scope' explicitly to 'org' or 'enterprise'."
+            )
+        parsed_inputs["scope"] = scope
+
+    if scope == "repo" and "/" not in target:
+        actions_toolkit.set_failed(
+            f"Error: scope='repo' requires target in 'owner/repo' format, got '{target}'."
+        )
 
     parsed_inputs["workspace_path"] = os.environ.get("RUNNER_WORKSPACE", None)
     if parsed_inputs["workspace_path"] is None:
@@ -223,10 +236,20 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
     actions_toolkit.debug(f"github_server_url: {parsed_inputs['github_server_url']}")
     actions_toolkit.debug(f"github_workspace: {parsed_inputs['workspace_path']}")
 
-    if parsed_inputs.get("is_org_scope"):
-        parsed_inputs["org_object"] = get_org_by_name(parsed_inputs["repo"])
-    else:
+    if scope == "repo":
         parsed_inputs["repo_object"] = get_repo()
+    elif scope == "org":
+        parsed_inputs["org_object"] = get_org_by_name(target)
+    elif scope == "enterprise":
+        # No first-class PyGitHub Enterprise object — store slug + requester
+        parsed_inputs["enterprise_slug"] = target
+        global client
+        client = get_client() if "client" not in globals() else client
+        parsed_inputs["enterprise_requester"] = client._Github__requester
+    else:
+        actions_toolkit.set_failed(
+            f"Error: unknown scope '{scope}'. Must be 'repo', 'org', or 'enterprise'."
+        )
 
     return parsed_inputs
 
