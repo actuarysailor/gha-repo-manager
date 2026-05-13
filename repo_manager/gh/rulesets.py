@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import Any
 
 from actions_toolkit import core as actions_toolkit
@@ -85,9 +84,7 @@ def _diff_ruleset(expected: Ruleset, actual: dict[str, Any]) -> dict[str, Any]:
     return diffs
 
 
-def check_repo_rulesets(
-    repo: Repository, config_rulesets: list[Ruleset]
-) -> tuple[bool, dict[str, Any] | None]:
+def check_repo_rulesets(repo: Repository, config_rulesets: list[Ruleset]) -> tuple[bool, dict[str, Any] | None]:
     """Check a repo's rulesets against the expected configuration.
 
     Args:
@@ -127,13 +124,9 @@ def check_repo_rulesets(
         # Fetch full detail for the first match (names should be unique per target in practice)
         match = matches[0]
         try:
-            _, full_actual = repo._requester.requestJsonAndCheck(
-                "GET", f"{repo.url}/rulesets/{match['id']}"
-            )
+            _, full_actual = repo._requester.requestJsonAndCheck("GET", f"{repo.url}/rulesets/{match['id']}")
         except Exception as exc:
-            actions_toolkit.warning(
-                f"Unable to fetch ruleset detail for '{config_rs.name}' (id={match['id']}): {exc}"
-            )
+            actions_toolkit.warning(f"Unable to fetch ruleset detail for '{config_rs.name}' (id={match['id']}): {exc}")
             full_actual = match
 
         ruleset_diffs = _diff_ruleset(config_rs, full_actual)

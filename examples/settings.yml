@@ -96,8 +96,8 @@ branch_protections:
 # See https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
 rulesets:
   - name: Protect main
-    target: branch         # branch | tag | push
-    enforcement: active    # active | disabled | evaluate
+    target: branch # branch | tag | push
+    enforcement: active # active | disabled | evaluate
 
     # Optional: actors who can bypass this ruleset
     # bypass_actors:
@@ -109,7 +109,7 @@ rulesets:
     conditions:
       ref_name:
         include:
-          - ~DEFAULT_BRANCH   # Magic token for the repo's default branch
+          - ~DEFAULT_BRANCH # Magic token for the repo's default branch
           # - refs/heads/main   # Or specify an explicit ref
           # - ~ALL              # All branches
         exclude: []
@@ -130,7 +130,7 @@ rulesets:
       # Pull request review requirements
       - type: pull_request
         parameters:
-          required_approving_review_count: 1    # 0–10
+          required_approving_review_count: 1 # 0–10
           dismiss_stale_reviews_on_push: true
           require_code_owner_review: true
           require_last_push_approval: false
@@ -139,7 +139,7 @@ rulesets:
       # Required status checks
       - type: required_status_checks
         parameters:
-          strict_required_status_checks_policy: true   # Require branch to be up to date
+          strict_required_status_checks_policy: true # Require branch to be up to date
           do_not_enforce_on_create: false
           required_status_checks:
             - context: lint
