@@ -419,8 +419,8 @@ def main():  # noqa: C901
                             warning_msg = _format_permission_warning(update_name, exc)
                             actions_toolkit.warning(warning_msg)
                             permission_warnings.append(warning_msg)
-                    else:
-                        errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
+                        else:
+                            errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
 
         # ------------------------------------------------------------------ #
         # Enterprise-scope apply (only when scope='enterprise')
