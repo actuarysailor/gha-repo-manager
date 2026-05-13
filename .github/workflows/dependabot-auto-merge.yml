@@ -38,7 +38,7 @@ jobs:
             --author "dependabot[bot]" \
             --state open \
             --json number,headRefOid \
-            --jq --arg sha "$SHA" '.[] | select(.headRefOid == $sha) | .number' \
+            --jq ".[] | select(.headRefOid == \"$SHA\") | .number" \
             | head -1)
           echo "number=${PR:-}" >> "$GITHUB_OUTPUT"
         env:
