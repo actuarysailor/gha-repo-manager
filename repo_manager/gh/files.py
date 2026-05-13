@@ -74,7 +74,8 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
     inputs = get_inputs()
     repo_dir = Path(inputs["workspace_path"]) / repo.name
     if repo_dir.is_dir():
-        raise FileExistsError(f"Directory {repo_dir} already exists")
+        actions_toolkit.debug(f"Directory {repo_dir} already exists, removing before clone")
+        shutil.rmtree(repo_dir)
     actions_toolkit.info(f"Cloning {repo.full_name} to {repo_dir}")
     # https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
     cloned_repo = Repo.clone_from(
@@ -292,13 +293,22 @@ def __check_files__(
         for f, v in commitChgs.items():
             if str(Path(f)) in missing.keys():
                 for m, c in v.items():
-                    missing[str(Path(f))][m] += c
+                    if m in missing[str(Path(f))]:
+                        missing[str(Path(f))][m] += c
+                    else:
+                        missing[str(Path(f))][m] = c
             elif str(Path(f)) in extra.keys():
                 for m, c in v.items():
-                    extra[str(Path(f))][m] += c
+                    if m in extra[str(Path(f))]:
+                        extra[str(Path(f))][m] += c
+                    else:
+                        extra[str(Path(f))][m] = c
             elif str(Path(f)) in changed.keys():
                 for m, c in v.items():
-                    changed[str(Path(f))][m] += c
+                    if m in changed[str(Path(f))]:
+                        changed[str(Path(f))][m] += c
+                    else:
+                        changed[str(Path(f))][m] = c
             else:
                 changed[str(Path(f))] = v
 

@@ -18,6 +18,7 @@
       "request": "launch",
       "module": "repo_manager.main",
       "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "env": {
