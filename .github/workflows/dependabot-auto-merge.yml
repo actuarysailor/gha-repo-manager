@@ -1,59 +1,91 @@
 name: Auto Merge Dependabot
 
 on:
-  pull_request:
-    # Runs from source branch - safe for wait/check logic (read-only)
-  pull_request_target:
-    # Runs from base branch - used only for the privileged merge command
+  # Fires on every individual check completion. The job does a single
+  # non-blocking snapshot: if any checks are still pending it exits
+  # immediately (no runner held). When the last check finishes the
+  # snapshot shows all passed and the merge proceeds.
+  check_run:
+    types: [completed]
+
+# One run at a time per PR. When multiple checks complete in quick succession,
+# cancel-in-progress: true drops redundant queued runs — the last one proceeds.
+# Falls back to head_sha for check_runs not associated with a PR.
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.check_run.pull_requests[0].number || github.event.check_run.head_sha }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  wait-for-checks:
+  auto-merge:
+    # Gate on the completed check_run belonging to a dependabot PR
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       checks: read
-      pull-requests: read
+      contents: write
+      pull-requests: write
     steps:
-      - name: Wait for all other checks to complete
+      - name: Find open dependabot PR for this commit
+        id: pr
         run: |
-          while true; do
-            statuses=$(gh pr checks ${{ github.event.pull_request.number }} \
-              --repo ${{ github.repository }} \
-              --json name,state \
-              --jq '.[] | select(.name != "wait-for-checks") | {name, state}')
-
-            echo "$statuses"
-
-            if echo "$statuses" | grep -qiE '"state":"(QUEUED|IN_PROGRESS|WAITING|PENDING)"'; then
-              echo "Checks still running, waiting 30s..."
-              sleep 30
-            else
-              break
-            fi
-          done
-
-          if echo "$statuses" | grep -qiE '"state":"(FAILURE|ERROR|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE)"'; then
-            echo "One or more checks failed."
-            exit 1
-          fi
-
-          echo "All other checks passed."
+          SHA="${{ github.event.check_run.head_sha }}"
+          PR=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --author "dependabot[bot]" \
+            --state open \
+            --json number,headRefOid \
+            --jq --arg sha "$SHA" '.[] | select(.headRefOid == $sha) | .number' \
+            | head -1)
+          echo "number=${PR:-}" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
 
-  auto-merge:
-    # Only runs on pull_request_target (base branch code) and only for dependabot
-    if: >
-      github.event_name == 'pull_request_target' &&
-      github.actor == 'dependabot[bot]'
-    needs: wait-for-checks
-    runs-on: ubuntu-latest
-    steps:
+      - name: Snapshot all checks — exit fast if any still pending
+        id: checks
+        if: steps.pr.outputs.number != ''
+        run: |
+          PENDING=$(gh pr checks "${{ steps.pr.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --json name,state \
+            --jq '[.[] | select(.state | test("QUEUED|IN_PROGRESS|WAITING|PENDING"; "i"))] | length')
+
+          FAILED=$(gh pr checks "${{ steps.pr.outputs.number }}" \
+            --repo "${{ github.repository }}" \
+            --json name,state \
+            --jq '[.[] | select(.state | test("FAILURE|ERROR|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STARTUP_FAILURE"; "i"))] | length')
+
+          echo "pending=${PENDING}" >> "$GITHUB_OUTPUT"
+          echo "failed=${FAILED}"   >> "$GITHUB_OUTPUT"
+
+          if [[ "$PENDING" -gt 0 ]]; then
+            echo "Checks still running ($PENDING pending) — nothing to do yet."
+            exit 0
+          fi
+
+          if [[ "$FAILED" -gt 0 ]]; then
+            echo "One or more checks failed ($FAILED failed) — skipping auto-merge."
+            exit 1
+          fi
+
+          echo "All checks passed."
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - uses: actions/checkout@v6.0.2
+        if: >
+          steps.pr.outputs.number != '' &&
+          steps.checks.outputs.pending == '0' &&
+          steps.checks.outputs.failed == '0'
+
       - uses: ahmadnassri/action-dependabot-auto-merge@v2.6.6
+        if: >
+          steps.pr.outputs.number != '' &&
+          steps.checks.outputs.pending == '0' &&
+          steps.checks.outputs.failed == '0'
         with:
           target: minor
           command: squash and merge
