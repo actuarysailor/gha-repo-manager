@@ -11,7 +11,7 @@ INPUTS = {
         "default": ".github/settings.yml",
     },
     "repo": {
-        "description": "What repo to perform this action on. Default is self, as in the repo this action is running in",
+        "description": "What repo or org to perform this action on. Use 'owner/repo' for a repository, or just 'owner' for an organization. Default is 'self', meaning the repo this action is running in.",
         "default": "self",
     },
     "github_server_url": {

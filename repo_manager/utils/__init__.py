@@ -53,6 +53,8 @@ def __get_inputs__() -> dict:
     kwargs["owner"] = (
         kwargs["repo"].split("/")[0] if kwargs["repo"] != "self" else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
     )
+    # Detect scope: a value without '/' (and not 'self') is treated as an org login
+    kwargs["is_org_scope"] = kwargs["repo"] != "self" and "/" not in kwargs["repo"]
     return kwargs
 
 
@@ -138,6 +140,16 @@ def get_organization() -> Organization:
     return org
 
 
+def get_org_by_name(org_login: str) -> Organization:
+    """Fetch a GitHub Organization object by its login name."""
+    global client
+    client = get_client() if "client" not in globals() else client
+    try:
+        return client.get_organization(org_login)
+    except Exception as exc:
+        actions_toolkit.set_failed(f"Error while retrieving org '{org_login}' from Github. {exc}")
+
+
 def get_permissions() -> set[str]:
     if "permissions" not in globals():
         raise ValueError("Permissions not set. Please run get_client() first")
@@ -176,7 +188,10 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
             f"Error while loading RepoManager Config. {parsed_inputs['settings_file']} does not exist"
         )
 
-    if parsed_inputs["repo"] != "self":
+    if parsed_inputs.get("is_org_scope"):
+        # org-only mode: repo input is just an org login (no '/')
+        pass  # no repo format validation needed
+    elif parsed_inputs["repo"] != "self":
         if len(parsed_inputs["repo"].split("/")) != 2:
             actions_toolkit.set_failed(
                 f"Error while loading RepoManager Config. {parsed_inputs['repo']} is not a valid github "
@@ -189,6 +204,7 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
                 "Error getting inputs. repo is 'self' and "
                 + "GITHUB_REPOSITORY env var is not set. Please set INPUT_REPO or GITHUB_REPOSITORY in the env"
             )
+        parsed_inputs["is_org_scope"] = False
 
     parsed_inputs["workspace_path"] = os.environ.get("RUNNER_WORKSPACE", None)
     if parsed_inputs["workspace_path"] is None:
@@ -207,7 +223,10 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
     actions_toolkit.debug(f"github_server_url: {parsed_inputs['github_server_url']}")
     actions_toolkit.debug(f"github_workspace: {parsed_inputs['workspace_path']}")
 
-    parsed_inputs["repo_object"] = get_repo()
+    if parsed_inputs.get("is_org_scope"):
+        parsed_inputs["org_object"] = get_org_by_name(parsed_inputs["repo"])
+    else:
+        parsed_inputs["repo_object"] = get_repo()
 
     return parsed_inputs
 
