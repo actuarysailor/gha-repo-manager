@@ -1,4 +1,10 @@
 name: Create Docker Image
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
 on:
   workflow_dispatch:
     inputs:

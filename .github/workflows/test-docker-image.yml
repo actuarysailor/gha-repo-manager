@@ -1,5 +1,9 @@
 name: Test Docker Image Build
 
+permissions:
+  contents: read
+  actions: write
+
 on:
   push:
     branches:
