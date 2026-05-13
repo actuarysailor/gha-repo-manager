@@ -33,6 +33,8 @@ def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, File
     for k in filter(lambda k: k in pathMap.keys(), diff.keys()):
         newPath = pathMap[k]
         for metric in diff[newPath].keys():
+            if not isinstance(diff[newPath][metric], (int, float)):
+                continue
             if metric == "deletions":
                 diff[newPath][metric] -= diff[k]["insertions"]
             elif metric == "insertions":
