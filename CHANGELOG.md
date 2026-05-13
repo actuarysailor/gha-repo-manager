@@ -1,5 +1,12 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [2.3.1](https://github.com/actuarysailor/gha-repo-manager/compare/v2.3.0...v2.3.1) (2026-05-13)
+
+
+### Bug Fixes
+
+* Login as app issue ([#168](https://github.com/actuarysailor/gha-repo-manager/issues/168)) ([a6ff3e0](https://github.com/actuarysailor/gha-repo-manager/commit/a6ff3e0d5aa1088e15ff035d2bea1a1c8767dd75))
+
 ## [2.3.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.2.3...v2.3.0) (2026-04-16)
 
 
