@@ -11,6 +11,8 @@ from git.types import Files_TD
 
 from actions_toolkit import core as actions_toolkit
 
+from git.exc import GitCommandError
+
 from github.GithubException import GithubException
 from github.Repository import Repository
 
@@ -80,10 +82,21 @@ def __clone_repo__(repo: Repository, branch: str) -> Repo:
         shutil.rmtree(repo_dir)
     actions_toolkit.info(f"Cloning {repo.full_name} to {repo_dir}")
     # https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
-    cloned_repo = Repo.clone_from(
-        repo.clone_url.replace("https://", f"https://{inputs['username']}:{inputs['token']}@"), str(repo_dir)
-    )
-    cloned_repo.git.checkout(branch)
+    try:
+        cloned_repo = Repo.clone_from(
+            repo.clone_url.replace("https://", f"https://{inputs['username']}:{inputs['token']}@"),
+            str(repo_dir),
+            branch=branch,
+        )
+    except GitCommandError as exc:
+        if "did not match any file" in str(exc) or "Remote branch" in str(exc) or "empty" in str(exc).lower():
+            actions_toolkit.warning(
+                f"Skipping file sync for {repo.full_name}: repository is empty or branch '{branch}' does not exist yet."
+            )
+            if repo_dir.exists():
+                shutil.rmtree(repo_dir)
+            return None
+        raise
     return cloned_repo
 
 
@@ -343,6 +356,8 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
     else:
         # clone the repo
         repo_dir = __clone_repo__(repo, repo.default_branch)
+        if repo_dir is None:
+            return True, None
 
     diffs = {}
     for branch in branches:
