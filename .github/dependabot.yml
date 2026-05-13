@@ -1,23 +1,40 @@
 version: 2
 updates:
   - package-ecosystem: "pip"
-    directory: "/Docker/"
-    schedule:
-      interval: "daily"
-    labels:
-      - '📦 Dependencies'
-      - '🐍 Python'
-  - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "daily"
     labels:
       - '📦 Dependencies'
       - '🐍 Python'
+    groups:
+      python-dependencies:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - '📦 Dependencies'
+      - '🐳 Docker'
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: 'github-actions'
     directory: '/.github/workflows'
     schedule:
-      interval: 'daily'
+      interval: 'weekly'
     labels:
       - '📦 Dependencies'
       - '🚀 CI/CD'
+    groups:
+      all-actions:
+        patterns: ["*"]
+    # Allow major version updates
+    allow:
+    - dependency-type: all
