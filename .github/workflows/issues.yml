@@ -1,4 +1,8 @@
 name: Issues to Discord
+
+permissions:
+  issues: read
+
 on:
   issues:
     types:
