@@ -7,7 +7,7 @@ OptStr = str | None
 
 
 class TeamPrivacy(str, Enum):
-    secret = "secret"  # only visible to org owners and team members
+    secret = "secret"  # nosec B105 — GitHub team privacy value, not a password  # only visible to org owners and team members
     closed = "closed"  # visible to all org members
 
 

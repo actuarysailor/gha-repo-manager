@@ -15,7 +15,7 @@ from repo_manager.schemas.org_settings import OrgSecret, OrgSecretVisibility, Se
 
 def _secret_api_base(org: Organization, secret_type: str) -> str:
     """Return the base API path for actions or dependabot org secrets."""
-    if secret_type == "dependabot":
+    if secret_type == "dependabot":  # nosec B105
         return f"/orgs/{org.login}/dependabot/secrets"
     return f"/orgs/{org.login}/actions/secrets"
 
@@ -171,8 +171,8 @@ def check_org_variables(org: Organization, config_variables: list[OrgSecret]) ->
         _, data = org._requester.requestJsonAndCheck("GET", base)
         for v in data.get("variables", []):
             existing_values[v["name"]] = v.get("value", "")
-    except Exception:
-        pass
+    except Exception as exc:  # nosec B110
+        actions_toolkit.debug(f"Could not fetch org variable values for comparison: {exc}")
 
     for v in config_variables:
         if v.exists is False:
