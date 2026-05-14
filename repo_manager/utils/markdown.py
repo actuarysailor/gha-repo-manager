@@ -297,8 +297,10 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
         return "\n".join(
             [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
         )
-    else:
+    elif isinstance(value, dict):
         return "\n".join([__section_handler__(k, v, f"{hdrDepth}") for k, v in value.items()])
+    else:
+        return str(value)
 
 
 def __section_handler__(
