@@ -59,7 +59,7 @@ jobs:
     # Serialize all runs that mutate external repos across every branch/PR.
     # cancel-in-progress: false ensures queuing rather than skipping tests.
     concurrency:
-      group: action-integration-testing-${{ matrix.target }}
+      group: action-integration-testing-${{ matrix.repo }}
       cancel-in-progress: false
 
     name: Action Integration Testing
@@ -80,7 +80,7 @@ jobs:
       - name: cat action.yml
         run: cat action.yml
 
-      - name: Checking ${{ matrix.target }} against ${{ fromJSON(matrix.settings_file)[0] }}
+      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
         id: test-check-action
         if: contains(fromJSON('["check","test"]'), matrix.action)
         uses: ./
@@ -95,7 +95,7 @@ jobs:
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
-      - name: Applying ${{ fromJSON(matrix.settings_file)[0] }} to ${{ matrix.target }}
+      - name: Applying ${{ fromJSON(matrix.settings_file)[0] }} to ${{ matrix.repo }}
         id: test-apply-action
         if: matrix.action == 'test'
         uses: ./
@@ -109,7 +109,7 @@ jobs:
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
-      - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.target }}
+      - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.repo }}
         id: undo-apply-action
         if: matrix.action == 'test'
         uses: ./
@@ -121,7 +121,7 @@ jobs:
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: apply
 
-      - name: Checking ${{ matrix.target }} against ${{ fromJSON(matrix.settings_file)[1] }}
+      - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[1] }}
         id: final-check-action
         if: matrix.action == 'test'
         uses: ./
