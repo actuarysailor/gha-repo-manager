@@ -51,10 +51,9 @@ def __get_inputs__() -> dict:
         #         if kwargs[input_name] is None:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
     kwargs["owner"] = (
-        kwargs["repo"].split("/")[0] if kwargs["repo"] != "self" else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
+        kwargs["target"].split("/")[0] if kwargs["target"] != "self" else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
     )
-    # Detect scope: a value without '/' (and not 'self') is treated as an org login
-    kwargs["is_org_scope"] = kwargs["repo"] != "self" and "/" not in kwargs["repo"]
+    # scope is resolved fully in validate_inputs; nothing to pre-compute here
     return kwargs
 
 
@@ -122,9 +121,9 @@ def get_repo() -> Repository:
     global client
     client = get_client() if "client" not in globals() else client
     try:
-        repo = client.get_repo(kwargs["repo"])
+        repo = client.get_repo(kwargs["target"])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retrieving {kwargs['repo']} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {kwargs['target']} from Github. {exc}")
     return repo
 
 
@@ -134,9 +133,9 @@ def get_organization() -> Organization:
     global client
     client = get_client() if "client" not in globals() else client
     try:
-        org = client.get_organization(kwargs["repo"].split("/")[0])
+        org = client.get_organization(kwargs["target"].split("/")[0])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retrieving {kwargs['repo'].split('/')[0]} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {kwargs['target'].split('/')[0]} from Github. {exc}")
     return org
 
 
