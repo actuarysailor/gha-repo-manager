@@ -70,6 +70,13 @@ def update_org_rulesets(
     messages: list[str] = []
     config_by_name = {rs.name: rs for rs in config_rulesets}
 
+    def _handle_exc(exc: Exception, op_type: str, name: str) -> None:
+        from github import GithubException
+        if isinstance(exc, GithubException) and exc.status == 403:
+            actions_toolkit.warning(f"Unable to {op_type} org ruleset '{name}': {exc.message} (feature unavailable)")
+        else:
+            errors.append({"type": f"org-ruleset-{op_type}", "name": name, "error": str(exc)})
+
     for name in diffs.get("missing", []):
         rs = config_by_name[name]
         payload = _ruleset_to_api_payload(rs)
@@ -78,7 +85,7 @@ def update_org_rulesets(
             actions_toolkit.info(f"Created org ruleset '{name}'")
             messages.append(f"Created org ruleset '{name}'")
         except Exception as exc:
-            errors.append({"type": "org-ruleset-create", "name": name, "error": str(exc)})
+            _handle_exc(exc, "create", name)
 
     for entry in diffs.get("extra", []):
         name = entry["name"]
@@ -88,7 +95,7 @@ def update_org_rulesets(
                 actions_toolkit.info(f"Deleted org ruleset '{name}' (id={rid})")
                 messages.append(f"Deleted org ruleset '{name}' (id={rid})")
             except Exception as exc:
-                errors.append({"type": "org-ruleset-delete", "name": name, "error": str(exc)})
+                _handle_exc(exc, "delete", name)
 
     for name, ruleset_diff in diffs.get("diff", {}).items():
         rs = config_by_name[name]
@@ -99,6 +106,6 @@ def update_org_rulesets(
             actions_toolkit.info(f"Updated org ruleset '{name}'")
             messages.append(f"Updated org ruleset '{name}'")
         except Exception as exc:
-            errors.append({"type": "org-ruleset-update", "name": name, "error": str(exc)})
+            _handle_exc(exc, "update", name)
 
     return errors, messages

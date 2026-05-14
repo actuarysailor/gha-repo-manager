@@ -165,6 +165,13 @@ def update_rulesets(
     messages: list[str] = []
     config_by_name = {rs.name: rs for rs in config_rulesets}
 
+    def _handle_exc(exc: Exception, op_type: str, name: str) -> None:
+        from github import GithubException
+        if isinstance(exc, GithubException) and exc.status == 403:
+            actions_toolkit.warning(f"Unable to {op_type} ruleset '{name}': {exc.message} (feature unavailable — upgrade plan or make repo public)")
+        else:
+            errors.append({"type": f"ruleset-{op_type}", "name": name, "error": str(exc)})
+
     # Create missing rulesets
     for name in diffs.get("missing", []):
         rs = config_by_name[name]
@@ -174,7 +181,7 @@ def update_rulesets(
             actions_toolkit.info(f"Created ruleset '{name}'")
             messages.append(f"Created ruleset '{name}'")
         except Exception as exc:
-            errors.append({"type": "ruleset-create", "name": name, "error": str(exc)})
+            _handle_exc(exc, "create", name)
 
     # Delete extra rulesets
     for entry in diffs.get("extra", []):
@@ -185,7 +192,7 @@ def update_rulesets(
                 actions_toolkit.info(f"Deleted ruleset '{name}' (id={rid})")
                 messages.append(f"Deleted ruleset '{name}' (id={rid})")
             except Exception as exc:
-                errors.append({"type": "ruleset-delete", "name": name, "error": str(exc)})
+                _handle_exc(exc, "delete", name)
 
     # Update differing rulesets
     for name, ruleset_diff in diffs.get("diff", {}).items():
@@ -197,6 +204,6 @@ def update_rulesets(
             actions_toolkit.info(f"Updated ruleset '{name}'")
             messages.append(f"Updated ruleset '{name}'")
         except Exception as exc:
-            errors.append({"type": "ruleset-update", "name": name, "error": str(exc)})
+            _handle_exc(exc, "update", name)
 
     return errors, messages

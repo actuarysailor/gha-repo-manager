@@ -76,6 +76,13 @@ def update_enterprise_rulesets(
     config_by_name = {rs.name: rs for rs in config_rulesets}
     base = _enterprise_url(requester, enterprise)
 
+    def _handle_exc(exc: Exception, op_type: str, name: str) -> None:
+        from github import GithubException
+        if isinstance(exc, GithubException) and exc.status == 403:
+            actions_toolkit.warning(f"Unable to {op_type} enterprise ruleset '{name}': {exc.message} (feature unavailable)")
+        else:
+            errors.append({"type": f"enterprise-ruleset-{op_type}", "name": name, "error": str(exc)})
+
     for name in diffs.get("missing", []):
         payload = _ruleset_to_api_payload(config_by_name[name])
         try:
@@ -83,7 +90,7 @@ def update_enterprise_rulesets(
             actions_toolkit.info(f"Created enterprise ruleset '{name}'")
             messages.append(f"Created enterprise ruleset '{name}'")
         except Exception as exc:
-            errors.append({"type": "enterprise-ruleset-create", "name": name, "error": str(exc)})
+            _handle_exc(exc, "create", name)
 
     for entry in diffs.get("extra", []):
         name = entry["name"]
@@ -93,7 +100,7 @@ def update_enterprise_rulesets(
                 actions_toolkit.info(f"Deleted enterprise ruleset '{name}' (id={rid})")
                 messages.append(f"Deleted enterprise ruleset '{name}' (id={rid})")
             except Exception as exc:
-                errors.append({"type": "enterprise-ruleset-delete", "name": name, "error": str(exc)})
+                _handle_exc(exc, "delete", name)
 
     for name, ruleset_diff in diffs.get("diff", {}).items():
         payload = _ruleset_to_api_payload(config_by_name[name])
@@ -103,6 +110,6 @@ def update_enterprise_rulesets(
             actions_toolkit.info(f"Updated enterprise ruleset '{name}'")
             messages.append(f"Updated enterprise ruleset '{name}'")
         except Exception as exc:
-            errors.append({"type": "enterprise-ruleset-update", "name": name, "error": str(exc)})
+            _handle_exc(exc, "update", name)
 
     return errors, messages
