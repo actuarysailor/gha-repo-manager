@@ -213,8 +213,11 @@ def __dict_diff_to_columns__(input_dict: dict | list, keyColName: str = None, va
 
 
 def __dict_to_dfDict__(
-    input_dict: dict, keyColName: str = None, valColName: str = None
+    input_dict: dict | list, keyColName: str = None, valColName: str = None
 ) -> dict:  # should this just return a dataframe?
+    if isinstance(input_dict, list):
+        col = keyColName or "value"
+        return {col: input_dict}
     result = {}
     # valColName = (COLUMN_RENAME_MAP.get(key.lower(), None) or COLUMN_RENAME_MAP.get(category, key)).capitalize()
     for key, value in input_dict.items():
@@ -268,8 +271,10 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
         key = MISSING_SUB_KEY[header] if header in MISSING_SUB_KEY else key
         headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}: {actionVerb.capitalize()}"
         return "\n".join(
-            [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
+            [__section_handler__(k, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
         )
+    else:
+        return str(value)
 
 
 def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
@@ -286,6 +291,8 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
         )
         return tabulate(rows, headers="keys", tablefmt="pipe")
     elif key in KEYS_TO_SKIP_A_LEVEL:
+        if isinstance(value, list):
+            return __list_handler__(value)
         return "\n".join([__key_handler__(k, v, f"{hdrDepth}", key) for k, v in value.items()])
     elif key in ACTION_TAKEN.keys():
         return __action_handler__(key, value, hdrDepth, header)
@@ -294,8 +301,10 @@ def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = Non
     elif key in MISSING_SUB_KEY.keys():
         key = MISSING_SUB_KEY[key]
         headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}"
+        if isinstance(value, list):
+            return __list_handler__(value)
         return "\n".join(
-            [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
+            [__section_handler__(k, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
         )
     elif isinstance(value, dict):
         return "\n".join([__section_handler__(k, v, f"{hdrDepth}") for k, v in value.items()])

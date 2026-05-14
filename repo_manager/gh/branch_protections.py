@@ -515,12 +515,15 @@ def update_branch_protections(
             except GithubException as ghexc:
                 if ghexc.status == 403:
                     actions_toolkit.warning(f"Unable to modify branch protection for {branch_name}.  {ghexc.message}")
-                if ghexc.status == 404:
-                    actions_toolkit.set_failed(
-                        f"Can't change branch protection for {branch_name} because either the branch or the protection does not exist"
-                    )
-                if ghexc.status not in [403, 404]:
-                    # a 404 on a delete is fine, means it isnt protected
+                elif ghexc.status == 404:
+                    if issue_type == "extra":
+                        # a 404 on a delete is fine — branch is already unprotected, desired state achieved
+                        actions_toolkit.warning(f"Branch {branch_name} is already unprotected, skipping removal")
+                    else:
+                        actions_toolkit.set_failed(
+                            f"Can't change branch protection for {branch_name} because either the branch or the protection does not exist"
+                        )
+                else:
                     errors.append(
                         {
                             "type": "bp-delete" if issue_type == "extra" else "bp-update",
