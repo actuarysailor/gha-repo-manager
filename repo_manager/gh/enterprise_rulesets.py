@@ -17,6 +17,10 @@ def check_enterprise_rulesets(
     try:
         _, existing_list = requester.requestJsonAndCheck("GET", f"{base}/rulesets")
     except Exception as exc:
+        from github import GithubException
+        if isinstance(exc, GithubException) and exc.status == 403:
+            actions_toolkit.warning(f"Unable to fetch rulesets for enterprise '{enterprise}': {exc}")
+            return True, None  # feature unavailable — not an actionable diff
         actions_toolkit.warning(f"Unable to fetch rulesets for enterprise '{enterprise}': {exc}")
         return False, {"error": str(exc)}
 

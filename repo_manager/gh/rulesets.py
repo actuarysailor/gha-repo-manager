@@ -97,6 +97,10 @@ def check_repo_rulesets(repo: Repository, config_rulesets: list[Ruleset]) -> tup
     try:
         _, existing_list = repo._requester.requestJsonAndCheck("GET", f"{repo.url}/rulesets")
     except Exception as exc:
+        from github import GithubException
+        if isinstance(exc, GithubException) and exc.status == 403:
+            actions_toolkit.warning(f"Unable to fetch rulesets for {repo.full_name}: {exc}")
+            return True, None  # feature unavailable — not an actionable diff
         actions_toolkit.warning(f"Unable to fetch rulesets for {repo.full_name}: {exc}")
         return False, {"error": str(exc)}
 
