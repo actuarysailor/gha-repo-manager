@@ -4,11 +4,6 @@ name: Release Docker Images
 on:
   release:
     types: [released,published]
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/release-docker-images.yml'
 
 permissions:
   packages: write
@@ -50,10 +45,6 @@ jobs:
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=${{ github.ref_name }}
-            # minimal (short sha)
-            type=sha,prefix=
-            # full length sha
-            type=sha,format=long,prefix=
 
       - name: Build and push
         id: docker_build
