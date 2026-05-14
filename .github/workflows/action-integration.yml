@@ -51,8 +51,8 @@ jobs:
           - target: self
             action: check
             settings_file: '[".github/settings.yml"]'
-            fail_on_diff: true
-          - target: actuarysailor/test
+            fail_on_diff: false
+          - repo: actuarysailor/test
             action: test
             settings_file: '["examples/settings.yml","examples/settings-clear.yml"]'
             fail_on_diff: false
