@@ -72,6 +72,7 @@ def update_org_rulesets(
 
     def _handle_exc(exc: Exception, op_type: str, name: str) -> None:
         from github import GithubException
+
         if isinstance(exc, GithubException) and exc.status == 403:
             actions_toolkit.warning(f"Unable to {op_type} org ruleset '{name}': {exc.message} (feature unavailable)")
         else:

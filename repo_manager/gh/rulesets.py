@@ -167,8 +167,11 @@ def update_rulesets(
 
     def _handle_exc(exc: Exception, op_type: str, name: str) -> None:
         from github import GithubException
+
         if isinstance(exc, GithubException) and exc.status == 403:
-            actions_toolkit.warning(f"Unable to {op_type} ruleset '{name}': {exc.message} (feature unavailable — upgrade plan or make repo public)")
+            actions_toolkit.warning(
+                f"Unable to {op_type} ruleset '{name}': {exc.message} (feature unavailable — upgrade plan or make repo public)"
+            )
         else:
             errors.append({"type": f"ruleset-{op_type}", "name": name, "error": str(exc)})
 

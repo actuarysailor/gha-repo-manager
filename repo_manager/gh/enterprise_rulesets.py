@@ -78,8 +78,11 @@ def update_enterprise_rulesets(
 
     def _handle_exc(exc: Exception, op_type: str, name: str) -> None:
         from github import GithubException
+
         if isinstance(exc, GithubException) and exc.status == 403:
-            actions_toolkit.warning(f"Unable to {op_type} enterprise ruleset '{name}': {exc.message} (feature unavailable)")
+            actions_toolkit.warning(
+                f"Unable to {op_type} enterprise ruleset '{name}': {exc.message} (feature unavailable)"
+            )
         else:
             errors.append({"type": f"enterprise-ruleset-{op_type}", "name": name, "error": str(exc)})
 
