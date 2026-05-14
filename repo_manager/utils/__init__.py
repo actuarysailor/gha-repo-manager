@@ -51,7 +51,9 @@ def __get_inputs__() -> dict:
         #         if kwargs[input_name] is None:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
     kwargs["owner"] = (
-        kwargs["target"].split("/")[0] if kwargs["target"] != "self" else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
+        kwargs["target"].split("/")[0]
+        if kwargs["target"] != "self"
+        else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
     )
     # scope is resolved fully in validate_inputs; nothing to pre-compute here
     return kwargs
