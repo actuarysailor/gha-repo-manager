@@ -41,9 +41,7 @@ def __get_repo_secret_names__(repo: Repository, path: str = "actions") -> set[st
     else:
         # Environment secrets require /repositories/{id}/... URL path
         env_name = path.replace("environments/", "") if path.startswith("environments/") else path
-        _, data = repo._requester.requestJsonAndCheck(
-            "GET", f"/repositories/{repo.id}/environments/{env_name}/secrets"
-        )
+        _, data = repo._requester.requestJsonAndCheck("GET", f"/repositories/{repo.id}/environments/{env_name}/secrets")
         return {s["name"] for s in data.get("secrets", [])}
 
 
@@ -139,7 +137,9 @@ def update_secrets(
                         )
                     else:
                         env_name = secret_dict[secret_name].type.replace("environments/", "")
-                        __create_environment_secret__(repo, env_name, secret_name, secret_dict[secret_name].expected_value)
+                        __create_environment_secret__(
+                            repo, env_name, secret_name, secret_dict[secret_name].expected_value
+                        )
                     # create_secret(repo, secret.key, secret.expected_value, secret.type)
                     actions_toolkit.info(f"Set {secret_name} to expected value")
                 if issue_type == "extra":
