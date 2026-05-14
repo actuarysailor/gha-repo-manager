@@ -50,9 +50,16 @@ def __get_inputs__() -> dict:
         #         kwargs[input_name] = input_config.get("default", None)
         #         if kwargs[input_name] is None:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
+    # Backward compat: if target is not set but repo is, use repo as target (deprecated)
+    if not kwargs.get("target") and kwargs.get("repo"):
+        actions_toolkit.warning("Input 'repo' is deprecated. Please use 'target' instead.")
+        kwargs["target"] = kwargs["repo"]
+    # Fall back to "self" if neither target nor repo was provided
+    if not kwargs.get("target"):
+        kwargs["target"] = "self"
     kwargs["owner"] = (
         kwargs["target"].split("/")[0]
-        if kwargs["target"] != "self"
+        if kwargs["target"] not in (None, "", "self")
         else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
     )
     # scope is resolved fully in validate_inputs; nothing to pre-compute here
