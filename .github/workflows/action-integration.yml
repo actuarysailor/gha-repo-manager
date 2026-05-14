@@ -48,7 +48,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: self
+          - repo: self
             action: check
             settings_file: '[".github/settings.yml"]'
             fail_on_diff: false
