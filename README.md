@@ -157,6 +157,7 @@ Grant only the permissions you need for the features you use:
 | `settings_file` | <p>What yaml file to use as your settings. This is local to runner running this action.</p> | `false` | `.github/settings.yml` |
 | `target` | <p>What to perform this action on. Use 'owner/repo' for a repository, an org login for org scope, or an enterprise slug for enterprise scope. Default is 'self' (the repo this action is running in).</p> | `false` | `self` |
 | `scope` | <p>Explicit scope of the target: 'repo', 'org', or 'enterprise'. Required when target does not contain '/' and is not 'self'.</p> | `false` | `""` |
+| `repo` | <p>DEPRECATED: Use 'target' instead. Kept for backward compatibility. If 'target' is not set, the value of 'repo' will be used.</p> | `false` | `""` |
 | `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `""` |
 | `token` | <p>What github token to use with this action (one of token or app_id is required).</p> | `false` | `""` |
 | `app_id` | <p>What github app id to use with this action (one of token or app_id is required).</p> | `false` | `""` |
