@@ -263,9 +263,7 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
     actionVerb = ACTION_TAKEN.get(key, key).lower()
     header_label = header.capitalize() if header is not None else key.capitalize()
     if isinstance(value, list):
-        return (
-            f"\n{__section_handler__(actionVerb, value, hdrDepth, f'{actionVerb.capitalize()} {header_label}')}"
-        )
+        return f"\n{__section_handler__(actionVerb, value, hdrDepth, f'{actionVerb.capitalize()} {header_label}')}"
     elif isinstance(value, dict):
         key = MISSING_SUB_KEY[header] if header in MISSING_SUB_KEY else key
         headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}: {actionVerb.capitalize()}"
