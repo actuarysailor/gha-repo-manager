@@ -261,12 +261,13 @@ def __list_handler__(value: dict | list) -> str:
 
 def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
     actionVerb = ACTION_TAKEN.get(key, key).lower()
+    header_label = header.capitalize() if header is not None else key.capitalize()
     if isinstance(value, list):
         return (
-            f"\n{__section_handler__(actionVerb, value, hdrDepth, f'{actionVerb.capitalize()} {header.capitalize()}')}"
+            f"\n{__section_handler__(actionVerb, value, hdrDepth, f'{actionVerb.capitalize()} {header_label}')}"
         )
     elif isinstance(value, dict):
-        key = MISSING_SUB_KEY[header]
+        key = MISSING_SUB_KEY[header] if header in MISSING_SUB_KEY else key
         headerSyntax = f"{SUBKEY_HEADER_SYNTAX.get(key, key.capitalize() + ' <key>')}: {actionVerb.capitalize()}"
         return "\n".join(
             [__section_handler__(key, v, f"{hdrDepth}", headerSyntax.replace("<key>", k)) for k, v in value.items()]
