@@ -1,5 +1,16 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [3.0.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.3.1...v3.0.0) (2026-05-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Expand scope to handle org and enterprise configurations ([#181](https://github.com/actuarysailor/gha-repo-manager/issues/181))
+
+### Features
+
+* Expand scope to handle org and enterprise configurations ([#181](https://github.com/actuarysailor/gha-repo-manager/issues/181)) ([98fb9ea](https://github.com/actuarysailor/gha-repo-manager/commit/98fb9ea3cb67392c08ded2554fbf9652c8817e1e))
+
 ## [2.3.1](https://github.com/actuarysailor/gha-repo-manager/compare/v2.3.0...v2.3.1) (2026-05-13)
 
 
