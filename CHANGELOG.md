@@ -1,5 +1,12 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [3.0.1](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.0...v3.0.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* Rule set and label application ([#188](https://github.com/actuarysailor/gha-repo-manager/issues/188)) ([e56f6aa](https://github.com/actuarysailor/gha-repo-manager/commit/e56f6aa254bdd0d4af930c817790bd357e6d8324))
+
 ## [3.0.0](https://github.com/actuarysailor/gha-repo-manager/compare/v2.3.1...v3.0.0) (2026-05-18)
 
 
