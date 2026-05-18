@@ -1,3 +1,4 @@
+import re as _re
 from typing import Any
 
 from actions_toolkit import core as actions_toolkit
@@ -41,6 +42,11 @@ def _ruleset_to_api_payload(ruleset: Ruleset) -> dict[str, Any]:
                 "include": ruleset.conditions.ref_name.include,
                 "exclude": ruleset.conditions.ref_name.exclude,
             }
+        if ruleset.conditions.repository_name is not None:
+            payload["conditions"]["repository_name"] = {
+                "include": ruleset.conditions.repository_name.include,
+                "exclude": ruleset.conditions.repository_name.exclude,
+            }
     if ruleset.rules is not None:
         payload["rules"] = [
             {"type": rule.type, **({"parameters": rule.parameters} if rule.parameters else {})}
@@ -58,29 +64,102 @@ def _strip_api_fields(obj: Any) -> Any:
     return obj
 
 
-def _normalise_rules(rules: list[dict] | None) -> list[dict]:
-    """Sort rules by type for stable comparison."""
-    if rules is None:
+def _normalize_ref_pattern(pattern: str) -> str:
+    """GitHub normalises 'refs/heads/foo' → 'refs/heads/**/foo' on write.
+    Treat both forms as equivalent so we don't re-diff what we just applied."""
+    return _re.sub(r"^refs/heads/(?!\*\*/)(.+)$", r"refs/heads/**/\1", pattern)
+
+
+def _normalize_ref_condition(cond: dict | None) -> dict | None:
+    """Normalise include/exclude lists in a ref_name or repository_name condition."""
+    if cond is None:
+        return None
+    return {
+        "include": sorted(_normalize_ref_pattern(p) for p in cond.get("include", [])),
+        "exclude": sorted(_normalize_ref_pattern(p) for p in cond.get("exclude", [])),
+    }
+
+
+def _normalize_actor(actor: dict) -> dict:
+    """GitHub always returns actor_id=null for OrganizationAdmin regardless of what we send."""
+    actor = dict(actor)
+    if actor.get("actor_type") == "OrganizationAdmin":
+        actor["actor_id"] = None
+    return actor
+
+
+def _normalize_actors(actors: list[dict] | None) -> list[dict]:
+    if not actors:
         return []
-    return sorted(_strip_api_fields(rules), key=lambda r: r.get("type", ""))
+    return sorted(
+        [_normalize_actor(a) for a in actors],
+        key=lambda a: (a.get("actor_type", ""), a.get("actor_id") or 0, a.get("bypass_mode", "")),
+    )
+
+
+def _rule_satisfied(config_rule: dict, actual_rules: list[dict]) -> bool:
+    """Return True if config_rule is satisfied by any rule in actual_rules.
+    Only config-specified parameters are compared; GitHub may add extras
+    (e.g. required_reviewers: []) that we should not flag as a diff."""
+    for actual in actual_rules:
+        if actual.get("type") != config_rule.get("type"):
+            continue
+        config_params = config_rule.get("parameters", {})
+        actual_params = actual.get("parameters", {})
+        if all(actual_params.get(k) == v for k, v in config_params.items()):
+            return True
+    return False
 
 
 def _diff_ruleset(expected: Ruleset, actual: dict[str, Any]) -> dict[str, Any]:
-    """Return a dict of field-level differences between expected config and the API response."""
+    """Return a dict of field-level differences between expected config and the API response.
+
+    Comparison rules that avoid false-positive diffs caused by GitHub normalisation:
+    - bypass_actors: OrganizationAdmin actor_id is always null in API responses.
+    - conditions: only compare keys present in the config; GitHub auto-adds
+      ``repository_name: {include: ['~ALL']}`` to org-level rulesets.
+    - rules: treat GitHub's rule list as a superset; GitHub may auto-add
+      ``code_quality`` and ``copilot_code_review`` rules.  Only flag if a
+      config rule is missing or has wrong parameters.  Per-rule parameters
+      are also compared as a subset (GitHub adds ``required_reviewers: []").
+    """
     diffs: dict[str, Any] = {}
     expected_payload = _ruleset_to_api_payload(expected)
     actual_clean = _strip_api_fields(actual)
 
     for key, expected_val in expected_payload.items():
         actual_val = actual_clean.get(key)
-        # Normalise rule lists so order doesn't matter
-        if key == "rules":
-            expected_norm = _normalise_rules(expected_val)
-            actual_norm = _normalise_rules(actual_val)
-            if expected_norm != actual_norm:
-                diffs[key] = {"expected": expected_norm, "found": actual_norm}
+
+        if key == "bypass_actors":
+            exp_norm = _normalize_actors(expected_val)
+            act_norm = _normalize_actors(actual_val)
+            if exp_norm != act_norm:
+                diffs[key] = {"expected": exp_norm, "found": act_norm}
+
+        elif key == "conditions":
+            # Only compare condition keys the config specifies.
+            # GitHub auto-adds repository_name and potentially others.
+            actual_cond = actual_val or {}
+            cond_diffs: dict[str, Any] = {}
+            for cond_key, exp_cond_val in (expected_val or {}).items():
+                act_cond_val = actual_cond.get(cond_key)
+                if _normalize_ref_condition(exp_cond_val) != _normalize_ref_condition(act_cond_val):
+                    cond_diffs[cond_key] = {"expected": exp_cond_val, "found": act_cond_val}
+            if cond_diffs:
+                diffs[key] = {"expected": expected_val, "found": actual_val}
+
+        elif key == "rules":
+            # Every config rule must be present and satisfied in GitHub's rules.
+            # GitHub may add extra rules (code_quality, copilot_code_review) — ignore them.
+            actual_rules_clean = _strip_api_fields(actual_val or [])
+            expected_rules_clean = _strip_api_fields(expected_val or [])
+            unsatisfied = [r for r in expected_rules_clean if not _rule_satisfied(r, actual_rules_clean)]
+            if unsatisfied:
+                diffs[key] = {"expected": expected_rules_clean, "found": actual_rules_clean}
+
         elif expected_val != actual_val:
             diffs[key] = {"expected": expected_val, "found": actual_val}
+
     return diffs
 
 

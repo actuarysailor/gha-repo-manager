@@ -10,6 +10,17 @@ from repo_manager.gh.rulesets import (
 )
 
 
+def _org_ruleset_payload(rs: Ruleset) -> dict:
+    """Build an org-ruleset payload, injecting repository_name condition if absent.
+    GitHub's org ruleset API requires repository_name in conditions."""
+    payload = _ruleset_to_api_payload(rs)
+    if "conditions" not in payload:
+        payload["conditions"] = {}
+    if "repository_name" not in payload["conditions"]:
+        payload["conditions"]["repository_name"] = {"include": ["~ALL"], "exclude": []}
+    return payload
+
+
 def check_org_rulesets(org: Organization, config_rulesets: list[Ruleset]) -> tuple[bool, dict[str, Any] | None]:
     """Check an org's rulesets against the expected configuration."""
     try:
@@ -85,7 +96,7 @@ def update_org_rulesets(
 
     for name in diffs.get("missing", []):
         rs = config_by_name[name]
-        payload = _ruleset_to_api_payload(rs)
+        payload = _org_ruleset_payload(rs)
         try:
             org._requester.requestJsonAndCheck("POST", f"{org.url}/rulesets", input=payload)
             actions_toolkit.info(f"Created org ruleset '{name}'")
@@ -106,7 +117,7 @@ def update_org_rulesets(
     for name, ruleset_diff in diffs.get("diff", {}).items():
         rs = config_by_name[name]
         rid = ruleset_diff["_id"]
-        payload = _ruleset_to_api_payload(rs)
+        payload = _org_ruleset_payload(rs)
         try:
             org._requester.requestJsonAndCheck("PUT", f"{org.url}/rulesets/{rid}", input=payload)
             actions_toolkit.info(f"Updated org ruleset '{name}'")

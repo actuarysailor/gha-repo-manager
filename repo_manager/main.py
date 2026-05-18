@@ -278,7 +278,6 @@ def main():  # noqa: C901
             check_org_settings: ("org_settings", config.org_settings),
             check_teams: ("teams", config.teams),
             check_org_rulesets: ("org_rulesets", config.org_rulesets),
-            check_repo_labels: ("org_labels", config.org_labels),
             check_org_secrets: ("org_secrets", config.org_secrets),
             check_org_variables: ("org_variables", config.org_variables),
         }.items():
@@ -296,6 +295,13 @@ def main():  # noqa: C901
                         permission_warnings.append(warning_msg)
                     else:
                         raise
+
+        if config.org_labels is not None:
+            actions_toolkit.set_failed(
+                "org_labels is not supported: GitHub does not provide an org-level labels API.\n"
+                "Labels must be managed per repository using scope=repo.\n"
+                "Remove 'org_labels' from your settings file."
+            )
 
     # ------------------------------------------------------------------ #
     # Enterprise-scope checks (only when scope='enterprise')
@@ -402,7 +408,6 @@ def main():  # noqa: C901
                 update_org_settings: ("org_settings", config.org_settings, diffs.get("org_settings", None)),
                 update_teams: ("teams", config.teams, diffs.get("teams", None)),
                 update_org_rulesets: ("org_rulesets", config.org_rulesets, diffs.get("org_rulesets", None)),
-                update_labels: ("org_labels", config.org_labels, diffs.get("org_labels", None)),
                 update_org_secrets: ("org_secrets", config.org_secrets, diffs.get("org_secrets", None)),
                 update_org_variables: ("org_variables", config.org_variables, diffs.get("org_variables", None)),
             }.items():
