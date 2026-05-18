@@ -278,6 +278,7 @@ def main():  # noqa: C901
             check_org_settings: ("org_settings", config.org_settings),
             check_teams: ("teams", config.teams),
             check_org_rulesets: ("org_rulesets", config.org_rulesets),
+            check_repo_labels: ("org_labels", config.org_labels),
             check_org_secrets: ("org_secrets", config.org_secrets),
             check_org_variables: ("org_variables", config.org_variables),
         }.items():
@@ -401,6 +402,7 @@ def main():  # noqa: C901
                 update_org_settings: ("org_settings", config.org_settings, diffs.get("org_settings", None)),
                 update_teams: ("teams", config.teams, diffs.get("teams", None)),
                 update_org_rulesets: ("org_rulesets", config.org_rulesets, diffs.get("org_rulesets", None)),
+                update_labels: ("org_labels", config.org_labels, diffs.get("org_labels", None)),
                 update_org_secrets: ("org_secrets", config.org_secrets, diffs.get("org_secrets", None)),
                 update_org_variables: ("org_variables", config.org_variables, diffs.get("org_variables", None)),
             }.items():

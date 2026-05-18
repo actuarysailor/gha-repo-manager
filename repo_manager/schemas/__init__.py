@@ -31,6 +31,7 @@ class RepoManagerConfig(BaseModel):
     org_settings: OrgSettings | None = Field(None, description="Organization-level settings to manage")
     teams: list[Team] | None = Field(None, description="Teams in the org to manage")
     org_rulesets: list[Ruleset] | None = Field(None, description="Org-level branch/tag rulesets to manage")
+    org_labels: list[Label] | None = Field(None, description="Org-level labels to manage")
     org_secrets: list[OrgSecret] | None = Field(None, description="Org-level Actions/Dependabot secrets to manage")
     org_variables: list[OrgSecret] | None = Field(None, description="Org-level Actions variables to manage")
 

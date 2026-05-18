@@ -1,13 +1,52 @@
-from typing import Any
+from typing import Any, Union
 
 from actions_toolkit import core as actions_toolkit
+from github.Organization import Organization
 from github.Repository import Repository
 
 from repo_manager.schemas.label import Label
 
+Labelable = Union[Repository, Organization]
+
+
+def _resolve_target(target: Labelable) -> Repository:
+    """Resolve an Organization to its .github repo, since GitHub has no org-level labels API.
+    Creates the .github repo if it does not exist."""
+    if isinstance(target, Organization):
+        try:
+            return target.get_repo(".github")
+        except Exception:
+            actions_toolkit.info(f"Creating .github repository for org '{target.login}'")
+            return target.create_repo(
+                ".github",
+                description="Organization-wide default community health files and settings",
+                private=True,
+                auto_init=True,
+            )
+    return target
+
+
+def _get_all_labels(target: Labelable) -> dict[str, Any]:
+    """Fetch all labels from a repo (or org's .github repo), returning a name→label dict."""
+    repo = _resolve_target(target)
+    return {label.name: label for label in repo.get_labels()}
+
+
+def _get_label(target: Labelable, name: str):
+    """Get a single label by name."""
+    repo = _resolve_target(target)
+    return repo.get_label(name)
+
+
+def _create_label(target: Labelable, name: str, color: str, description: str = "") -> None:
+    """Create a label on a repo or org's .github repo."""
+    repo = _resolve_target(target)
+    repo.create_label(name, color, description)
+
+
 
 def check_repo_labels(
-    repo: Repository, config_labels: list[Label]
+    repo: Labelable, config_labels: list[Label]
 ) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
     """Checks a repo's labels vs our expected settings
 
@@ -16,7 +55,7 @@ def check_repo_labels(
         secrets (List[Secret]): [description]
 
     """
-    repo_labels = {label.name: label for label in repo.get_labels()}
+    repo_labels = _get_all_labels(repo)
     config_label_dict = {label.name: label for label in config_labels}
     config_label_dict.update(
         {label.expected_name: label for label in config_labels if label.expected_name != label.name}
@@ -99,7 +138,7 @@ def check_repo_labels(
 
 
 def update_labels(
-    repo: Repository, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
+    repo: Labelable, labels: list[Label], diffs: tuple[dict[str, list[str] | dict[str, Any]]]
 ) -> tuple[set[str], set[str]]:
     """Updates a repo's labels to match the expected settings
 
@@ -118,14 +157,15 @@ def update_labels(
         for label_name in label_names:
             if issue_type == "extra":
                 try:
-                    this_label = repo.get_label(label_name)
+                    this_label = _get_label(repo, label_name)
                     this_label.delete()
                     actions_toolkit.info(f"Deleted {label_name}")
                 except Exception as exc:  # this should be tighter
                     errors.append({"type": "label-delete", "name": label_name, "error": f"{exc}"})
             elif issue_type == "missing":
                 try:
-                    repo.create_label(
+                    _create_label(
+                        repo,
                         label_dict[label_name].expected_name,
                         "ffffff"
                         if label_dict[label_name].color_no_hash is None
@@ -145,7 +185,7 @@ def update_labels(
                     )
             elif issue_type == "diff":
                 try:
-                    this_label = repo.get_label(label_name)
+                    this_label = _get_label(repo, label_name)
                     this_label.edit(
                         label_dict[label_name].expected_name,
                         this_label.color
