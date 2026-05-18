@@ -112,7 +112,7 @@ def check_teams(org: Organization, config_teams: list[Team]) -> tuple[bool, dict
         if match.privacy != cfg.privacy.value:
             diffs["privacy"] = {"expected": cfg.privacy.value, "found": match.privacy}
         if cfg.parent_team_slug is not None:
-            actual_parent = match.parent.get("slug") if match.parent else None
+            actual_parent = match.parent.slug if match.parent else None
             if actual_parent != cfg.parent_team_slug:
                 diffs["parent_team_slug"] = {"expected": cfg.parent_team_slug, "found": actual_parent}
         if cfg.members is not None:
