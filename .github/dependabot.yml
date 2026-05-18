@@ -22,6 +22,11 @@ updates:
     labels:
       - '📦 Dependencies'
       - '🐳 Docker'
+    groups:
+      docker-dependencies:
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]

@@ -47,10 +47,6 @@ jobs:
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=${{ inputs.version }}
-            # minimal (short sha)
-            type=sha,prefix=
-            # full length sha
-            type=sha,format=long,prefix=
 
       - name: Build and push
         id: docker_build

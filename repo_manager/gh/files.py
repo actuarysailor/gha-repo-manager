@@ -431,7 +431,7 @@ def update_files(
             origin = repo_dir.remote()
             pushInfo = origin.push(repo_dir.active_branch.name)
 
-            push_errors = [info for info in pushInfo if info.ERROR]
+            push_errors = [info for info in pushInfo if info.flags & info.ERROR]
             if push_errors:
                 for info in push_errors:
                     errors.append(

@@ -19,10 +19,22 @@ from repo_manager.gh.settings import check_repo_settings, update_settings
 from repo_manager.gh.labels import check_repo_labels, update_labels
 from repo_manager.gh.collaborators import check_collaborators, update_collaborators
 from repo_manager.gh.branch_protections import check_repo_branch_protections, update_branch_protections
+from repo_manager.gh.rulesets import check_repo_rulesets, update_rulesets
 from repo_manager.gh.secrets import check_repo_secrets, update_secrets
 from repo_manager.gh.variables import check_variables, update_variables
 from repo_manager.gh.environments import check_repo_environments, update_environments
 from repo_manager.gh.files import check_files, update_files
+from repo_manager.gh.org_settings import check_org_settings, update_org_settings
+from repo_manager.gh.teams import check_teams, update_teams
+from repo_manager.gh.org_rulesets import check_org_rulesets, update_org_rulesets
+from repo_manager.gh.org_secrets import (
+    check_org_secrets,
+    update_org_secrets,
+    check_org_variables,
+    update_org_variables,
+)
+from repo_manager.gh.enterprise_settings import check_enterprise_settings, update_enterprise_settings
+from repo_manager.gh.enterprise_rulesets import check_enterprise_rulesets, update_enterprise_rulesets
 
 # Maps each settings category to its required GitHub App permission, PAT scope,
 # and a representative API endpoint to probe when a 403 is encountered.
@@ -50,6 +62,12 @@ REQUIRED_PERMISSIONS = {
         "pat_scope": "repo",
         "description": "Branch protection rules",
         "probe_path": "/branches",
+    },
+    "rulesets": {
+        "app_permission": "administration: write",
+        "pat_scope": "repo",
+        "description": "Branch/tag rulesets",
+        "probe_path": "/rulesets",
     },
     "secrets": {
         "app_permission": "secrets: write",
@@ -80,6 +98,48 @@ REQUIRED_PERMISSIONS = {
         "pat_scope": "repo",
         "description": "File copy/move/delete operations and pull-request creation",
         "probe_path": "/contents",
+    },
+    "org_settings": {
+        "app_permission": "members: write",
+        "pat_scope": "admin:org",
+        "description": "Organization-level settings (description, permissions, etc.)",
+        "probe_path": None,
+    },
+    "teams": {
+        "app_permission": "members: write",
+        "pat_scope": "admin:org",
+        "description": "Organization teams",
+        "probe_path": None,
+    },
+    "org_rulesets": {
+        "app_permission": "administration: write",
+        "pat_scope": "admin:org",
+        "description": "Organization-level branch/tag rulesets",
+        "probe_path": None,
+    },
+    "org_secrets": {
+        "app_permission": "secrets: write",
+        "pat_scope": "admin:org",
+        "description": "Organization-level Actions/Dependabot secrets",
+        "probe_path": None,
+    },
+    "org_variables": {
+        "app_permission": "variables: write",
+        "pat_scope": "admin:org",
+        "description": "Organization-level Actions variables",
+        "probe_path": None,
+    },
+    "enterprise_settings": {
+        "app_permission": "enterprise_organization: write (GitHub App) / admin:enterprise (PAT)",
+        "pat_scope": "admin:enterprise",
+        "description": "Enterprise-level Actions permissions policies",
+        "probe_path": None,
+    },
+    "enterprise_rulesets": {
+        "app_permission": "enterprise_administration: write",
+        "pat_scope": "admin:enterprise",
+        "description": "Enterprise-level rulesets",
+        "probe_path": None,
     },
 }
 
@@ -171,19 +231,24 @@ def main():  # noqa: C901
     check_result = True
     diffs = {}
     permission_warnings = []
-    for check, to_check in {
-        check_repo_settings: ("settings", config.settings),
-        check_collaborators: ("collaborators", config.collaborators),
-        check_repo_labels: ("labels", config.labels),
-        check_repo_branch_protections: (
-            "branch_protections",
-            config.branch_protections,
-        ),
-        check_repo_secrets: ("secrets", config.secrets),
-        check_variables: ("variables", config.variables),
-        check_repo_environments: ("environments", config.environments),
-        check_files: ("files", config.batch_file_operations),
-    }.items():
+    for check, to_check in (
+        {}
+        if inputs.get("scope") != "repo"
+        else {
+            check_repo_settings: ("settings", config.settings),
+            check_collaborators: ("collaborators", config.collaborators),
+            check_repo_labels: ("labels", config.labels),
+            check_repo_branch_protections: (
+                "branch_protections",
+                config.branch_protections,
+            ),
+            check_repo_rulesets: ("rulesets", config.rulesets),
+            check_repo_secrets: ("secrets", config.secrets),
+            check_variables: ("variables", config.variables),
+            check_repo_environments: ("environments", config.environments),
+            check_files: ("files", config.batch_file_operations),
+        }
+    ).items():
         check_name, to_check = to_check
         if to_check is not None:
             try:
@@ -203,6 +268,58 @@ def main():  # noqa: C901
                         _debug_probe_endpoint(check_name, _repo.full_name, _token, _api_url)
                 else:
                     raise
+
+    # ------------------------------------------------------------------ #
+    # Org-scope checks (only when scope='org')
+    # ------------------------------------------------------------------ #
+    org_object = inputs.get("org_object")
+    if inputs.get("scope") == "org" and org_object is not None:
+        for check, to_check in {
+            check_org_settings: ("org_settings", config.org_settings),
+            check_teams: ("teams", config.teams),
+            check_org_rulesets: ("org_rulesets", config.org_rulesets),
+            check_repo_labels: ("org_labels", config.org_labels),
+            check_org_secrets: ("org_secrets", config.org_secrets),
+            check_org_variables: ("org_variables", config.org_variables),
+        }.items():
+            check_name, to_check_val = to_check
+            if to_check_val is not None:
+                try:
+                    this_check, this_diffs = check(org_object, to_check_val)
+                    check_result &= this_check
+                    if this_diffs is not None:
+                        diffs[check_name] = this_diffs
+                except GithubException as exc:
+                    if exc.status in (401, 403):
+                        warning_msg = _format_permission_warning(check_name, exc)
+                        actions_toolkit.warning(warning_msg)
+                        permission_warnings.append(warning_msg)
+                    else:
+                        raise
+
+    # ------------------------------------------------------------------ #
+    # Enterprise-scope checks (only when scope='enterprise')
+    # ------------------------------------------------------------------ #
+    if inputs.get("scope") == "enterprise":
+        ent_requester = inputs.get("enterprise_requester")
+        ent_slug = inputs.get("enterprise_slug")
+        for check_fn, check_name, check_val in [
+            (check_enterprise_settings, "enterprise_settings", config.enterprise_settings),
+            (check_enterprise_rulesets, "enterprise_rulesets", config.enterprise_rulesets),
+        ]:
+            if check_val is not None:
+                try:
+                    this_check, this_diffs = check_fn(ent_requester, ent_slug, check_val)
+                    check_result &= this_check
+                    if this_diffs is not None:
+                        diffs[check_name] = this_diffs
+                except GithubException as exc:
+                    if exc.status in (401, 403):
+                        warning_msg = _format_permission_warning(check_name, exc)
+                        actions_toolkit.warning(warning_msg)
+                        permission_warnings.append(warning_msg)
+                    else:
+                        raise
 
     actions_toolkit.debug(json_diff := json.dumps(diffs))
     actions_toolkit.set_output("diff", json_diff)
@@ -233,20 +350,29 @@ def main():  # noqa: C901
     if inputs["action"] == "apply":
         errors = []
         messages = {"open": "Changes applied"}
-        for update, to_update in {
-            update_settings: ("settings", config.settings, diffs.get("settings", None)),
-            update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
-            update_labels: ("labels", config.labels, diffs.get("labels", None)),
-            update_branch_protections: (
-                "branch_protections",
-                config.branch_protections,
-                diffs.get("branch_protections", None),
-            ),
-            update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
-            update_variables: ("variables", config.variables, diffs.get("variables", None)),
-            update_environments: ("environments", config.environments, diffs.get("environments", None)),
-            update_files: ("files", config.batch_file_operations, diffs.get("files", None)),
-        }.items():
+        for update, to_update in (
+            {}
+            if inputs.get("scope") != "repo"
+            else {
+                update_settings: ("settings", config.settings, diffs.get("settings", None)),
+                update_collaborators: ("collaborators", config.collaborators, diffs.get("collaborators", None)),
+                update_labels: ("labels", config.labels, diffs.get("labels", None)),
+                update_branch_protections: (
+                    "branch_protections",
+                    config.branch_protections,
+                    diffs.get("branch_protections", None),
+                ),
+                update_rulesets: (
+                    "rulesets",
+                    config.rulesets,
+                    diffs.get("rulesets", None),
+                ),
+                update_secrets: ("secrets", config.secrets, diffs.get("secrets", None)),
+                update_variables: ("variables", config.variables, diffs.get("variables", None)),
+                update_environments: ("environments", config.environments, diffs.get("environments", None)),
+                update_files: ("files", config.batch_file_operations, diffs.get("files", None)),
+            }
+        ).items():
             update_name, to_update, categorical_diffs = to_update
             if categorical_diffs is not None:
                 try:
@@ -266,6 +392,76 @@ def main():  # noqa: C901
                         permission_warnings.append(warning_msg)
                     else:
                         errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
+
+        # ------------------------------------------------------------------ #
+        # Org-scope apply (only when scope='org')
+        # ------------------------------------------------------------------ #
+        org_object = inputs.get("org_object")
+        if inputs.get("scope") == "org" and org_object is not None:
+            for update, to_update in {
+                update_org_settings: ("org_settings", config.org_settings, diffs.get("org_settings", None)),
+                update_teams: ("teams", config.teams, diffs.get("teams", None)),
+                update_org_rulesets: ("org_rulesets", config.org_rulesets, diffs.get("org_rulesets", None)),
+                update_labels: ("org_labels", config.org_labels, diffs.get("org_labels", None)),
+                update_org_secrets: ("org_secrets", config.org_secrets, diffs.get("org_secrets", None)),
+                update_org_variables: ("org_variables", config.org_variables, diffs.get("org_variables", None)),
+            }.items():
+                update_name, to_update_val, categorical_diffs = to_update
+                if categorical_diffs is not None:
+                    try:
+                        application_errors, application_summary = update(org_object, to_update_val, categorical_diffs)
+                        if len(application_errors) > 0:
+                            errors.append(application_errors)
+                        if len(application_summary) > 0:
+                            messages[update_name] = application_summary
+                        else:
+                            actions_toolkit.info(f"Synced {update_name}")
+                    except Exception as exc:
+                        if _is_permission_error(exc):
+                            warning_msg = _format_permission_warning(update_name, exc)
+                            actions_toolkit.warning(warning_msg)
+                            permission_warnings.append(warning_msg)
+                        else:
+                            errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
+
+        # ------------------------------------------------------------------ #
+        # Enterprise-scope apply (only when scope='enterprise')
+        # ------------------------------------------------------------------ #
+        if inputs.get("scope") == "enterprise":
+            ent_requester = inputs.get("enterprise_requester")
+            ent_slug = inputs.get("enterprise_slug")
+            for update_fn, update_name, update_val, categorical_diffs in [
+                (
+                    update_enterprise_settings,
+                    "enterprise_settings",
+                    config.enterprise_settings,
+                    diffs.get("enterprise_settings"),
+                ),
+                (
+                    update_enterprise_rulesets,
+                    "enterprise_rulesets",
+                    config.enterprise_rulesets,
+                    diffs.get("enterprise_rulesets"),
+                ),
+            ]:
+                if categorical_diffs is not None:
+                    try:
+                        application_errors, application_summary = update_fn(
+                            ent_requester, ent_slug, update_val, categorical_diffs
+                        )
+                        if application_errors:
+                            errors.append(application_errors)
+                        if application_summary:
+                            messages[update_name] = application_summary
+                        else:
+                            actions_toolkit.info(f"Synced {update_name}")
+                    except Exception as exc:
+                        if _is_permission_error(exc):
+                            warning_msg = _format_permission_warning(update_name, exc)
+                            actions_toolkit.warning(warning_msg)
+                            permission_warnings.append(warning_msg)
+                        else:
+                            errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
 
         perm_section = _permission_warnings_section()
         if perm_section and len(messages) > 1:

@@ -515,6 +515,7 @@ FodyWeavers.xsd
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts
+!.github/scripts/
 pyvenv.cfg
 .venv
 pip-selfcheck.json
@@ -696,6 +697,9 @@ celerybeat.pid
 
 ## SageMath parsed files
 *.sage.py
+
+## Local scratch/testing files
+local/
 
 ## Environments
 .env

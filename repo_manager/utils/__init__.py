@@ -50,9 +50,19 @@ def __get_inputs__() -> dict:
         #         kwargs[input_name] = input_config.get("default", None)
         #         if kwargs[input_name] is None:
         #             actions_toolkit.set_failed(f"Error getting inputs. {input_name} is missing a default")
+    # Backward compat: if target is not set but repo is, use repo as target (deprecated)
+    if not kwargs.get("target") and kwargs.get("repo"):
+        actions_toolkit.warning("Input 'repo' is deprecated. Please use 'target' instead.")
+        kwargs["target"] = kwargs["repo"]
+    # Fall back to "self" if neither target nor repo was provided
+    if not kwargs.get("target"):
+        kwargs["target"] = "self"
     kwargs["owner"] = (
-        kwargs["repo"].split("/")[0] if kwargs["repo"] != "self" else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
+        kwargs["target"].split("/")[0]
+        if kwargs["target"] not in (None, "", "self")
+        else os.environ.get("GITHUB_REPOSITORY_OWNER", None)
     )
+    # scope is resolved fully in validate_inputs; nothing to pre-compute here
     return kwargs
 
 
@@ -120,9 +130,9 @@ def get_repo() -> Repository:
     global client
     client = get_client() if "client" not in globals() else client
     try:
-        repo = client.get_repo(kwargs["repo"])
+        repo = client.get_repo(kwargs["target"])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retrieving {kwargs['repo']} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {kwargs['target']} from Github. {exc}")
     return repo
 
 
@@ -132,10 +142,20 @@ def get_organization() -> Organization:
     global client
     client = get_client() if "client" not in globals() else client
     try:
-        org = client.get_organization(kwargs["repo"].split("/")[0])
+        org = client.get_organization(kwargs["target"].split("/")[0])
     except Exception as exc:  # this should be tighter
-        actions_toolkit.set_failed(f"Error while retrieving {kwargs['repo'].split('/')[0]} from Github. {exc}")
+        actions_toolkit.set_failed(f"Error while retrieving {kwargs['target'].split('/')[0]} from Github. {exc}")
     return org
+
+
+def get_org_by_name(org_login: str) -> Organization:
+    """Fetch a GitHub Organization object by its login name."""
+    global client
+    client = get_client() if "client" not in globals() else client
+    try:
+        return client.get_organization(org_login)
+    except Exception as exc:
+        actions_toolkit.set_failed(f"Error while retrieving org '{org_login}' from Github. {exc}")
 
 
 def get_permissions() -> set[str]:
@@ -176,19 +196,32 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
             f"Error while loading RepoManager Config. {parsed_inputs['settings_file']} does not exist"
         )
 
-    if parsed_inputs["repo"] != "self":
-        if len(parsed_inputs["repo"].split("/")) != 2:
+    scope = parsed_inputs.get("scope")
+    target = parsed_inputs["target"]
+
+    # Resolve 'self' for repo scope
+    if target == "self":
+        if scope not in (None, "repo"):
+            actions_toolkit.set_failed(f"Error: target='self' is only valid for scope='repo', got scope='{scope}'")
+        target = os.environ.get("GITHUB_REPOSITORY", None)
+        if target is None:
             actions_toolkit.set_failed(
-                f"Error while loading RepoManager Config. {parsed_inputs['repo']} is not a valid github "
-                + "repo. Please be sure to enter in the style of 'owner/repo-name'."
+                "Error getting inputs. target is 'self' and GITHUB_REPOSITORY env var is not set."
             )
-    else:
-        parsed_inputs["repo"] = os.environ.get("GITHUB_REPOSITORY", None)
-        if parsed_inputs["repo"] is None:
+        parsed_inputs["target"] = target
+        parsed_inputs["scope"] = "repo"
+        scope = "repo"
+    elif scope is None:
+        if "/" in target:
+            scope = "repo"
+        else:
             actions_toolkit.set_failed(
-                "Error getting inputs. repo is 'self' and "
-                + "GITHUB_REPOSITORY env var is not set. Please set INPUT_REPO or GITHUB_REPOSITORY in the env"
+                f"Error: target='{target}' has no '/' — please set 'scope' explicitly to 'org' or 'enterprise'."
             )
+        parsed_inputs["scope"] = scope
+
+    if scope == "repo" and "/" not in target:
+        actions_toolkit.set_failed(f"Error: scope='repo' requires target in 'owner/repo' format, got '{target}'.")
 
     parsed_inputs["workspace_path"] = os.environ.get("RUNNER_WORKSPACE", None)
     if parsed_inputs["workspace_path"] is None:
@@ -207,7 +240,18 @@ def validate_inputs(parsed_inputs: dict[str, Any]) -> dict[str, Any]:
     actions_toolkit.debug(f"github_server_url: {parsed_inputs['github_server_url']}")
     actions_toolkit.debug(f"github_workspace: {parsed_inputs['workspace_path']}")
 
-    parsed_inputs["repo_object"] = get_repo()
+    if scope == "repo":
+        parsed_inputs["repo_object"] = get_repo()
+    elif scope == "org":
+        parsed_inputs["org_object"] = get_org_by_name(target)
+    elif scope == "enterprise":
+        # No first-class PyGitHub Enterprise object — store slug + requester
+        parsed_inputs["enterprise_slug"] = target
+        global client
+        client = get_client() if "client" not in globals() else client
+        parsed_inputs["enterprise_requester"] = client._Github__requester
+    else:
+        actions_toolkit.set_failed(f"Error: unknown scope '{scope}'. Must be 'repo', 'org', or 'enterprise'.")
 
     return parsed_inputs
 

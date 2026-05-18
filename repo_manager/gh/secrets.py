@@ -4,6 +4,7 @@ from actions_toolkit import core as actions_toolkit
 
 from github import GithubException
 from github.Auth import AppInstallationAuth
+from github.PublicKey import PublicKey
 from github.Repository import Repository
 
 from repo_manager.utils import get_permissions
@@ -38,7 +39,25 @@ def __get_repo_secret_names__(repo: Repository, path: str = "actions") -> set[st
     if path in ["actions", "dependabot"]:
         return {secret.name for secret in repo.get_secrets(path)}
     else:
-        return {secret.name for secret in repo.get_environment(path).get_secrets()}
+        # Environment secrets require /repositories/{id}/... URL path
+        env_name = path.replace("environments/", "") if path.startswith("environments/") else path
+        _, data = repo._requester.requestJsonAndCheck("GET", f"/repositories/{repo.id}/environments/{env_name}/secrets")
+        return {s["name"] for s in data.get("secrets", [])}
+
+
+def __create_environment_secret__(repo: Repository, env_name: str, secret_name: str, secret_value: str) -> None:
+    """Creates or updates an environment secret using the repository-ID-based URL required by GitHub API."""
+    # GitHub's environment secrets endpoint requires /repositories/{id}/... not /repos/{owner}/{repo}/...
+    base_url = f"/repositories/{repo.id}/environments/{env_name}"
+    # Fetch the environment public key
+    _, key_data = repo._requester.requestJsonAndCheck("GET", f"{base_url}/secrets/public-key")
+    public_key = PublicKey(repo._requester, {}, attributes=key_data, completed=True)
+    encrypted = public_key.encrypt(secret_value)
+    repo._requester.requestJsonAndCheck(
+        "PUT",
+        f"{base_url}/secrets/{secret_name}",
+        input={"key_id": public_key.key_id, "encrypted_value": encrypted},
+    )
 
 
 def check_repo_secrets(repo: Repository, secrets: list[Secret]) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
@@ -117,8 +136,9 @@ def update_secrets(
                             secret_name, secret_dict[secret_name].expected_value, secret_dict[secret_name].type
                         )
                     else:
-                        repo.get_environment(secret_dict[secret_name].type.replace("environments/", "")).create_secret(
-                            secret_name, secret_dict[secret_name].expected_value
+                        env_name = secret_dict[secret_name].type.replace("environments/", "")
+                        __create_environment_secret__(
+                            repo, env_name, secret_name, secret_dict[secret_name].expected_value
                         )
                     # create_secret(repo, secret.key, secret.expected_value, secret.type)
                     actions_toolkit.info(f"Set {secret_name} to expected value")
@@ -126,7 +146,11 @@ def update_secrets(
                     if secret_dict[secret_name].type in ["actions", "dependabot"]:
                         repo.delete_secret(secret_name, secret_dict[secret_name].type)
                     else:
-                        repo.get_environment(secret_dict[secret_name].type).delete_secret(secret_name)
+                        env_name = secret_dict[secret_name].type.replace("environments/", "")
+                        repo._requester.requestJsonAndCheck(
+                            "DELETE",
+                            f"/repositories/{repo.id}/environments/{env_name}/secrets/{secret_name}",
+                        )
                     # delete_secret(repo, secret.key, secret.type)
                     actions_toolkit.info(f"Deleted {secret_name}")
             except Exception as exc:  # this should be tighter

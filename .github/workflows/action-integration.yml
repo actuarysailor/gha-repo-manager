@@ -88,7 +88,7 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
           action: check
           fail_on_diff: ${{ matrix.fail_on_diff }}
@@ -103,7 +103,7 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
           action: apply
         env:
@@ -117,7 +117,7 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: apply
 
@@ -129,7 +129,7 @@ jobs:
           # token: ${{ secrets.THIS_PAT || github.token }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
-          repo: ${{ matrix.repo }}
+          target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[1] }}
           action: check
           fail_on_diff: true

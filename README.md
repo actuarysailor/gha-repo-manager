@@ -25,7 +25,8 @@ Manage all Github repo settings from a YAML file, enabling greater change contro
   - [Repository Settings](#repository-settings)
   - [Collaborators](#collaborators)
   - [Labels](#labels)
-  - [Branch Protections](#branch-protections)
+  - [Branch Protections (legacy)](#branch-protections-legacy)
+  - [Rulesets](#rulesets)
   - [Secrets](#secrets)
   - [Variables](#variables)
   - [Environments](#environments)
@@ -125,7 +126,8 @@ Grant only the permissions you need for the features you use:
 | `settings` | `administration: write` | `repo` | Repo settings, merge strategies, default branch |
 | `collaborators` | `members: write` (org repos)<br>`administration: write` (user repos) | `repo` | User and team access |
 | `labels` | `issues: write` | `repo` | Issue and PR labels |
-| `branch_protections` | `administration: write` | `repo` | Branch protection rules |
+| `branch_protections` | `administration: write` | `repo` | Legacy branch protection rules (deprecated — prefer `rulesets`) |
+| `rulesets` | `administration: write` | `repo` | Branch/tag rulesets (recommended replacement for `branch_protections`) |
 | `secrets` (Actions) | `secrets: write` | `repo` | Actions secrets |
 | `secrets` (Dependabot) | `dependabot_secrets: write` | `repo`, `admin:org` | Dependabot secrets |
 | `variables` | `variables: write` | `repo` | Actions variables |
@@ -153,7 +155,9 @@ Grant only the permissions you need for the features you use:
 | --- | --- | --- | --- |
 | `action` | <p>What action to take with this action. One of validate, check, or apply. Validate will validate your settings file, but not touch your repo. Check will check your repo with your settings file and output a report of any drift. Apply will apply the settings in your settings file to your repo</p> | `false` | `check` |
 | `settings_file` | <p>What yaml file to use as your settings. This is local to runner running this action.</p> | `false` | `.github/settings.yml` |
-| `repo` | <p>What repo to perform this action on. Default is self, as in the repo this action is running in</p> | `false` | `self` |
+| `target` | <p>What to perform this action on. Use 'owner/repo' for a repository, an org login for org scope, or an enterprise slug for enterprise scope. Default is 'self' (the repo this action is running in).</p> | `false` | `self` |
+| `scope` | <p>Explicit scope of the target: 'repo', 'org', or 'enterprise'. Required when target does not contain '/' and is not 'self'.</p> | `false` | `""` |
+| `repo` | <p>DEPRECATED: Use 'target' instead. Kept for backward compatibility. If 'target' is not set, the value of 'repo' will be used.</p> | `false` | `""` |
 | `github_server_url` | <p>Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB<em>SERVER</em>URL if left at default</p> | `false` | `""` |
 | `token` | <p>What github token to use with this action (one of token or app_id is required).</p> | `false` | `""` |
 | `app_id` | <p>What github app id to use with this action (one of token or app_id is required).</p> | `false` | `""` |
@@ -253,37 +257,87 @@ labels:
 
 ---
 
-### Branch Protections
+### Branch Protections (legacy)
+
+> ⚠️ **Deprecated.** GitHub now recommends [Repository Rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) over branch protection rules. Branch protection rules lack pattern-based targeting, bypass actor controls, and org-level inheritance. Use `rulesets` for new configurations. Set `exists: false` on any existing `branch_protections` entries to remove them after migrating.
 
 ```yaml
 branch_protections:
   - name: main
-    exists: true          # Set to false to remove branch protection
-    protection:
-      pr_options:
-        required_approving_review_count: 1   # 1–6
-        dismiss_stale_reviews: true
-        require_code_owner_reviews: true
-        # dismissal_restrictions:
-        #   users: []
-        #   teams: []
-      # required_status_checks:
-      #   strict: true
-      #   checks:
-      #     - lint
-      #     - test
-      # require_conversation_resolution: true
-      enforce_admins: true
-      require_linear_history: true
-      allow_force_pushes: false
-      allow_deletions: false
-      block_creations: true
-      restrictions:
-        users: []
-        teams: []
+    exists: false   # Removes the branch protection rule (migrate to rulesets instead)
 ```
 
 Branch protection can only be applied to branches that already exist in the repo.
+
+---
+
+### Rulesets
+
+Rulesets are the modern replacement for branch protection rules. They support pattern-based ref targeting, bypass actor lists, and a richer set of rules. Rulesets can also be defined at the org level (org-level support coming in a future release).
+
+```yaml
+rulesets:
+  - name: Protect main
+    target: branch          # branch | tag | push
+    enforcement: active     # active | disabled | evaluate
+
+    # Optional: who can bypass this ruleset
+    bypass_actors:
+      - actor_id: 1         # Team/app/role ID — find via the GitHub API
+        actor_type: Team    # Integration | OrganizationAdmin | RepositoryRole | Team | DeployKey
+        bypass_mode: pull_request   # always | pull_request
+
+    # Which refs the ruleset applies to
+    conditions:
+      ref_name:
+        include:
+          - ~DEFAULT_BRANCH   # Magic token for the default branch
+          # - refs/heads/main  # Or specify explicitly
+          # - ~ALL             # All branches
+        exclude: []
+
+    rules:
+      # ── Simple rules (no parameters) ──────────────────────────────────────
+      - type: deletion                  # Prevent branch deletion
+      - type: non_fast_forward          # Prevent force pushes
+      - type: required_signatures       # Require signed commits
+      - type: required_linear_history   # No merge commits
+
+      # ── Pull request reviews ───────────────────────────────────────────────
+      - type: pull_request
+        parameters:
+          required_approving_review_count: 1
+          dismiss_stale_reviews_on_push: true
+          require_code_owner_review: false
+          require_last_push_approval: false
+          required_review_thread_resolution: true
+
+      # ── Required status checks ────────────────────────────────────────────
+      - type: required_status_checks
+        parameters:
+          strict_required_status_checks_policy: true   # Require branch to be up to date
+          do_not_enforce_on_create: false
+          required_status_checks:
+            - context: lint
+            - context: test
+              integration_id: 12345   # Optional: pin to a specific app's check
+
+      # ── Pattern rules ─────────────────────────────────────────────────────
+      # operator: starts_with | ends_with | contains | regex
+      - type: branch_name_pattern
+        parameters:
+          operator: regex
+          pattern: '^(main|release/.+)$'
+          negate: true    # Blocks branches NOT matching the pattern
+
+      # ── File/path restrictions ─────────────────────────────────────────────
+      - type: file_path_restriction
+        parameters:
+          restricted_file_paths:
+            - .github/workflows
+
+    exists: true   # Set to false to delete the ruleset
+```
 
 ---
 

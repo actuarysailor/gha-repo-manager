@@ -28,6 +28,10 @@ branch_protections:
   - name: main
     exists: false
 
+rulesets:
+  - name: Protect main
+    exists: false
+
 environments:
   - name: production
     exists: false

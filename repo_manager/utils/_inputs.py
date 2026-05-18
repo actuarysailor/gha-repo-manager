@@ -10,9 +10,17 @@ INPUTS = {
         "description": "What yaml file to use as your settings. This is local to runner running this action.",
         "default": ".github/settings.yml",
     },
-    "repo": {
-        "description": "What repo to perform this action on. Default is self, as in the repo this action is running in",
+    "target": {
+        "description": "What to perform this action on. Use 'owner/repo' for a repository, an org login for org scope, or an enterprise slug for enterprise scope. Default is 'self' (the repo this action is running in).",
         "default": "self",
+    },
+    "scope": {
+        "description": "Explicit scope of the target: 'repo', 'org', or 'enterprise'. Required when target does not contain '/' and is not 'self'.",
+        "required": False,
+    },
+    "repo": {
+        "description": "DEPRECATED: Use 'target' instead. Kept for backward compatibility.",
+        "required": False,
     },
     "github_server_url": {
         "description": "Set a custom github server url for github api operations. Useful if you're running on GHE. Will try to autodiscover from env.GITHUB_SERVER_URL if left at default"
