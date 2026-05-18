@@ -44,7 +44,6 @@ def _create_label(target: Labelable, name: str, color: str, description: str = "
     repo.create_label(name, color, description)
 
 
-
 def check_repo_labels(
     repo: Labelable, config_labels: list[Label]
 ) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
