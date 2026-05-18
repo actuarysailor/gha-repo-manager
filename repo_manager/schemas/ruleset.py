@@ -57,7 +57,9 @@ class RefNameCondition(BaseModel):
 
 
 class RepositoryNameCondition(BaseModel):
-    include: list[str] = Field(default_factory=list, description="Repository name patterns to include. Use '~ALL' for all.")
+    include: list[str] = Field(
+        default_factory=list, description="Repository name patterns to include. Use '~ALL' for all."
+    )
     exclude: list[str] = Field(default_factory=list, description="Repository name patterns to exclude.")
 
 
