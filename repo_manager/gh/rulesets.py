@@ -1,3 +1,4 @@
+import re as _re
 from typing import Any
 
 from actions_toolkit import core as actions_toolkit
@@ -61,9 +62,6 @@ def _strip_api_fields(obj: Any) -> Any:
     if isinstance(obj, list):
         return [_strip_api_fields(item) for item in obj]
     return obj
-
-
-import re as _re
 
 
 def _normalize_ref_pattern(pattern: str) -> str:
