@@ -49,7 +49,10 @@ def _ruleset_to_api_payload(ruleset: Ruleset) -> dict[str, Any]:
             }
     if ruleset.rules is not None:
         payload["rules"] = [
-            {"type": rule.type, **({"parameters": _normalize_rule_parameters(rule.type, rule.parameters)} if rule.parameters else {})}
+            {
+                "type": rule.type,
+                **({"parameters": _normalize_rule_parameters(rule.type, rule.parameters)} if rule.parameters else {}),
+            }
             for rule in ruleset.rules
         ]
     return payload
