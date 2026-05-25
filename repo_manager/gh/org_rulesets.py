@@ -118,8 +118,11 @@ def update_org_rulesets(
         rs = config_by_name[name]
         rid = ruleset_diff["_id"]
         payload = _org_ruleset_payload(rs)
+        import json as _json
+        actions_toolkit.debug(f"PUT org ruleset '{name}' payload: {_json.dumps(payload)}")
         try:
-            org._requester.requestJsonAndCheck("PUT", f"{org.url}/rulesets/{rid}", input=payload)
+            _, response = org._requester.requestJsonAndCheck("PUT", f"{org.url}/rulesets/{rid}", input=payload)
+            actions_toolkit.debug(f"PUT org ruleset '{name}' response rules: {_json.dumps(response.get('rules', []))}")
             actions_toolkit.info(f"Updated org ruleset '{name}'")
             messages.append(f"Updated org ruleset '{name}'")
         except Exception as exc:
