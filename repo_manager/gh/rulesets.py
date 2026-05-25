@@ -49,10 +49,35 @@ def _ruleset_to_api_payload(ruleset: Ruleset) -> dict[str, Any]:
             }
     if ruleset.rules is not None:
         payload["rules"] = [
-            {"type": rule.type, **({"parameters": rule.parameters} if rule.parameters else {})}
+            {
+                "type": rule.type,
+                **({"parameters": _normalize_rule_parameters(rule.type, rule.parameters)} if rule.parameters else {}),
+            }
             for rule in ruleset.rules
         ]
     return payload
+
+
+def _normalize_rule_parameters(rule_type: str, parameters: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Normalize rule parameters for GitHub API compatibility.
+
+    - required_status_checks: normalize each entry to {context, integration_id?}
+      where integration_id is only included when it is a non-null integer.
+      GitHub rejects null as invalid and drops the rule silently when malformed.
+    """
+    if parameters is None:
+        return None
+    params = dict(parameters)
+    if rule_type == "required_status_checks" and "required_status_checks" in params:
+        normalized = []
+        for check in params["required_status_checks"]:
+            entry: dict[str, Any] = {"context": check["context"]}
+            iid = check.get("integration_id")
+            if iid is not None:
+                entry["integration_id"] = iid
+            normalized.append(entry)
+        params["required_status_checks"] = normalized
+    return params
 
 
 def _strip_api_fields(obj: Any) -> Any:
@@ -97,16 +122,40 @@ def _normalize_actors(actors: list[dict] | None) -> list[dict]:
     )
 
 
+def _normalize_status_checks(checks: list[dict]) -> list[dict]:
+    """Normalize required_status_checks entries: keep only context + integration_id (non-null).
+    Strips integration_id:null so GitHub's response compares equal to config."""
+    result = []
+    for c in checks:
+        entry: dict[str, Any] = {"context": c["context"]}
+        iid = c.get("integration_id")
+        if iid is not None:
+            entry["integration_id"] = iid
+        result.append(entry)
+    return result
+
+
 def _rule_satisfied(config_rule: dict, actual_rules: list[dict]) -> bool:
     """Return True if config_rule is satisfied by any rule in actual_rules.
     Only config-specified parameters are compared; GitHub may add extras
-    (e.g. required_reviewers: []) that we should not flag as a diff."""
+    (e.g. required_reviewers: []) that we should not flag as a diff.
+    required_status_checks contexts are compared ignoring integration_id:null."""
     for actual in actual_rules:
         if actual.get("type") != config_rule.get("type"):
             continue
-        config_params = config_rule.get("parameters", {})
-        actual_params = actual.get("parameters", {})
-        if all(actual_params.get(k) == v for k, v in config_params.items()):
+        config_params = config_rule.get("parameters", {}) or {}
+        actual_params = actual.get("parameters", {}) or {}
+        matched = True
+        for k, v in config_params.items():
+            av = actual_params.get(k)
+            if k == "required_status_checks" and isinstance(v, list) and isinstance(av, list):
+                if _normalize_status_checks(v) != _normalize_status_checks(av):
+                    matched = False
+                    break
+            elif av != v:
+                matched = False
+                break
+        if matched:
             return True
     return False
 
