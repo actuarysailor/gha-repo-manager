@@ -83,9 +83,8 @@ class TestSafePathTraversal:
 
     def test_error_message_includes_paths(self, tmp_path):
         """ValueError message should name both the bad path and the root."""
-        try:
+        with pytest.raises(ValueError) as exc_info:
             _safe_path(tmp_path, Path("../outside"))
-        except ValueError as exc:
-            msg = str(exc)
-            assert "outside the repo root" in msg
-            assert str(tmp_path.resolve()) in msg
+        msg = str(exc_info.value)
+        assert "outside the repo root" in msg
+        assert str(tmp_path.resolve()) in msg

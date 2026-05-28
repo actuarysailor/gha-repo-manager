@@ -42,9 +42,11 @@ def check_repo_labels(
         {
             label.expected_name
             for label in filter(
-                lambda label: label.exists
-                and label.name not in repo_labels.keys()
-                and label.expected_name not in repo_labels.keys(),
+                lambda label: (
+                    label.exists
+                    and label.name not in repo_labels.keys()
+                    and label.expected_name not in repo_labels.keys()
+                ),
                 config_labels,
             )
         }
@@ -56,8 +58,9 @@ def check_repo_labels(
         {
             label.expected_name
             for label in filter(
-                lambda label: not label.exists
-                and (label.name in repo_labels.keys() or label.expected_name in repo_labels.keys()),
+                lambda label: (
+                    not label.exists and (label.name in repo_labels.keys() or label.expected_name in repo_labels.keys())
+                ),
                 config_labels,
             )
         }
@@ -74,8 +77,10 @@ def check_repo_labels(
             {
                 label.expected_name
                 for label in filter(
-                    lambda label: label.exists
-                    and (label.expected_name in repo_labels.keys() and label.name != label.expected_name),
+                    lambda label: (
+                        label.exists
+                        and (label.expected_name in repo_labels.keys() and label.name != label.expected_name)
+                    ),
                     config_labels,
                 )
             }

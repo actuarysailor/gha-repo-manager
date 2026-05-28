@@ -17,9 +17,6 @@ OptPath = Optional[Path]
 # The one canonical scheme accepted for paths inside the target repo.
 _REMOTE_SCHEME = "remote://"
 
-# Sentinel root used internally when validating traversal for remote paths.
-_TRAVERSAL_SENTINEL = Path("/repo_root")
-
 
 def parse_remote_path(value: str) -> Path:
     """Parse and validate a ``remote://`` path string, returning a clean relative :class:`~pathlib.Path`.
@@ -54,12 +51,20 @@ def parse_remote_path(value: str) -> Path:
 
     if path.is_absolute():
         raise ValueError(
-            f"Remote path {value!r} resolves to an absolute path {str(path)!r}; " "only relative paths are allowed."
+            f"Remote path {value!r} resolves to an absolute path {str(path)!r}; only relative paths are allowed."
         )
 
-    # Reject traversal segments (e.g. remote://../secret).
-    if not (_TRAVERSAL_SENTINEL / path).resolve().is_relative_to(_TRAVERSAL_SENTINEL):
-        raise ValueError(f"Remote path {value!r} contains path-traversal segments and is not allowed.")
+    # Reject traversal segments (e.g. remote://../secret) by inspecting parts.
+    # Normalized paths should not have leading '..' that escape the implicit root.
+    parts = path.parts
+    depth = 0
+    for part in parts:
+        if part == "..":
+            depth -= 1
+            if depth < 0:
+                raise ValueError(f"Remote path {value!r} contains path-traversal segments and is not allowed.")
+        elif part != ".":
+            depth += 1
 
     return path
 
@@ -108,7 +113,7 @@ class FileConfig(BaseModel):
     @property
     def src_file_exists(self) -> bool:
         """Checks if local file exists"""
-        return os.path.exists(self.src_file) if self.src_file is not None else None
+        return os.path.exists(self.src_file) if self.src_file is not None else False
 
     # Not needed, but still used in tests I have not cleaned up...
     @property
