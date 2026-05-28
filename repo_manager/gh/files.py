@@ -34,9 +34,7 @@ def _safe_path(base: Path, relative: Path) -> Path:
     resolved = (base / relative).resolve()
     base_resolved = base.resolve()
     if not str(resolved).startswith(str(base_resolved) + os.sep) and resolved != base_resolved:
-        raise ValueError(
-            f"Path '{relative}' resolves to '{resolved}' which is outside the repo root '{base_resolved}'"
-        )
+        raise ValueError(f"Path '{relative}' resolves to '{resolved}' which is outside the repo root '{base_resolved}'")
     return resolved
 
 
