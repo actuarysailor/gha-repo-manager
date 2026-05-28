@@ -36,6 +36,7 @@ from repo_manager.gh.org_secrets import (
 from repo_manager.gh.enterprise_settings import check_enterprise_settings, update_enterprise_settings
 from repo_manager.gh.enterprise_rulesets import check_enterprise_rulesets, update_enterprise_rulesets
 
+
 def _set_step_summary(content: str) -> None:
     """Write the step summary, ignoring errors when not running on a GitHub Actions runner."""
     try:
