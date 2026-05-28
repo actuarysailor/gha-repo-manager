@@ -18,8 +18,9 @@ OptPath = Optional[Path]
 class FileConfig(BaseModel):
     exists: OptBool = Field(True, description="Set to false to delete dest_file")
     remote_src: OptBool = Field(False, description="If true, src_file is a remote file")
-    src_file: Path = Field(
-        description="Sourrce file to copy from. Can me a local file path, or if you prefix with remote://, "
+    src_file: OptPath = Field(
+        None,
+        description="Source file to copy from. Can me a local file path, or if you prefix with remote://, "
         + "a path inside the target_repo. Can be relative to the GHA workspace",
     )
     dest_file: Path = Field(
@@ -34,8 +35,10 @@ class FileConfig(BaseModel):
     @field_validator("src_file", mode="before")
     @classmethod
     def validate_src_file(cls, v, info: ValidationInfo) -> Path:
-        if v is None and info.data["exists"]:
+        if v is None and info.data.get("exists", True) is not False:
             raise ValueError("Missing src_file")
+        if v is None:
+            return None
         v = str(v)
         if v.startswith("remote:"):
             info.data["remote_src"] = True

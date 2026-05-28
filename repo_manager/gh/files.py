@@ -177,11 +177,11 @@ def __check_files__(
 
     # First we handle file movement and removal
     for file_config in files:
-        oldPath = Path(repo.working_tree_dir) / file_config.src_file
+        oldPath = Path(repo.working_tree_dir) / file_config.src_file if file_config.src_file is not None else None
         newPath = Path(repo.working_tree_dir) / file_config.dest_file
         # prior method used source if move was true, dest if not
         if not file_config.exists:
-            fileToDelete = oldPath if file_config.move else newPath
+            fileToDelete = oldPath if (file_config.move and oldPath is not None) else newPath
             fileToDeleteRelativePath = fileToDelete.relative_to(repo.working_tree_dir)
             if fileToDelete.exists():
                 os.remove(fileToDelete)
@@ -264,6 +264,9 @@ def __check_files__(
         if not file_config.exists or file_config.remote_src:
             continue  # we already handled this file
         srcPath = file_config.src_file
+        if not Path(srcPath).is_absolute():
+            github_workspace = os.environ.get("GITHUB_WORKSPACE") or str(Path.cwd())
+            srcPath = Path(github_workspace) / srcPath
         destPath = Path(repo.working_tree_dir) / file_config.dest_file
 
         # Check if this source file's current commit SHA has already been synced into

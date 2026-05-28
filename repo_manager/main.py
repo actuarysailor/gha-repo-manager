@@ -36,6 +36,14 @@ from repo_manager.gh.org_secrets import (
 from repo_manager.gh.enterprise_settings import check_enterprise_settings, update_enterprise_settings
 from repo_manager.gh.enterprise_rulesets import check_enterprise_rulesets, update_enterprise_rulesets
 
+def _set_step_summary(content: str) -> None:
+    """Write the step summary, ignoring errors when not running on a GitHub Actions runner."""
+    try:
+        issue_file_command("STEP_SUMMARY", content)
+    except Exception as exc:
+        actions_toolkit.debug(f"Could not write step summary (not running on a GitHub Actions runner?): {exc}")
+
+
 # Maps each settings category to its required GitHub App permission, PAT scope,
 # and a representative API endpoint to probe when a 403 is encountered.
 REQUIRED_PERMISSIONS = {
@@ -341,7 +349,7 @@ def main():  # noqa: C901
     if inputs["action"] == "check":
         if not check_result:
             summary = _permission_warnings_section() + generate(diffs, {"open": "Differences found"})
-            issue_file_command("STEP_SUMMARY", summary)
+            _set_step_summary(summary)
             if inputs["fail_on_diff"] == "true":
                 actions_toolkit.set_output("result", "Check failed, diff detected")
                 actions_toolkit.set_failed("Diff detected")
@@ -349,7 +357,7 @@ def main():  # noqa: C901
                 actions_toolkit.warning("Diff detected")
         else:
             summary = _permission_warnings_section() or "# No changes detected"
-            issue_file_command("STEP_SUMMARY", summary)
+            _set_step_summary(summary)
         actions_toolkit.set_output("result", "Check passed")
         sys.exit(0)
 
@@ -470,11 +478,11 @@ def main():  # noqa: C901
 
         perm_section = _permission_warnings_section()
         if perm_section and len(messages) > 1:
-            issue_file_command("STEP_SUMMARY", perm_section + generate(diffs, messages))
+            _set_step_summary(perm_section + generate(diffs, messages))
         elif len(messages) > 1:
-            issue_file_command("STEP_SUMMARY", generate(diffs, messages))
+            _set_step_summary(generate(diffs, messages))
         elif perm_section:
-            issue_file_command("STEP_SUMMARY", perm_section)
+            _set_step_summary(perm_section)
 
         if len(errors) > 0:
             actions_toolkit.error(json.dumps(errors))
