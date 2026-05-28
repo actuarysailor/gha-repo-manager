@@ -29,6 +29,17 @@ commitChanges: Commit = None
 commitCleanup: Commit = None
 
 
+def _safe_path(base: Path, relative: Path) -> Path:
+    """Resolve `base / relative` and raise ValueError if it escapes `base`."""
+    resolved = (base / relative).resolve()
+    base_resolved = base.resolve()
+    if not str(resolved).startswith(str(base_resolved) + os.sep) and resolved != base_resolved:
+        raise ValueError(
+            f"Path '{relative}' resolves to '{resolved}' which is outside the repo root '{base_resolved}'"
+        )
+    return resolved
+
+
 def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, Files_TD]) -> dict[str, Files_TD]:
     """Get the file differences -- this is used to handle file moves and renames"""
 
@@ -176,13 +187,14 @@ def __check_files__(
     source_shas: list[str] = []
 
     # First we handle file movement and removal
+    repo_root = Path(repo.working_tree_dir)
     for file_config in files:
-        oldPath = Path(repo.working_tree_dir) / file_config.src_file if file_config.src_file is not None else None
-        newPath = Path(repo.working_tree_dir) / file_config.dest_file
+        oldPath = _safe_path(repo_root, file_config.src_file) if file_config.src_file is not None else None
+        newPath = _safe_path(repo_root, file_config.dest_file)
         # prior method used source if move was true, dest if not
         if not file_config.exists:
             fileToDelete = oldPath if (file_config.move and oldPath is not None) else newPath
-            fileToDeleteRelativePath = fileToDelete.relative_to(repo.working_tree_dir)
+            fileToDeleteRelativePath = fileToDelete.relative_to(repo_root.resolve())
             if fileToDelete.exists():
                 os.remove(fileToDelete)
                 extra[str(fileToDeleteRelativePath)] = {"insertions": 0, "deletions": 0, "lines": 0}
@@ -267,7 +279,7 @@ def __check_files__(
         if not Path(srcPath).is_absolute():
             github_workspace = os.environ.get("GITHUB_WORKSPACE") or str(Path.cwd())
             srcPath = Path(github_workspace) / srcPath
-        destPath = Path(repo.working_tree_dir) / file_config.dest_file
+        destPath = _safe_path(repo_root, file_config.dest_file)
 
         # Check if this source file's current commit SHA has already been synced into
         # this branch's history — if so, skip it (already up to date from source).
