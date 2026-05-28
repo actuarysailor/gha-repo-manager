@@ -1,6 +1,5 @@
 """Tests for the _safe_path path-containment utility in repo_manager.gh.files."""
 
-import os
 import pytest
 from pathlib import Path
 

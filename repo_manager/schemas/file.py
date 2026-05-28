@@ -42,7 +42,7 @@ def parse_remote_path(value: str) -> Path:
             )
         raise ValueError(f"Not a remote path: {value!r}")
 
-    path_str = value[len(_REMOTE_SCHEME):]
+    path_str = value[len(_REMOTE_SCHEME) :]
 
     if not path_str:
         raise ValueError(
@@ -54,15 +54,12 @@ def parse_remote_path(value: str) -> Path:
 
     if path.is_absolute():
         raise ValueError(
-            f"Remote path {value!r} resolves to an absolute path {str(path)!r}; "
-            "only relative paths are allowed."
+            f"Remote path {value!r} resolves to an absolute path {str(path)!r}; " "only relative paths are allowed."
         )
 
     # Reject traversal segments (e.g. remote://../secret).
     if not (_TRAVERSAL_SENTINEL / path).resolve().is_relative_to(_TRAVERSAL_SENTINEL):
-        raise ValueError(
-            f"Remote path {value!r} contains path-traversal segments and is not allowed."
-        )
+        raise ValueError(f"Remote path {value!r} contains path-traversal segments and is not allowed.")
 
     return path
 

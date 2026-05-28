@@ -99,11 +99,11 @@ def test_parse_remote_path_valid(value, expected):
 @pytest.mark.parametrize(
     "value",
     [
-        "remote:foo.txt",        # missing //
-        "remote:///abs.txt",     # absolute path after stripping scheme
-        "remote://",             # empty path component
-        "remote://../outside",   # traversal
-        "remote://../up/file",   # traversal via parent segment
+        "remote:foo.txt",  # missing //
+        "remote:///abs.txt",  # absolute path after stripping scheme
+        "remote://",  # empty path component
+        "remote://../outside",  # traversal
+        "remote://../up/file",  # traversal via parent segment
     ],
 )
 def test_parse_remote_path_malformed(value):
