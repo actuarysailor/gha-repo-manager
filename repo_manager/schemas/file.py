@@ -54,19 +54,21 @@ def parse_remote_path(value: str) -> Path:
             f"Remote path {value!r} resolves to an absolute path {str(path)!r}; only relative paths are allowed."
         )
 
-    # Reject traversal segments (e.g. remote://../secret) by inspecting parts.
-    # Normalized paths should not have leading '..' that escape the implicit root.
-    parts = path.parts
-    depth = 0
-    for part in parts:
+    # Canonicalize the relative path by removing "." segments and resolving
+    # internal ".." segments. Reject any ".." that would escape the implicit
+    # remote root so the returned path is always clean and comparable.
+    normalized_parts: list[str] = []
+    for part in path.parts:
+        if part in ("", "."):
+            continue
         if part == "..":
-            depth -= 1
-            if depth < 0:
+            if not normalized_parts:
                 raise ValueError(f"Remote path {value!r} contains path-traversal segments and is not allowed.")
-        elif part != ".":
-            depth += 1
+            normalized_parts.pop()
+            continue
+        normalized_parts.append(part)
 
-    return path
+    return Path(*normalized_parts)
 
 
 class FileConfig(BaseModel):
