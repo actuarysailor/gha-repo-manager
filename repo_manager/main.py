@@ -38,11 +38,13 @@ from repo_manager.gh.enterprise_rulesets import check_enterprise_rulesets, updat
 
 
 def _set_step_summary(content: str) -> None:
-    """Write the step summary, ignoring errors when not running on a GitHub Actions runner."""
-    try:
-        issue_file_command("STEP_SUMMARY", content)
-    except Exception as exc:
-        actions_toolkit.debug(f"Could not write step summary (not running on a GitHub Actions runner?): {exc}")
+    """Write the step summary, skipping when not running on a GitHub Actions runner."""
+    import os
+
+    if not os.environ.get("GITHUB_STEP_SUMMARY"):
+        actions_toolkit.debug("Skipping step summary write (GITHUB_STEP_SUMMARY not set; not running on a GitHub Actions runner)")
+        return
+    issue_file_command("STEP_SUMMARY", content)
 
 
 # Maps each settings category to its required GitHub App permission, PAT scope,

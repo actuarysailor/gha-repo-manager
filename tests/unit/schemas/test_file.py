@@ -55,6 +55,20 @@ def test_file_args_validation():
         FileConfig(**invalid_config)
 
 
+def test_delete_only_with_dest_file():
+    """exists=False with dest_file and no src_file should pass validation."""
+    config = FileConfig(exists=False, dest_file="some/path/to/file.txt")
+    assert config.exists is False
+    assert config.dest_file == Path("some/path/to/file.txt")
+    assert config.src_file is None
+
+
+def test_delete_only_without_dest_file_fails():
+    """exists=False with neither src_file nor dest_file should fail validation."""
+    with pytest.raises(ValidationError):
+        FileConfig(exists=False)
+
+
 def test_example_works():
     with open("examples/settings.yml") as fh:
         example_data = yaml.safe_load(fh)

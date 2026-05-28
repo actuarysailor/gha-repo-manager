@@ -20,7 +20,7 @@ class FileConfig(BaseModel):
     remote_src: OptBool = Field(False, description="If true, src_file is a remote file")
     src_file: OptPath = Field(
         None,
-        description="Source file to copy from. Can me a local file path, or if you prefix with remote://, "
+        description="Source file to copy from. Can be a local file path, or if you prefix with remote://, "
         + "a path inside the target_repo. Can be relative to the GHA workspace",
     )
     dest_file: Path = Field(
@@ -34,7 +34,7 @@ class FileConfig(BaseModel):
 
     @field_validator("src_file", mode="before")
     @classmethod
-    def validate_src_file(cls, v, info: ValidationInfo) -> Path:
+    def validate_src_file(cls, v, info: ValidationInfo) -> Optional[Path]:
         if v is None and info.data.get("exists", True) is not False:
             raise ValueError("Missing src_file")
         if v is None:
@@ -49,6 +49,8 @@ class FileConfig(BaseModel):
     def validate_config(self) -> Self:
         if self.move is True and self.dest_file is None:
             raise ValueError("Move requires dest_file to be set")
+        if self.exists is False and self.src_file is None and self.dest_file is None:
+            raise ValueError("dest_file is required when exists is false and src_file is omitted")
         if self.dest_file is None:
             self.dest_file = self.src_file
         return self
