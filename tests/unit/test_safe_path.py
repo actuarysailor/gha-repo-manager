@@ -101,5 +101,7 @@ class TestDeleteTargetSelection:
         assert _select_repo_delete_target(tmp_path, cfg) == tmp_path.resolve() / "old.txt"
 
     def test_delete_does_not_use_local_src_as_fallback(self, tmp_path):
-        cfg = FileConfig(src_file=Path("/outside/source.txt"), dest_file=Path("/outside/delete.txt"), exists=False, move=True)
+        cfg = FileConfig(
+            src_file=Path("/outside/source.txt"), dest_file=Path("/outside/delete.txt"), exists=False, move=True
+        )
         assert _select_repo_delete_target(tmp_path, cfg) is None
