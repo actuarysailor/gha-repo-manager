@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 WORKDIR /app
 
 # install build requirements
@@ -25,7 +25,7 @@ RUN strip -s -R .comment -R .gnu.version --strip-unneeded dist/repo-manager
 RUN mkdir /app/tmp
 
 
-FROM cicirello/pyaction:3.12-gh-2.92.0
+FROM cicirello/pyaction:3.14-gh-2.92.0
 
 ENTRYPOINT ["/repo-manager"]
 
