@@ -42,7 +42,9 @@ def _set_step_summary(content: str) -> None:
     import os
 
     if not os.environ.get("GITHUB_STEP_SUMMARY"):
-        actions_toolkit.debug("Skipping step summary write (GITHUB_STEP_SUMMARY not set; not running on a GitHub Actions runner)")
+        actions_toolkit.debug(
+            "Skipping step summary write (GITHUB_STEP_SUMMARY not set; not running on a GitHub Actions runner)"
+        )
         return
     issue_file_command("STEP_SUMMARY", content)
 
