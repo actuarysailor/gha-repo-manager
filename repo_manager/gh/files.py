@@ -29,6 +29,50 @@ commitChanges: Commit = None
 commitCleanup: Commit = None
 
 
+def _safe_path(base: Path, relative: Path) -> Path:
+    """Resolve ``base / relative`` and raise ValueError if it escapes ``base``.
+
+    Uses :py:meth:`~pathlib.Path.is_relative_to` (Python 3.9+) for robust
+    containment checking that is correct across platforms and path
+    normalizations, and handles symlinks by resolving both sides first.
+    """
+    resolved = (base / relative).resolve()
+    base_resolved = base.resolve()
+    if not resolved.is_relative_to(base_resolved):
+        raise ValueError(f"Path '{relative}' resolves to '{resolved}' which is outside the repo root '{base_resolved}'")
+    return resolved
+
+
+def _select_repo_delete_target(repo_root: Path, file_config: FileConfig) -> Path | None:
+    """Choose a repo-internal delete target for a file config, or None if unsafe."""
+    repo_root_resolved = repo_root.resolve()
+
+    delete_candidates: list[Path] = [file_config.dest_file]
+    if file_config.remote_src and file_config.src_file is not None:
+        delete_candidates.append(file_config.src_file)
+
+    for candidate in delete_candidates:
+        try:
+            delete_target = _safe_path(repo_root, candidate)
+        except ValueError as exc:
+            actions_toolkit.debug(f"Skipping unsafe delete candidate {candidate}: {exc}")
+            continue
+
+        if not delete_target.is_relative_to(repo_root_resolved):
+            actions_toolkit.warning(
+                f"Skipping delete target {delete_target}: not under repo root {repo_root_resolved} (defensive guard)."
+            )
+            continue
+
+        return delete_target
+
+    actions_toolkit.warning(
+        "Skipping delete: no repo-internal delete target candidate found."
+        + f" src_file={file_config.src_file}, dest_file={file_config.dest_file}"
+    )
+    return None
+
+
 def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, Files_TD]) -> dict[str, Files_TD]:
     """Get the file differences -- this is used to handle file moves and renames"""
 
@@ -176,13 +220,14 @@ def __check_files__(
     source_shas: list[str] = []
 
     # First we handle file movement and removal
+    repo_root = Path(repo.working_tree_dir)
+    repo_root_resolved = repo_root.resolve()
     for file_config in files:
-        oldPath = Path(repo.working_tree_dir) / file_config.src_file
-        newPath = Path(repo.working_tree_dir) / file_config.dest_file
-        # prior method used source if move was true, dest if not
         if not file_config.exists:
-            fileToDelete = oldPath if file_config.move else newPath
-            fileToDeleteRelativePath = fileToDelete.relative_to(repo.working_tree_dir)
+            fileToDelete = _select_repo_delete_target(repo_root, file_config)
+            if fileToDelete is None:
+                continue
+            fileToDeleteRelativePath = fileToDelete.relative_to(repo_root_resolved)
             if fileToDelete.exists():
                 os.remove(fileToDelete)
                 extra[str(fileToDeleteRelativePath)] = {"insertions": 0, "deletions": 0, "lines": 0}
@@ -193,9 +238,13 @@ def __check_files__(
                     + "Because this is a delete, not failing run"
                 )
         else:
-            if file_config.exists and file_config.remote_src and not oldPath.exists():
+            if not file_config.remote_src:
+                continue
+            oldPath = _safe_path(repo_root, file_config.src_file)
+            newPath = _safe_path(repo_root, file_config.dest_file)
+            if not oldPath.exists():
                 raise FileNotFoundError(f"File {file_config.src_file} does not exist in target repo")  # {repo}
-            if file_config.remote_src and file_config.move and newPath.exists():
+            if file_config.move and newPath.exists():
                 # The move was already applied in a prior sync run on this branch — skip it
                 actions_toolkit.debug(
                     f"Skipping move of {file_config.src_file} → {file_config.dest_file}: "
@@ -205,7 +254,7 @@ def __check_files__(
             if oldPath == newPath:
                 continue  # Nothing to do
             if oldPath.exists():
-                if file_config.remote_src and not file_config.move:
+                if not file_config.move:
                     if newPath.exists():
                         # Copy was already applied on this branch — will be re-evaluated in content-sync phase
                         actions_toolkit.debug(
@@ -264,7 +313,10 @@ def __check_files__(
         if not file_config.exists or file_config.remote_src:
             continue  # we already handled this file
         srcPath = file_config.src_file
-        destPath = Path(repo.working_tree_dir) / file_config.dest_file
+        if not Path(srcPath).is_absolute():
+            github_workspace = os.environ.get("GITHUB_WORKSPACE") or str(Path.cwd())
+            srcPath = Path(github_workspace) / srcPath
+        destPath = _safe_path(repo_root, file_config.dest_file)
 
         # Check if this source file's current commit SHA has already been synced into
         # this branch's history — if so, skip it (already up to date from source).
