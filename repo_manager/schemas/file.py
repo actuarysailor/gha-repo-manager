@@ -14,6 +14,58 @@ OptBool = Optional[bool]
 OptStr = Optional[str]
 OptPath = Optional[Path]
 
+# The one canonical scheme accepted for paths inside the target repo.
+_REMOTE_SCHEME = "remote://"
+
+# Sentinel root used internally when validating traversal for remote paths.
+_TRAVERSAL_SENTINEL = Path("/repo_root")
+
+
+def parse_remote_path(value: str) -> Path:
+    """Parse and validate a ``remote://`` path string, returning a clean relative :class:`~pathlib.Path`.
+
+    This is the single source of truth for all remote-path parsing in the
+    codebase.  Only the canonical ``remote://`` scheme is accepted.
+
+    Raises :class:`ValueError` for any of the following malformed inputs:
+
+    * ``remote:foo``        — missing ``//`` separator
+    * ``remote://``         — empty path component after the scheme
+    * ``remote:///abs``     — absolute path after stripping the scheme
+    * ``remote://../up``    — path-traversal attempt
+    """
+    if not value.startswith(_REMOTE_SCHEME):
+        if value.startswith("remote:"):
+            raise ValueError(
+                f"Invalid remote path {value!r}: use the canonical '{_REMOTE_SCHEME}' scheme "
+                "(e.g. 'remote://path/to/file')."
+            )
+        raise ValueError(f"Not a remote path: {value!r}")
+
+    path_str = value[len(_REMOTE_SCHEME):]
+
+    if not path_str:
+        raise ValueError(
+            f"Remote path {value!r} has no path component after '{_REMOTE_SCHEME}'; "
+            "provide a non-empty relative path (e.g. 'remote://path/to/file')."
+        )
+
+    path = Path(path_str)
+
+    if path.is_absolute():
+        raise ValueError(
+            f"Remote path {value!r} resolves to an absolute path {str(path)!r}; "
+            "only relative paths are allowed."
+        )
+
+    # Reject traversal segments (e.g. remote://../secret).
+    if not (_TRAVERSAL_SENTINEL / path).resolve().is_relative_to(_TRAVERSAL_SENTINEL):
+        raise ValueError(
+            f"Remote path {value!r} contains path-traversal segments and is not allowed."
+        )
+
+    return path
+
 
 class FileConfig(BaseModel):
     exists: OptBool = Field(True, description="Set to false to delete dest_file")
@@ -40,9 +92,10 @@ class FileConfig(BaseModel):
         if v is None:
             return None
         v = str(v)
-        if v.startswith("remote:"):
+        if v.startswith(_REMOTE_SCHEME) or v.startswith("remote:"):
+            path = parse_remote_path(v)
             info.data["remote_src"] = True
-            v = v.replace("remote://", "")
+            return path
         return Path(v)
 
     @model_validator(mode="after")

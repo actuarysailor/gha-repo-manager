@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from repo_manager.schemas.file import FileConfig
+from repo_manager.schemas.file import FileConfig, parse_remote_path
 
 
 VALID_CONFIG = {
@@ -76,3 +76,73 @@ def test_example_works():
     assert len(example_data["batch_file_operations"]) > 0
     for file_config_dict in example_data["batch_file_operations"][0]["files"]:
         FileConfig(**file_config_dict)
+
+
+# ---------------------------------------------------------------------------
+# parse_remote_path – unit tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("remote://path/to/file.txt", Path("path/to/file.txt")),
+        ("remote://single.md", Path("single.md")),
+        ("remote://dir/sub/file", Path("dir/sub/file")),
+    ],
+)
+def test_parse_remote_path_valid(value, expected):
+    """Canonical remote:// paths should be accepted and normalised."""
+    assert parse_remote_path(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "remote:foo.txt",        # missing //
+        "remote:///abs.txt",     # absolute path after stripping scheme
+        "remote://",             # empty path component
+        "remote://../outside",   # traversal
+        "remote://../up/file",   # traversal via parent segment
+    ],
+)
+def test_parse_remote_path_malformed(value):
+    """Malformed remote paths should raise ValueError."""
+    with pytest.raises(ValueError):
+        parse_remote_path(value)
+
+
+# ---------------------------------------------------------------------------
+# FileConfig – remote:// integration
+# ---------------------------------------------------------------------------
+
+
+def test_fileconfig_remote_prefix_sets_remote_src():
+    """A remote:// src_file should set remote_src=True automatically."""
+    cfg = FileConfig(src_file="remote://old/path.txt", dest_file="new/path.txt")
+    assert cfg.src_file == Path("old/path.txt")
+    assert cfg.remote_src is True
+
+
+def test_fileconfig_malformed_remote_prefix_raises():
+    """remote:foo (missing //) in src_file should raise a ValidationError."""
+    with pytest.raises(ValidationError):
+        FileConfig(src_file="remote:foo.txt", dest_file="bar.txt")
+
+
+def test_fileconfig_remote_empty_path_raises():
+    """remote:// with no path after the scheme should raise a ValidationError."""
+    with pytest.raises(ValidationError):
+        FileConfig(src_file="remote://", dest_file="bar.txt")
+
+
+def test_fileconfig_remote_absolute_path_raises():
+    """remote:/// (absolute path after stripping scheme) should raise a ValidationError."""
+    with pytest.raises(ValidationError):
+        FileConfig(src_file="remote:///absolute.txt", dest_file="bar.txt")
+
+
+def test_fileconfig_remote_traversal_raises():
+    """remote://../ (path traversal) should raise a ValidationError."""
+    with pytest.raises(ValidationError):
+        FileConfig(src_file="remote://../secret", dest_file="bar.txt")
