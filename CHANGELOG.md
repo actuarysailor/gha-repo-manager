@@ -1,5 +1,12 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [3.0.2](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.1...v3.0.2) (2026-05-28)
+
+
+### Bug Fixes
+
+* File deletions ([#196](https://github.com/actuarysailor/gha-repo-manager/issues/196)) ([d43a2d7](https://github.com/actuarysailor/gha-repo-manager/commit/d43a2d7fc735cbbfb9ff2aabc9e3fb58a647ad73))
+
 ## [3.0.1](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.0...v3.0.1) (2026-05-25)
 
 
