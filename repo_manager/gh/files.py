@@ -30,10 +30,15 @@ commitCleanup: Commit = None
 
 
 def _safe_path(base: Path, relative: Path) -> Path:
-    """Resolve `base / relative` and raise ValueError if it escapes `base`."""
+    """Resolve ``base / relative`` and raise ValueError if it escapes ``base``.
+
+    Uses :py:meth:`~pathlib.Path.is_relative_to` (Python 3.9+) for robust
+    containment checking that is correct across platforms and path
+    normalizations, and handles symlinks by resolving both sides first.
+    """
     resolved = (base / relative).resolve()
     base_resolved = base.resolve()
-    if not str(resolved).startswith(str(base_resolved) + os.sep) and resolved != base_resolved:
+    if not resolved.is_relative_to(base_resolved):
         raise ValueError(f"Path '{relative}' resolves to '{resolved}' which is outside the repo root '{base_resolved}'")
     return resolved
 
