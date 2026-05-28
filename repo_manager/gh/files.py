@@ -192,18 +192,11 @@ def __check_files__(
     # First we handle file movement and removal
     repo_root = Path(repo.working_tree_dir)
     for file_config in files:
-        # Only use _safe_path for remote (repo-internal) src_file paths.
-        # Local absolute paths should not go through _safe_path.
-        if file_config.src_file is not None:
-            if file_config.remote_src:
-                oldPath = _safe_path(repo_root, file_config.src_file)
-            else:
-                # For local files, resolve against GITHUB_WORKSPACE if relative
-                workspace = os.getenv("GITHUB_WORKSPACE")
-                if workspace and not file_config.src_file.is_absolute():
-                    oldPath = Path(workspace) / file_config.src_file
-                else:
-                    oldPath = file_config.src_file
+        # Only use oldPath for remote (repo-internal) src_file paths during the
+        # move/delete phase. Local sources are handled later during content sync
+        # and must not be treated as move/rename candidates here.
+        if file_config.src_file is not None and file_config.remote_src:
+            oldPath = _safe_path(repo_root, file_config.src_file)
         else:
             oldPath = None
         newPath = _safe_path(repo_root, file_config.dest_file)
