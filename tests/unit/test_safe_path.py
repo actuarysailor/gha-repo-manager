@@ -3,7 +3,8 @@
 import pytest
 from pathlib import Path
 
-from repo_manager.gh.files import _safe_path
+from repo_manager.gh.files import _safe_path, _select_repo_delete_target
+from repo_manager.schemas.file import FileConfig
 
 
 class TestSafePathValid:
@@ -88,3 +89,17 @@ class TestSafePathTraversal:
         msg = str(exc_info.value)
         assert "outside the repo root" in msg
         assert str(tmp_path.resolve()) in msg
+
+
+class TestDeleteTargetSelection:
+    def test_delete_prefers_dest_file(self, tmp_path):
+        cfg = FileConfig(src_file="remote://old.txt", dest_file=Path("new.txt"), exists=False, move=True)
+        assert _select_repo_delete_target(tmp_path, cfg) == tmp_path.resolve() / "new.txt"
+
+    def test_delete_falls_back_to_repo_internal_remote_src_only(self, tmp_path):
+        cfg = FileConfig(src_file="remote://old.txt", dest_file=Path("/outside/delete.txt"), exists=False, move=True)
+        assert _select_repo_delete_target(tmp_path, cfg) == tmp_path.resolve() / "old.txt"
+
+    def test_delete_does_not_use_local_src_as_fallback(self, tmp_path):
+        cfg = FileConfig(src_file=Path("/outside/source.txt"), dest_file=Path("/outside/delete.txt"), exists=False, move=True)
+        assert _select_repo_delete_target(tmp_path, cfg) is None
