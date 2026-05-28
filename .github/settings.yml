@@ -171,7 +171,7 @@ rulesets:
           strict_required_status_checks_policy: true
           do_not_enforce_on_create: false
           required_status_checks:
-            - context: pre-commit 3.12 / ubuntu-latest
+            - context: pre-commit 3.14 / ubuntu-latest
             - context: Action Integration Status
             - context: Generate Docs
       # enforce_admins: false is the default for rulesets (no bypass_actors = everyone is subject)

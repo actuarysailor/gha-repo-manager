@@ -12,7 +12,7 @@ repo-manager = "repo_manager.main:main"
 
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.14"
 pydantic = "^2.10.3"
 typing-extensions = "^4.12.2"
 actions-toolkit = "^0.1.15"
@@ -66,7 +66,7 @@ skips = ["repo_manager/github/branch_protections.py"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py314"
 
 [tool.mypy]
 warn_unreachable = true
