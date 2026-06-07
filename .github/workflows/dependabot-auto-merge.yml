@@ -75,7 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
         if: >
           steps.pr.outputs.number != '' &&
           steps.checks.outputs.pending == '0' &&

@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6.0.3
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v6.2.0
