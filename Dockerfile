@@ -25,7 +25,7 @@ RUN strip -s -R .comment -R .gnu.version --strip-unneeded dist/repo-manager
 RUN mkdir /app/tmp
 
 
-FROM cicirello/pyaction:3.14.3-gh-2.92
+FROM cicirello/pyaction:3.14.5-gh-2.94
 
 ENTRYPOINT ["/repo-manager"]
 
