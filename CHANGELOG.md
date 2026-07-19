@@ -1,5 +1,12 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [3.0.3](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.2...v3.0.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* Collaborator permission checks ([#217](https://github.com/actuarysailor/gha-repo-manager/issues/217)) ([205abed](https://github.com/actuarysailor/gha-repo-manager/commit/205abed2c098229f6de01dfef4f4c198f0a19b88))
+
 ## [3.0.2](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.1...v3.0.2) (2026-05-28)
 
 
