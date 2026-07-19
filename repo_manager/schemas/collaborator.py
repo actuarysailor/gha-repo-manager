@@ -38,7 +38,9 @@ class Collaborator(BaseModel):
         self.type = self.type.lower().capitalize()
 
         if self.type == "Team" and "/" in self.name:
-            raise ValueError(f"Team name should be just the slug, not '{self.name}'. Use '{self.name.split('/')[-1]}' instead.")
+            raise ValueError(
+                f"Team name should be just the slug, not '{self.name}'. Use '{self.name.split('/')[-1]}' instead."
+            )
 
         # Only validate team/user existence when applying changes, not during check/validate
         action = info.context.get("action", "apply") if info.context else "apply"
