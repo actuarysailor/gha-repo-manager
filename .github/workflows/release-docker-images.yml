@@ -3,7 +3,7 @@
 name: Release Docker Images
 on:
   release:
-    types: [released,published]
+    types: [released, prereleased]
 
 permissions:
   packages: write

@@ -1,0 +1,61 @@
+name: Promote RC to Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to promote (e.g., 3.0.3 to promote 3.0.3-rc.X to 3.0.3). Leave blank to auto-detect from latest RC."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: Promote RC to Final Release
+    if: github.repository_owner == 'actuarysailor'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version to promote
+        id: version
+        run: |
+          MANIFEST_VERSION=$(jq -r '."."' .github/.release-please-manifest.json)
+
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            FINAL_VERSION="${{ github.event.inputs.version }}"
+          else
+            # Strip -rc.X suffix using parameter expansion
+            FINAL_VERSION="${MANIFEST_VERSION%-rc*}"
+          fi
+
+          echo "current_version=${MANIFEST_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "final_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
+
+          if [ "$MANIFEST_VERSION" = "$FINAL_VERSION" ]; then
+            echo "error=true" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Update manifest with final version
+        run: |
+          jq '."|." = "${{ steps.version.outputs.final_version }}"' .github/.release-please-manifest.json > .github/.release-please-manifest.json.tmp
+          mv .github/.release-please-manifest.json.tmp .github/.release-please-manifest.json
+
+      - name: Create pull request to promote RC
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: promote ${{ steps.version.outputs.current_version }} to ${{ steps.version.outputs.final_version }}"
+          title: "chore: release v${{ steps.version.outputs.final_version }}"
+          body: |
+            ## Promotion Details
+            - **RC Version**: ${{ steps.version.outputs.current_version }}
+            - **Final Version**: ${{ steps.version.outputs.final_version }}
+
+            This PR promotes the release candidate to the final version. After merging, release-please will automatically create the final release.
+          branch: release/${{ steps.version.outputs.final_version }}
+          delete-branch: true
+          labels: "release"
