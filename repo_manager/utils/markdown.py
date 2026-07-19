@@ -311,9 +311,9 @@ def __smart_diff_formatter__(value: dict, key_name: str = None) -> str:
 
             # Check if this is tabular data (dict where nested dicts have comparison properties)
             is_comparison_table = (
-                isinstance(action_data, dict) and
-                all(isinstance(v, dict) for v in action_data.values()) and
-                all(
+                isinstance(action_data, dict)
+                and all(isinstance(v, dict) for v in action_data.values())
+                and all(
                     any(
                         isinstance(nested_val, dict) and any(k in nested_val for k in ["expected", "found"])
                         for nested_val in item.values()
@@ -368,9 +368,7 @@ def __smart_diff_formatter__(value: dict, key_name: str = None) -> str:
     all_dicts = all(isinstance(v, dict) for v in value.values())
     if all_dicts and value:
         # Check if all nested dicts have expected/found (comparison table)
-        has_comparisons = all(
-            any(k in v for k in ["expected", "found"]) for v in value.values()
-        )
+        has_comparisons = all(any(k in v for k in ["expected", "found"]) for v in value.values())
         if has_comparisons:
             rows = []
             for item_name, item_data in value.items():
