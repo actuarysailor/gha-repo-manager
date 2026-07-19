@@ -27,24 +27,17 @@ jobs:
           if [ -n "${{ github.event.inputs.version }}" ]; then
             FINAL_VERSION="${{ github.event.inputs.version }}"
           else
-            # Strip -rc.X suffix from manifest version
-            FINAL_VERSION=$(echo "$MANIFEST_VERSION" | sed 's/-rc\.[0-9]*$//')
+            # Strip -rc.X suffix using parameter expansion
+            FINAL_VERSION="${MANIFEST_VERSION%-rc*}"
           fi
 
-          echo "current_version=${MANIFEST_VERSION}" >> $GITHUB_OUTPUT
-          echo "final_version=${FINAL_VERSION}" >> $GITHUB_OUTPUT
+          echo "current_version=${MANIFEST_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "final_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
 
           if [ "$MANIFEST_VERSION" = "$FINAL_VERSION" ]; then
-            echo "error=true" >> $GITHUB_OUTPUT
-            echo "message=Current version ($MANIFEST_VERSION) is not an RC version. Cannot promote."
+            echo "error=true" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-
-      - name: Fail if not RC version
-        if: steps.version.outputs.error == 'true'
-        run: |
-          echo "${{ steps.version.outputs.message }}"
-          exit 1
 
       - name: Update manifest with final version
         run: |
