@@ -13,7 +13,8 @@
       "bump-minor-pre-major": false,
       "bump-patch-for-minor-pre-major": false,
       "draft": false,
-      "prerelease": false,
+      "prerelease": true,
+      "prerelease-type": "rc",
       "exclude-paths": [".github"],
       "include-component-in-tag": false,
       "extra-files": ["action.yml"]
