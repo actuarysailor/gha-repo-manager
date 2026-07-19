@@ -264,47 +264,145 @@ def __list_handler__(value: dict | list) -> str:
         return "\n".join([f"- {k}: {v}\n" for k, v in value.items()])
 
 
-def __collaborators_handler__(value: dict) -> str:
-    """Format collaborators as grouped lists by action and type."""
-    lines = []
-    for action, types_dict in value.items():
-        if isinstance(types_dict, dict):
+def __smart_diff_formatter__(value: dict, key_name: str = None) -> str:
+    """
+    Generalized handler that detects structure patterns and formats accordingly.
+    Handles: action diffs (missing/extra/diff), comparison diffs (Expected/Found), and nested structures.
+    """
+
+    # Pattern 1: Comparison structure with expected/found at this level
+    if "expected" in value or "found" in value:
+        exp = str(value.get("expected", ""))[:50]
+        found = str(value.get("found", ""))[:50]
+        return f"Expected: `{exp}` → Found: `{found}`"
+
+    # Special handling for "files" key: branch structure with diff/missing/extra
+    if key_name == "file" and all(isinstance(v, dict) for v in value.values()):
+        lines = []
+        for branch_name, branch_data in value.items():
+            if isinstance(branch_data, dict):
+                lines.append(f"**Branch: {branch_name}**")
+                if "missing" in branch_data and branch_data["missing"]:
+                    lines.append(f"- Created: {', '.join(branch_data['missing'])}")
+                if "extra" in branch_data and branch_data["extra"]:
+                    lines.append(f"- Deleted: {', '.join(branch_data['extra'])}")
+                if "diff" in branch_data and isinstance(branch_data["diff"], dict):
+                    diff_items = []
+                    for fname, fprops in branch_data["diff"].items():
+                        if isinstance(fprops, dict):
+                            insertions = fprops.get("insertions", 0)
+                            deletions = fprops.get("deletions", 0)
+                            change_type = fprops.get("Change_type", "M")
+                            diff_items.append(f"{fname} ({change_type}, +{insertions} -{deletions})")
+                    if diff_items:
+                        lines.append(f"- Modified: {', '.join(diff_items)}")
+                lines.append("")
+        return "\n".join(lines).strip() if lines else ""
+
+    # Pattern 2: Action structure (missing/extra/diff with nested items)
+    action_keys = set(value.keys()).intersection(ACTION_TAKEN.keys())
+    if action_keys:
+        lines = []
+
+        # Standard action handling for other keys
+        for action in sorted(action_keys):
+            action_data = value[action]
             action_verb = ACTION_TAKEN.get(action.lower(), action).capitalize()
-            for collab_type, collabs in types_dict.items():
-                if collabs:
-                    lines.append(f"**{action_verb} {collab_type}:**")
-                    lines.extend([f"- {c}" for c in collabs])
-                    lines.append("")
-    return "\n".join(lines).strip()
 
+            # Check if this is tabular data (dict where nested dicts have comparison properties)
+            is_comparison_table = (
+                isinstance(action_data, dict) and
+                all(isinstance(v, dict) for v in action_data.values()) and
+                all(
+                    any(
+                        isinstance(nested_val, dict) and any(k in nested_val for k in ["expected", "found"])
+                        for nested_val in item.values()
+                    )
+                    for item in action_data.values()
+                )
+            )
 
-def __files_handler__(value: dict) -> str:
-    """Format files changes concisely by branch."""
-    lines = []
-    for branch, branch_data in value.items():
-        if isinstance(branch_data, dict):
-            lines.append(f"**Branch: {branch}**")
-            # Handle missing files
-            if "missing" in branch_data and branch_data["missing"]:
-                missing = branch_data["missing"]
-                lines.append(f"- Created: {', '.join(missing)}")
-            # Handle extra files
-            if "extra" in branch_data and branch_data["extra"]:
-                extra = branch_data["extra"]
-                lines.append(f"- Deleted: {', '.join(extra)}")
-            # Handle modified files
-            if "diff" in branch_data and isinstance(branch_data["diff"], dict):
-                diff_files = []
-                for filename, changes in branch_data["diff"].items():
-                    if isinstance(changes, dict):
-                        insertions = changes.get("insertions", 0)
-                        deletions = changes.get("deletions", 0)
-                        change_type = changes.get("Change_type", "M")
-                        diff_files.append(f"{filename} ({change_type}, +{insertions} -{deletions})")
-                if diff_files:
-                    lines.append(f"- Modified: {', '.join(diff_files)}")
+            if is_comparison_table:
+                # Format as comparison table
+                rows = []
+                for item_name, item_data in action_data.items():
+                    row = {key_name or "Item": item_name}
+                    for prop_name, prop_value in item_data.items():
+                        if isinstance(prop_value, dict) and any(k in prop_value for k in ["expected", "found"]):
+                            exp = str(prop_value.get("expected", ""))[:15]
+                            found = str(prop_value.get("found", ""))[:15]
+                            if exp != found:
+                                row[f"{prop_name}"] = f"{exp} → {found}"
+                    rows.append(row)
+                lines.append(tabulate(rows, headers="keys", tablefmt="pipe"))
+                lines.append("")
+
+            # Sub-pattern 2a: Grouped by type (e.g., Teams/Users)
+            elif isinstance(action_data, dict) and all(isinstance(v, (list, dict)) for v in action_data.values()):
+                for group_name, group_items in action_data.items():
+                    if isinstance(group_items, list) and group_items:
+                        lines.append(f"**{action_verb} {group_name}:**")
+                        lines.extend([f"- {item}" for item in group_items])
+                    elif isinstance(group_items, dict) and group_items:
+                        lines.append(f"**{action_verb} {group_name}:**")
+                        for item_key, item_value in group_items.items():
+                            lines.append(f"- {item_key} ({item_value})")
+
+            # Sub-pattern 2b: Direct list
+            elif isinstance(action_data, list) and action_data:
+                lines.append(f"**{action_verb}:**")
+                lines.extend([f"- {item}" for item in action_data])
+
+            # Sub-pattern 2c: Dict of objects
+            elif isinstance(action_data, dict) and action_data:
+                for item_name, item_props in action_data.items():
+                    if isinstance(item_props, dict):
+                        formatted = __smart_diff_formatter__(item_props, item_name)
+                        lines.append(f"- {item_name}: {formatted}")
+
             lines.append("")
-    return "\n".join(lines).strip()
+        return "\n".join(lines).strip() if lines else ""
+
+    # Pattern 3: Table structure (dict of items, each with consistent properties)
+    # Detect if this looks like tabular data: all values are dicts with same key patterns
+    all_dicts = all(isinstance(v, dict) for v in value.values())
+    if all_dicts and value:
+        # Check if all nested dicts have expected/found (comparison table)
+        has_comparisons = all(
+            any(k in v for k in ["expected", "found"]) for v in value.values()
+        )
+        if has_comparisons:
+            rows = []
+            for item_name, item_data in value.items():
+                row = {key_name or "Item": item_name}
+                for prop_name, prop_value in item_data.items():
+                    if isinstance(prop_value, dict):
+                        exp = str(prop_value.get("expected", ""))[:15]
+                        found = str(prop_value.get("found", ""))[:15]
+                        if exp != found:
+                            row[f"{prop_name}"] = f"{exp} → {found}"
+                rows.append(row)
+            return tabulate(rows, headers="keys", tablefmt="pipe")
+
+        # Otherwise, nested structure needing recursive handling
+        lines = []
+        for item_name, item_data in value.items():
+            lines.append(f"**{item_name}:**")
+            for prop_name, prop_value in item_data.items():
+                if isinstance(prop_value, dict):
+                    formatted = __smart_diff_formatter__(prop_value, prop_name)
+                    lines.append(f"- {prop_name}: {formatted}")
+                else:
+                    lines.append(f"- {prop_name}: {prop_value}")
+            lines.append("")
+        return "\n".join(lines).strip()
+
+    # Fallback: Simple list formatting
+    if isinstance(value, list) and value:
+        return __list_handler__(value)
+
+    # Last resort
+    return str(value)
 
 
 def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
@@ -323,10 +421,8 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
 
 
 def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
-    if key == "collaborators":
-        return __collaborators_handler__(value)
-    elif key == "files":
-        return __files_handler__(value)
+    if key in ["collaborators", "files", "labels", "org_rulesets", "branch_protections", "rulesets", "environments"]:
+        return __smart_diff_formatter__(value, key_name=key.rstrip("s"))
     elif key in KEYS_TO_DATAFRAME:
         dfDict = __dict_to_dfDict__(
             value, keyColName=KEY_CHILD_NAME.get(key, None), valColName=VAL_CHILD_NAME.get(key, None)
