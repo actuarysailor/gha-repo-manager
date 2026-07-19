@@ -218,24 +218,32 @@ Any setting that is omitted leaves the repo's current value unchanged. If a sett
 
 ### Collaborators
 
-Controls user and team access. Setting `exists: false` removes a collaborator or team.
+Controls user and team access to the repository. Setting `exists: false` removes a collaborator or team.
+
+Teams are resolved against the repository's organization. For nested teams, specify the parent team slug.
 
 ```yaml
 collaborators:
-  - name: some-user         # GitHub login
+  - name: some-user         # GitHub username
     type: user
     permission: push        # push | pull | triage | maintain | admin | <custom role>
     exists: true
 
-  - name: my-org/my-team    # org/team-slug or just team-slug (resolved against repo owner org)
+  - name: security-team     # Team slug (resolved against repo owner's org)
     type: team
     permission: maintain
+    exists: true
+
+  - name: automation        # Nested team (child of parent)
+    type: team
+    permission: push
+    parent_team_slug: security
     exists: true
 
   - name: old-user
     type: user
     permission: push
-    exists: false           # Removes this collaborator
+    exists: false           # Removes this collaborator from the repo
 ```
 
 ---

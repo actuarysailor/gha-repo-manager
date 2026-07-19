@@ -7,6 +7,18 @@ from repo_manager.utils import get_organization
 from repo_manager.schemas.collaborator import Collaborator
 
 
+def _get_team(collaborator: Collaborator):
+    """Get a team object, handling nested teams if parent_team_slug is set."""
+    org = get_organization()
+    if collaborator.parent_team_slug:
+        parent = org.get_team_by_slug(collaborator.parent_team_slug)
+        for child in parent.get_teams():
+            if child.slug == collaborator.name:
+                return child
+        raise ValueError(f"Child team '{collaborator.name}' not found under parent '{collaborator.parent_team_slug}'")
+    return org.get_team_by_slug(collaborator.name)
+
+
 def diff_option(key: str, expected: Any, repo_value: Any) -> str | None:
     if expected is not None:
         if expected != repo_value:
@@ -163,15 +175,13 @@ def update_collaborators(
             if collaborator.type == "User":
                 repo.add_to_collaborators(collaborator.name, collaborator.permission)
             elif collaborator.type == "Team":
-                get_organization().get_team_by_slug(collaborator.name).update_team_repository(
-                    repo, collaborator.permission
-                )
+                _get_team(collaborator).update_team_repository(repo, collaborator.permission)
             actions_toolkit.info(f"Added collaborator {collaborator.name} with permission {collaborator.permission}.")
         elif diff_type == "extra":
             if collaborator.type == "User":
                 repo.remove_from_collaborators(collaborator.name)
             elif collaborator.type == "Team":
-                get_organization().get_team_by_slug(collaborator.name).remove_from_repos(repo)
+                _get_team(collaborator).remove_from_repos(repo)
             else:
                 raise Exception(f"Modifying collaborators of type {collaborator.type} not currently supported")
             actions_toolkit.info(f"Removed collaborator {collaborator.name}.")
@@ -179,9 +189,7 @@ def update_collaborators(
             if collaborator.type == "User":
                 repo.add_to_collaborators(collaborator.name, collaborator.permission)
             elif collaborator.type == "Team":
-                get_organization().get_team_by_slug(collaborator.name).update_team_repository(
-                    repo, collaborator.permission
-                )
+                _get_team(collaborator).update_team_repository(repo, collaborator.permission)
             else:
                 raise Exception(f"Modifying collaborators of type {collaborator.type} not currently supported")
             actions_toolkit.info(f"Updated collaborator {collaborator.name} with permission {collaborator.permission}.")

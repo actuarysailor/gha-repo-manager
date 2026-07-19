@@ -23,6 +23,7 @@ class Collaborator(BaseModel):
     )
     id: int = Field(0, description="ID of the reviewer, either a user or team ID")
     repositories_url: str = Field(None, description="URL to modify team permissions, only applicable for teams")
+    parent_team_slug: str | None = Field(None, description="Slug of the parent team (for nested teams only)")
 
     @field_validator("type")
     @classmethod
@@ -37,11 +38,6 @@ class Collaborator(BaseModel):
         # Ensure type is capitalized (handles default values not caught by field_validator)
         self.type = self.type.lower().capitalize()
 
-        if self.type == "Team" and "/" in self.name:
-            raise ValueError(
-                f"Team name should be just the slug, not '{self.name}'. Use '{self.name.split('/')[-1]}' instead."
-            )
-
         # Only validate team/user existence when applying changes, not during check/validate
         action = info.context.get("action", "apply") if info.context else "apply"
         if action in ("check", "validate"):
@@ -52,14 +48,27 @@ class Collaborator(BaseModel):
             self.id = int(client.get_user(self.name).id)
         elif self.type == "Team":
             org = get_repo().owner.login
-            team = self.name
+            team_slug = self.name
             try:
-                github_object = client.get_organization(org).get_team_by_slug(team)
+                if self.parent_team_slug:
+                    parent_team = client.get_organization(org).get_team_by_slug(self.parent_team_slug)
+                    github_object = None
+                    for child in parent_team.get_teams():
+                        if child.slug == team_slug:
+                            github_object = child
+                            break
+                    if github_object is None:
+                        raise ValueError(
+                            f"Child team '{team_slug}' not found under parent '{self.parent_team_slug}'"
+                        )
+                else:
+                    github_object = client.get_organization(org).get_team_by_slug(team_slug)
+
                 self.repositories_url = github_object.repositories_url
                 self.id = github_object.id
             except Exception as e:
                 raise ValueError(
-                    f"Team '{team}' not found in organization '{org}'. "
-                    f"Ensure the team exists before applying changes. Error: {e}"
+                    f"Team '{team_slug}' not found in organization '{org}'. "
+                    f"Error: {e}"
                 ) from e
         return self
