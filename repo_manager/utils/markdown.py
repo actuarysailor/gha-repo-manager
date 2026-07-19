@@ -65,7 +65,7 @@ ACTION_TAKEN = {
     "diff": "Updated",
 }
 
-KEYS_TO_DATAFRAME = ["collaborators", "branch_policies", "secrets", "branch", "updated"]
+KEYS_TO_DATAFRAME = ["branch_policies", "secrets", "branch", "updated"]
 
 KEYS_TO_COMPARE_A2E = ["settings", "label", "ruleset"]
 
@@ -248,6 +248,8 @@ def __dict_to_dfDict__(
                 result = dfDict
             else:
                 for k, v in dfDict.items():
+                    if k not in result:
+                        result[k] = []
                     result[k].extend(v)
         else:
             raise NotImplementedError(f"Unhandled case for {key} in {input_dict}")
@@ -260,6 +262,49 @@ def __list_handler__(value: dict | list) -> str:
         return "\n".join([f"- {v}" for v in value])
     elif isinstance(value, dict):
         return "\n".join([f"- {k}: {v}\n" for k, v in value.items()])
+
+
+def __collaborators_handler__(value: dict) -> str:
+    """Format collaborators as grouped lists by action and type."""
+    lines = []
+    for action, types_dict in value.items():
+        if isinstance(types_dict, dict):
+            action_verb = ACTION_TAKEN.get(action.lower(), action).capitalize()
+            for collab_type, collabs in types_dict.items():
+                if collabs:
+                    lines.append(f"**{action_verb} {collab_type}:**")
+                    lines.extend([f"- {c}" for c in collabs])
+                    lines.append("")
+    return "\n".join(lines).strip()
+
+
+def __files_handler__(value: dict) -> str:
+    """Format files changes concisely by branch."""
+    lines = []
+    for branch, branch_data in value.items():
+        if isinstance(branch_data, dict):
+            lines.append(f"**Branch: {branch}**")
+            # Handle missing files
+            if "missing" in branch_data and branch_data["missing"]:
+                missing = branch_data["missing"]
+                lines.append(f"- Created: {', '.join(missing)}")
+            # Handle extra files
+            if "extra" in branch_data and branch_data["extra"]:
+                extra = branch_data["extra"]
+                lines.append(f"- Deleted: {', '.join(extra)}")
+            # Handle modified files
+            if "diff" in branch_data and isinstance(branch_data["diff"], dict):
+                diff_files = []
+                for filename, changes in branch_data["diff"].items():
+                    if isinstance(changes, dict):
+                        insertions = changes.get("insertions", 0)
+                        deletions = changes.get("deletions", 0)
+                        change_type = changes.get("Change_type", "M")
+                        diff_files.append(f"{filename} ({change_type}, +{insertions} -{deletions})")
+                if diff_files:
+                    lines.append(f"- Modified: {', '.join(diff_files)}")
+            lines.append("")
+    return "\n".join(lines).strip()
 
 
 def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
@@ -278,7 +323,11 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
 
 
 def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
-    if key in KEYS_TO_DATAFRAME:
+    if key == "collaborators":
+        return __collaborators_handler__(value)
+    elif key == "files":
+        return __files_handler__(value)
+    elif key in KEYS_TO_DATAFRAME:
         dfDict = __dict_to_dfDict__(
             value, keyColName=KEY_CHILD_NAME.get(key, None), valColName=VAL_CHILD_NAME.get(key, None)
         )
