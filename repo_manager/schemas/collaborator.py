@@ -37,6 +37,9 @@ class Collaborator(BaseModel):
         # Ensure type is capitalized (handles default values not caught by field_validator)
         self.type = self.type.lower().capitalize()
 
+        if self.type == "Team" and "/" in self.name:
+            raise ValueError(f"Team name should be just the slug, not '{self.name}'. Use '{self.name.split('/')[-1]}' instead.")
+
         # Only validate team/user existence when applying changes, not during check/validate
         action = info.context.get("action", "apply") if info.context else "apply"
         if action in ("check", "validate"):
@@ -46,17 +49,8 @@ class Collaborator(BaseModel):
         if self.type == "User":
             self.id = int(client.get_user(self.name).id)
         elif self.type == "Team":
-            if self.name.count("/") == 1:
-                org, team = self.name.split("/")
-                repo_org = get_repo().owner.login
-                if org != repo_org:
-                    raise ValueError(
-                        f"Team {self.name} is in organization '{org}', but target repo is in '{repo_org}'. "
-                        f"Cross-organization team assignment may not be supported."
-                    )
-            else:
-                org = get_repo().owner.login
-                team = self.name
+            org = get_repo().owner.login
+            team = self.name
             try:
                 github_object = client.get_organization(org).get_team_by_slug(team)
                 self.repositories_url = github_object.repositories_url
