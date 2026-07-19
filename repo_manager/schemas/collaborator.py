@@ -58,17 +58,12 @@ class Collaborator(BaseModel):
                             github_object = child
                             break
                     if github_object is None:
-                        raise ValueError(
-                            f"Child team '{team_slug}' not found under parent '{self.parent_team_slug}'"
-                        )
+                        raise ValueError(f"Child team '{team_slug}' not found under parent '{self.parent_team_slug}'")
                 else:
                     github_object = client.get_organization(org).get_team_by_slug(team_slug)
 
                 self.repositories_url = github_object.repositories_url
                 self.id = github_object.id
             except Exception as e:
-                raise ValueError(
-                    f"Team '{team_slug}' not found in organization '{org}'. "
-                    f"Error: {e}"
-                ) from e
+                raise ValueError(f"Team '{team_slug}' not found in organization '{org}'. Error: {e}") from e
         return self
