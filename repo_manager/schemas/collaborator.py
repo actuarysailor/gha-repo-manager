@@ -24,8 +24,19 @@ class Collaborator(BaseModel):
     id: int = Field(0, description="ID of the reviewer, either a user or team ID")
     repositories_url: str = Field(None, description="URL to modify team permissions, only applicable for teams")
 
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v) -> str:
+        v = v.lower().capitalize()
+        if v not in {"User", "Team"}:
+            raise ValueError("Reviewer Type must be user or team.")
+        return v
+
     @model_validator(mode="after")
     def initialize_id(self) -> Self:
+        # Ensure type is capitalized (handles default values not caught by field_validator)
+        self.type = self.type.lower().capitalize()
+
         client: Github = get_client()
         if self.type == "User":
             self.id = int(client.get_user(self.name).id)
@@ -39,10 +50,3 @@ class Collaborator(BaseModel):
             self.repositories_url = github_object.repositories_url
             self.id = github_object.id
         return self
-
-    @field_validator("type")
-    def validate_type(cls, v) -> str:
-        v = v.lower().capitalize()
-        if v not in {"User", "Team"}:
-            raise ValueError("Reviewer Type must be user or team.")
-        return v
