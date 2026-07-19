@@ -16,17 +16,6 @@ collaborators:
     permission: push
     exists: true
 
-  - name: security-team
-    type: team
-    permission: maintain
-    exists: true
-
-  - name: automation
-    type: team
-    permission: push
-    parent_team_slug: security
-    exists: true
-
 # Which method you choose is up to you. See README.md for more info and example
 # Workflows to implement these strategies.
 settings:
