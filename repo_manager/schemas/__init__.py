@@ -88,9 +88,15 @@ class RepoManagerConfig(BaseModel):
         return {variable.key: variable for variable in self.org_variables} if self.org_variables is not None else {}
 
 
-def load_config(filename: str) -> RepoManagerConfig:
-    """Loads a yaml file into a RepoManagerconfig"""
+def load_config(filename: str, action: str = "validate") -> RepoManagerConfig:
+    """Loads a yaml file into a RepoManagerconfig
+
+    Args:
+        filename: Path to the YAML settings file
+        action: The action being performed ('validate', 'check', or 'apply').
+                Used to skip expensive validations during check mode.
+    """
     with open(filename, encoding="utf-8") as fh:
         this_dict = yaml.safe_load(fh)
 
-    return RepoManagerConfig.model_validate(this_dict)
+    return RepoManagerConfig.model_validate(this_dict, context={"action": action})

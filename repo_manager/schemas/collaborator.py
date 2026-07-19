@@ -4,7 +4,7 @@ from github import Github
 
 from repo_manager.utils import get_client, get_repo
 
-from pydantic import BaseModel  # pylint: disable=E0611
+from pydantic import BaseModel, ValidationInfo  # pylint: disable=E0611
 from pydantic import Field, field_validator, model_validator
 
 
@@ -33,9 +33,14 @@ class Collaborator(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def initialize_id(self) -> Self:
+    def initialize_id(self, info: ValidationInfo) -> Self:
         # Ensure type is capitalized (handles default values not caught by field_validator)
         self.type = self.type.lower().capitalize()
+
+        # Only validate team/user existence when applying changes, not during check/validate
+        action = info.context.get("action", "apply") if info.context else "apply"
+        if action in ("check", "validate"):
+            return self
 
         client: Github = get_client()
         if self.type == "User":
@@ -43,10 +48,22 @@ class Collaborator(BaseModel):
         elif self.type == "Team":
             if self.name.count("/") == 1:
                 org, team = self.name.split("/")
+                repo_org = get_repo().owner.login
+                if org != repo_org:
+                    raise ValueError(
+                        f"Team {self.name} is in organization '{org}', but target repo is in '{repo_org}'. "
+                        f"Cross-organization team assignment may not be supported."
+                    )
             else:
                 org = get_repo().owner.login
                 team = self.name
-            github_object = client.get_organization(org).get_team_by_slug(team)
-            self.repositories_url = github_object.repositories_url
-            self.id = github_object.id
+            try:
+                github_object = client.get_organization(org).get_team_by_slug(team)
+                self.repositories_url = github_object.repositories_url
+                self.id = github_object.id
+            except Exception as e:
+                raise ValueError(
+                    f"Team '{team}' not found in organization '{org}'. "
+                    f"Ensure the team exists before applying changes. Error: {e}"
+                ) from e
         return self
