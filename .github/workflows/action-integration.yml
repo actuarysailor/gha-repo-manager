@@ -6,14 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action to run (check, apply, or test)'
+        description: 'Action to run (check or apply)'
         required: false
         default: check
         type: choice
         options:
           - check
           - apply
-          - test
   push:
     branches:
       - main
@@ -94,7 +93,7 @@ jobs:
         id: test-check-action
         if: >
           (github.event_name != 'workflow_dispatch' && contains(fromJSON('["check","test"]'), matrix.action)) ||
-          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && contains(fromJSON('["check","test"]'), inputs.action))
+          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && inputs.action == 'check')
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -102,7 +101,7 @@ jobs:
           private_key: ${{ secrets.PRIVATE_KEY }}
           target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
-          action: ${{ github.event_name == 'workflow_dispatch' && inputs.action || matrix.action }}
+          action: check
           fail_on_diff: ${{ matrix.fail_on_diff }}
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
@@ -111,7 +110,7 @@ jobs:
         id: test-apply-action
         if: >
           (github.event_name != 'workflow_dispatch' && matrix.action == 'test') ||
-          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && contains(fromJSON('["apply","test"]'), inputs.action))
+          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && inputs.action == 'apply')
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -126,8 +125,7 @@ jobs:
       - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.repo }}
         id: undo-apply-action
         if: >
-          (github.event_name != 'workflow_dispatch' && matrix.action == 'test') ||
-          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && inputs.action == 'test')
+          github.event_name != 'workflow_dispatch' && matrix.action == 'test'
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -140,8 +138,7 @@ jobs:
       - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[1] }}
         id: final-check-action
         if: >
-          (github.event_name != 'workflow_dispatch' && matrix.action == 'test') ||
-          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && inputs.action == 'test')
+          github.event_name != 'workflow_dispatch' && matrix.action == 'test'
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -153,6 +150,9 @@ jobs:
           fail_on_diff: true
 
       - name: Check outputs
+        if: >
+          steps.test-check-action.outcome == 'success' &&
+          (steps.final-check-action.outcome == 'skipped' || steps.final-check-action.outcome == 'success')
         run: |
           test "${{ steps.test-check-action.outputs.result }}" == "Check passed"
           test "${{ steps.final-check-action.outputs.result || 'Check passed' }}" == "Check passed"
