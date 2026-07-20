@@ -297,8 +297,16 @@ def __summarize_complex_diff__(expected: Any, found: Any, max_len: int = 80) -> 
                                 if changed_keys:
                                     lines.append(f"  [{i}] {k}: added/changed keys: {', '.join(changed_keys)}")
                             else:
-                                exp_summary = str(exp_val)[:30] if not isinstance(exp_val, (dict, list)) else f"[{type(exp_val).__name__}]"
-                                found_summary = str(found_val)[:30] if not isinstance(found_val, (dict, list)) else f"[{type(found_val).__name__}]"
+                                exp_summary = (
+                                    str(exp_val)[:30]
+                                    if not isinstance(exp_val, (dict, list))
+                                    else f"[{type(exp_val).__name__}]"
+                                )
+                                found_summary = (
+                                    str(found_val)[:30]
+                                    if not isinstance(found_val, (dict, list))
+                                    else f"[{type(found_val).__name__}]"
+                                )
                                 lines.append(f"  [{i}] {k}: {exp_summary} → {found_summary}")
 
     elif isinstance(expected, dict) and isinstance(found, dict):
@@ -317,8 +325,14 @@ def __summarize_complex_diff__(expected: Any, found: Any, max_len: int = 80) -> 
                         lines.append(f"  {k}: added/changed keys: {', '.join(changed_keys)}")
                 else:
                     # Only show if not too large
-                    exp_summary = str(exp_val)[:40] if not isinstance(exp_val, (dict, list)) else f"[{type(exp_val).__name__}]"
-                    found_summary = str(found_val)[:40] if not isinstance(found_val, (dict, list)) else f"[{type(found_val).__name__}]"
+                    exp_summary = (
+                        str(exp_val)[:40] if not isinstance(exp_val, (dict, list)) else f"[{type(exp_val).__name__}]"
+                    )
+                    found_summary = (
+                        str(found_val)[:40]
+                        if not isinstance(found_val, (dict, list))
+                        else f"[{type(found_val).__name__}]"
+                    )
                     lines.append(f"  {k}: {exp_summary} → {found_summary}")
 
     # Fallback: just show the length difference if it's still too verbose
