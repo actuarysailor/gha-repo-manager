@@ -264,6 +264,70 @@ def __list_handler__(value: dict | list) -> str:
         return "\n".join([f"- {k}: {v}\n" for k, v in value.items()])
 
 
+def __summarize_complex_diff__(expected: Any, found: Any, max_len: int = 80) -> str:
+    """Summarize complex nested structures (lists, dicts) into readable diffs."""
+    exp_str = str(expected)
+    found_str = str(found)
+
+    # If both are simple strings/primitives, show direct comparison
+    if not isinstance(expected, (dict, list)) and not isinstance(found, (dict, list)):
+        return f"{exp_str[:max_len]} → {found_str[:max_len]}"
+
+    # For complex structures, extract key differences
+    lines = []
+
+    # If they're the same overall structure, show what changed
+    if isinstance(expected, list) and isinstance(found, list):
+        if len(expected) != len(found):
+            lines.append(f"Length: {len(expected)} → {len(found)}")
+        # For lists of dicts, show item-level differences
+        if expected and found and isinstance(expected[0], dict) and isinstance(found[0], dict):
+            for i, (exp_item, found_item) in enumerate(zip(expected, found)):
+                if exp_item != found_item:
+                    for k in set(list(exp_item.keys()) + list(found_item.keys())):
+                        exp_val = exp_item.get(k)
+                        found_val = found_item.get(k)
+                        if exp_val != found_val:
+                            # For nested dicts, only show the changed keys
+                            if isinstance(exp_val, dict) and isinstance(found_val, dict):
+                                changed_keys = []
+                                for key in set(list(exp_val.keys()) + list(found_val.keys())):
+                                    if exp_val.get(key) != found_val.get(key):
+                                        changed_keys.append(key)
+                                if changed_keys:
+                                    lines.append(f"  [{i}] {k}: added/changed keys: {', '.join(changed_keys)}")
+                            else:
+                                exp_summary = str(exp_val)[:30] if not isinstance(exp_val, (dict, list)) else f"[{type(exp_val).__name__}]"
+                                found_summary = str(found_val)[:30] if not isinstance(found_val, (dict, list)) else f"[{type(found_val).__name__}]"
+                                lines.append(f"  [{i}] {k}: {exp_summary} → {found_summary}")
+
+    elif isinstance(expected, dict) and isinstance(found, dict):
+        all_keys = set(list(expected.keys()) + list(found.keys()))
+        for k in sorted(all_keys):
+            exp_val = expected.get(k)
+            found_val = found.get(k)
+            if exp_val != found_val:
+                # For nested dicts, show changed keys instead of full content
+                if isinstance(exp_val, dict) and isinstance(found_val, dict):
+                    changed_keys = []
+                    for key in set(list(exp_val.keys()) + list(found_val.keys())):
+                        if exp_val.get(key) != found_val.get(key):
+                            changed_keys.append(key)
+                    if changed_keys:
+                        lines.append(f"  {k}: added/changed keys: {', '.join(changed_keys)}")
+                else:
+                    # Only show if not too large
+                    exp_summary = str(exp_val)[:40] if not isinstance(exp_val, (dict, list)) else f"[{type(exp_val).__name__}]"
+                    found_summary = str(found_val)[:40] if not isinstance(found_val, (dict, list)) else f"[{type(found_val).__name__}]"
+                    lines.append(f"  {k}: {exp_summary} → {found_summary}")
+
+    # Fallback: just show the length difference if it's still too verbose
+    if not lines:
+        return f"[{type(expected).__name__} len={len(expected) if isinstance(expected, (list, dict)) else '?'}] → [{type(found).__name__} len={len(found) if isinstance(found, (list, dict)) else '?'}]"
+
+    return "\n".join(lines) if lines else "No visible differences"
+
+
 def __smart_diff_formatter__(value: dict, key_name: str = None) -> str:
     """
     Generalized handler that detects structure patterns and formats accordingly.
@@ -272,9 +336,19 @@ def __smart_diff_formatter__(value: dict, key_name: str = None) -> str:
 
     # Pattern 1: Comparison structure with expected/found at this level
     if "expected" in value or "found" in value:
-        exp = str(value.get("expected", ""))[:50]
-        found = str(value.get("found", ""))[:50]
-        return f"Expected: `{exp}` → Found: `{found}`"
+        expected = value.get("expected")
+        found = value.get("found")
+        # For complex nested structures, use special summarizer
+        if isinstance(expected, (dict, list)) or isinstance(found, (dict, list)):
+            summary = __summarize_complex_diff__(expected, found)
+            # If summary has newlines, it's a detailed breakdown
+            if "\n" in summary:
+                return summary
+            return summary
+        else:
+            exp = str(expected)[:50]
+            found_str = str(found)[:50]
+            return f"Expected: `{exp}` → Found: `{found_str}`"
 
     # Special handling for "files" key: branch structure with diff/missing/extra
     if key_name == "file" and all(isinstance(v, dict) for v in value.values()):
@@ -419,7 +493,26 @@ def __action_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = 
 
 
 def __key_handler__(key: str, value: Any, hdrDepth: str = "#", header: str = None) -> str:
-    if key in ["collaborators", "files", "labels", "org_rulesets", "branch_protections", "rulesets", "environments"]:
+    # Special handling for rulesets with complex nested structures
+    if key in ["org_rulesets", "rulesets"] and isinstance(value, dict) and "diff" in value:
+        lines = []
+        for ruleset_name, ruleset_diffs in value["diff"].items():
+            lines.append(f"**{ruleset_name}:**")
+            for prop_name, prop_diff in ruleset_diffs.items():
+                if prop_name == "_id":
+                    continue
+                if isinstance(prop_diff, dict) and "expected" in prop_diff:
+                    summary = __summarize_complex_diff__(prop_diff["expected"], prop_diff["found"])
+                    if "\n" in summary:
+                        lines.append(f"- {prop_name}:")
+                        for line in summary.split("\n"):
+                            lines.append(f"  {line}")
+                    else:
+                        lines.append(f"- {prop_name}: {summary}")
+            lines.append("")
+        return "\n".join(lines).strip()
+
+    if key in ["collaborators", "files", "labels", "branch_protections", "environments"]:
         return __smart_diff_formatter__(value, key_name=key.rstrip("s"))
     elif key in KEYS_TO_DATAFRAME:
         dfDict = __dict_to_dfDict__(
