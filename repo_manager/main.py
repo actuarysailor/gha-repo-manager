@@ -218,7 +218,7 @@ def main():  # noqa: C901
         actions_toolkit.set_failed(f"Unable to collect inputs {exc}")
     actions_toolkit.debug(f"Loading config from {inputs['settings_file']}")
     try:
-        config = load_config(inputs["settings_file"])
+        config = load_config(inputs["settings_file"], inputs["action"])
     except FileNotFoundError:
         actions_toolkit.set_failed(f"{inputs['settings_file']} does not exist or is not readable")
     except YAMLError as exc:
@@ -363,7 +363,7 @@ def main():  # noqa: C901
         else:
             summary = _permission_warnings_section() or "# No changes detected"
             _set_step_summary(summary)
-        actions_toolkit.set_output("result", "Check passed")
+            actions_toolkit.set_output("result", "Check passed")
         sys.exit(0)
 
     if inputs["action"] == "apply":
