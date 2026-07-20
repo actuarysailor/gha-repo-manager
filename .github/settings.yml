@@ -145,10 +145,6 @@ labels:
     description: Used by release-please to indicate a release is pending
     color: EDEDED
 
-branch_protections:
-  - name: main
-    exists: false   # Removed — replaced by rulesets below
-
 rulesets:
   - name: Protect main
     target: branch
