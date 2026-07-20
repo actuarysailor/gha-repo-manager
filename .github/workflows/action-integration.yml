@@ -8,7 +8,7 @@ on:
       action:
         description: 'Action to run (check, apply, or test)'
         required: false
-        default: ''
+        default: check
         type: choice
         options:
           - check
@@ -92,7 +92,7 @@ jobs:
 
       - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
         id: test-check-action
-        if: contains(fromJSON('["check","test"]'), matrix.action) || (github.event_name == 'workflow_dispatch' && inputs.action != '')
+        if: contains(fromJSON('["check","test"]'), matrix.action) || (github.event_name == 'workflow_dispatch' && contains(fromJSON('["check","test"]'), inputs.action))
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -100,7 +100,7 @@ jobs:
           private_key: ${{ secrets.PRIVATE_KEY }}
           target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
-          action: ${{ github.event_name == 'workflow_dispatch' && inputs.action != '' && inputs.action || 'check' }}
+          action: ${{ github.event_name == 'workflow_dispatch' && contains(fromJSON('["check","test"]'), inputs.action) && inputs.action || 'check' }}
           fail_on_diff: ${{ matrix.fail_on_diff }}
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
