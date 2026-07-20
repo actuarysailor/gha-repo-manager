@@ -92,7 +92,9 @@ jobs:
 
       - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[0] }}
         id: test-check-action
-        if: contains(fromJSON('["check","test"]'), matrix.action) || (github.event_name == 'workflow_dispatch' && contains(fromJSON('["check","test"]'), inputs.action))
+        if: >
+          (github.event_name != 'workflow_dispatch' && contains(fromJSON('["check","test"]'), matrix.action)) ||
+          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && contains(fromJSON('["check","test"]'), inputs.action))
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -100,14 +102,16 @@ jobs:
           private_key: ${{ secrets.PRIVATE_KEY }}
           target: ${{ matrix.repo }}
           settings_file: ${{ fromJSON(matrix.settings_file)[0] }}
-          action: ${{ github.event_name == 'workflow_dispatch' && contains(fromJSON('["check","test"]'), inputs.action) && inputs.action || 'check' }}
+          action: ${{ github.event_name == 'workflow_dispatch' && inputs.action || matrix.action }}
           fail_on_diff: ${{ matrix.fail_on_diff }}
         env:
           SOME_SECRET: ${{ secrets.SOME_SECRET }}
 
       - name: Applying ${{ fromJSON(matrix.settings_file)[0] }} to ${{ matrix.repo }}
         id: test-apply-action
-        if: matrix.action == 'test' || (github.event_name == 'workflow_dispatch' && contains(fromJSON('["apply","test"]'), inputs.action))
+        if: >
+          (github.event_name != 'workflow_dispatch' && matrix.action == 'test') ||
+          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && contains(fromJSON('["apply","test"]'), inputs.action))
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -121,7 +125,9 @@ jobs:
 
       - name: Applying ${{ fromJSON(matrix.settings_file)[1] }} to ${{ matrix.repo }}
         id: undo-apply-action
-        if: matrix.action == 'test'
+        if: >
+          (github.event_name != 'workflow_dispatch' && matrix.action == 'test') ||
+          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && inputs.action == 'test')
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
@@ -133,7 +139,9 @@ jobs:
 
       - name: Checking ${{ matrix.repo }} against ${{ fromJSON(matrix.settings_file)[1] }}
         id: final-check-action
-        if: matrix.action == 'test'
+        if: >
+          (github.event_name != 'workflow_dispatch' && matrix.action == 'test') ||
+          (github.event_name == 'workflow_dispatch' && matrix.repo == 'self' && inputs.action == 'test')
         uses: ./
         with:
           # token: ${{ secrets.THIS_PAT || github.token }}
