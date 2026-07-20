@@ -363,7 +363,7 @@ def main():  # noqa: C901
         else:
             summary = _permission_warnings_section() or "# No changes detected"
             _set_step_summary(summary)
-        actions_toolkit.set_output("result", "Check passed")
+            actions_toolkit.set_output("result", "Check passed")
         sys.exit(0)
 
     if inputs["action"] == "apply":
