@@ -1,5 +1,12 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [3.0.4](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.3...v3.0.4) (2026-07-20)
+
+
+### Bug Fixes
+
+* Labels already exist ([ab14901](https://github.com/actuarysailor/gha-repo-manager/commit/ab149014d8816c0486ba29792589247f8a3e8609))
+
 ## [3.0.3](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.2...v3.0.3) (2026-07-19)
 
 
