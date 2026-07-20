@@ -19,6 +19,15 @@ def _assert_not_org(target: Repository | Organization, operation: str) -> None:
         )
 
 
+def _label_exists(repo: Repository, name: str) -> bool:
+    """Returns True if a label with the given name currently exists in the repo."""
+    try:
+        repo.get_label(name)
+        return True
+    except Exception:
+        return False
+
+
 def check_repo_labels(
     repo: Repository, config_labels: list[Label]
 ) -> tuple[bool, dict[str, list[str] | dict[str, Any]]]:
@@ -163,10 +172,29 @@ def update_labels(
                         }
                     )
             elif issue_type == "diff":
+                expected_name = label_dict[label_name].expected_name
+                # When renaming a label to a name that already exists, GitHub's edit API
+                # errors with "already exists". In that case, drop the old label instead so
+                # the labels converge on the single existing target.
+                if expected_name != label_name and _label_exists(repo, expected_name):
+                    try:
+                        repo.get_label(label_name).delete()
+                        actions_toolkit.info(
+                            f"Deleted label {label_name}; rename target {expected_name} already exists"
+                        )
+                    except Exception as exc:  # this should be tighter
+                        errors.append(
+                            {
+                                "type": "label-delete",
+                                "name": label_name,
+                                "error": f"{exc}",
+                            }
+                        )
+                    continue
                 try:
                     this_label = repo.get_label(label_name)
                     this_label.edit(
-                        label_dict[label_name].expected_name,
+                        expected_name,
                         this_label.color
                         if label_dict[label_name].color_no_hash is None
                         else label_dict[label_name].color_no_hash,
