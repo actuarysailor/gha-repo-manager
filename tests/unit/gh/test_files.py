@@ -179,9 +179,7 @@ def test_overwrite_true_replaces_existing_destination(tmp_path, source_dir, kwar
     (source_dir / "ci.yml").write_text("new: workflow\n")
     repo = _init_repo(tmp_path / "target", {"ci.yml": "old: workflow\n"})
 
-    success, diffs = __check_files__(
-        repo, COMMIT_MSG, [FileConfig(src_file="ci.yml", dest_file="ci.yml", **kwargs)]
-    )
+    success, diffs = __check_files__(repo, COMMIT_MSG, [FileConfig(src_file="ci.yml", dest_file="ci.yml", **kwargs)])
 
     assert (tmp_path / "target" / "ci.yml").read_text() == "new: workflow\n"
     assert success is False
