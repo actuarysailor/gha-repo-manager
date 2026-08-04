@@ -127,6 +127,62 @@ def __skip_existing_dest__(dest_path: Path, dest_file: Path, repo: Repo, reason:
     return False
 
 
+def __merge_branch_diffs__(
+    existing: dict[str, dict[str, Any]] | None, new: dict[str, dict[str, Any]], target_branch: str
+) -> dict[str, dict[str, Any]]:
+    """Merge one file group's diff into the accumulated diff for a target branch.
+
+    Several ``BranchFiles`` entries may share a ``target_branch`` — each is its own
+    commit with its own message, but they land on one sync branch and one pull
+    request, so their diffs have to accumulate rather than replace one another.
+
+    Merging is per category (``missing`` / ``extra`` / ``diff``) and then per path.
+    A path touched by more than one group is unusual enough to warn about; its
+    numeric metrics are summed so the reported totals still match the branch.
+    """
+    if existing is None:
+        return new
+
+    for category, entries in new.items():
+        bucket = existing.setdefault(category, {})
+        for path, metrics in entries.items():
+            if path not in bucket:
+                bucket[path] = metrics
+                continue
+            actions_toolkit.warning(
+                f"{path} is touched by more than one file group targeting {target_branch}; "
+                "reporting the combined change. Check whether two groups are fighting over the same file."
+            )
+            for key, value in metrics.items():
+                current = bucket[path].get(key)
+                if isinstance(value, (int, float)) and isinstance(current, (int, float)):
+                    bucket[path][key] = current + value
+                else:
+                    bucket[path][key] = value
+
+    return existing
+
+
+def __configured_pr_title__(branches: list[BranchFiles], target_branch: str) -> str | None:
+    """Return the explicitly configured pull request title for a target branch, if any.
+
+    ``pr_title`` may be set on any of the groups sharing the branch. Returns None when
+    no group configured one, in which case the caller falls back to the branch's most
+    recent commit subject (the pre-existing behaviour) — though with several groups
+    that is whichever group happened to commit last, so an explicit title is worth
+    setting.
+    """
+    titles = [b.pr_title for b in branches if not b.skip and b.target_branch == target_branch and b.pr_title]
+    if not titles:
+        return None
+    if len(set(titles)) > 1:
+        actions_toolkit.warning(
+            f"Multiple different pr_title values were set for target branch {target_branch}: "
+            f"{sorted(set(titles))}. Using {titles[0]!r}."
+        )
+    return titles[0]
+
+
 def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, Files_TD]) -> dict[str, Files_TD]:
     """Get the file differences -- this is used to handle file moves and renames"""
 
@@ -472,6 +528,10 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
             return True, None
 
     diffs = {}
+    # Target branches whose sync branch has already been prepared during this run. Several
+    # file groups may share a target branch; the branch is set up once and each group then
+    # adds its own commit on top, so the groups share one sync branch and one pull request.
+    prepared_branches: set[str] = set()
     for branch in branches:
         if branch.skip:
             actions_toolkit.info(f"Skipping file sync to branch {branch.target_branch}")
@@ -480,29 +540,41 @@ def check_files(repo: Repository, branches: list[BranchFiles]) -> tuple[bool, di
         branch.target_branch = repo.default_branch if branch.target_branch is None else branch.target_branch
         new_branch_name = f"repomgr/updates-to-{branch.target_branch}"
 
-        # Fetch latest remote state so we can detect existing branches
-        if repo_dir.remotes:
-            repo_dir.remotes[0].fetch()
-
-        # Checkout the target base branch first (so we branch from the right place)
-        base_branch = branch.target_branch
-        if base_branch in [h.name for h in repo_dir.heads]:
-            repo_dir.git.checkout(base_branch)
-        elif f"origin/{base_branch}" in [r.name for r in repo_dir.remotes[0].refs]:
-            repo_dir.git.checkout("-b", base_branch, "--track", f"origin/{base_branch}")
-
-        # Checkout existing sync branch or create a new one from base
-        branch_existed = __checkout_or_create_branch__(repo_dir, new_branch_name, base_branch)
-        if branch_existed:
+        if branch.target_branch in prepared_branches:
+            # A previous group in this run already prepared the sync branch. Make sure we are
+            # on it, then commit this group on top with its own message.
+            repo_dir.git.checkout(new_branch_name)
             actions_toolkit.info(
-                f"Branch {new_branch_name} already exists in {repo.full_name} — "
-                "adding new commits on top of existing sync branch"
+                f"Committing file group '{branch.commit_msg}' onto {new_branch_name} "
+                "alongside the earlier group(s) for this branch"
             )
+        else:
+            # Fetch latest remote state so we can detect existing branches
+            if repo_dir.remotes:
+                repo_dir.remotes[0].fetch()
+
+            # Checkout the target base branch first (so we branch from the right place)
+            base_branch = branch.target_branch
+            if base_branch in [h.name for h in repo_dir.heads]:
+                repo_dir.git.checkout(base_branch)
+            elif f"origin/{base_branch}" in [r.name for r in repo_dir.remotes[0].refs]:
+                repo_dir.git.checkout("-b", base_branch, "--track", f"origin/{base_branch}")
+
+            # Checkout existing sync branch or create a new one from base
+            branch_existed = __checkout_or_create_branch__(repo_dir, new_branch_name, base_branch)
+            if branch_existed:
+                actions_toolkit.info(
+                    f"Branch {new_branch_name} already exists in {repo.full_name} — "
+                    "adding new commits on top of existing sync branch"
+                )
+            prepared_branches.add(branch.target_branch)
 
         # Check the files (will skip files whose source SHA is already in branch history)
         success, diff = __check_files__(repo_dir, branch.commit_msg, branch.files)
         if not success:
-            diffs[branch.target_branch] = diff
+            diffs[branch.target_branch] = __merge_branch_diffs__(
+                diffs.get(branch.target_branch), diff, branch.target_branch
+            )
 
     if len(diffs) > 0:
         return False, diffs
@@ -530,15 +602,23 @@ def update_files(
             raise NotADirectoryError(f"{repoPath} is not a directory!")
         repo_dir = Repo(repoPath)
 
+    # Target branches already pushed during this run. Several file groups may share a
+    # target branch, and they share its sync branch and pull request — so push and open
+    # or update that PR exactly once, however many groups contributed to it.
+    pushed_branches: set[str] = set()
     for branch in branches:
         if branch.skip:
             actions_toolkit.info(f"Skipping file sync to branch {branch.target_branch}")
             continue
+        if branch.target_branch in pushed_branches:
+            continue
         if branch.target_branch in set(diffs.keys()):
+            pushed_branches.add(branch.target_branch)
             diff = diffs[branch.target_branch]
             target_branch = f"repomgr/updates-to-{branch.target_branch}"
             repo_dir.git.checkout(target_branch)
-            prTitle = repo_dir.active_branch.commit.message.splitlines()[0]
+            configuredTitle = __configured_pr_title__(branches, branch.target_branch)
+            prTitle = configuredTitle or repo_dir.active_branch.commit.message.splitlines()[0]
 
             origin = repo_dir.remote()
             pushInfo = origin.push(repo_dir.active_branch.name)
@@ -564,7 +644,13 @@ def update_files(
                 )
                 if existing_prs:
                     pr = existing_prs[0]
-                    pr.edit(body=body)
+                    # Only re-apply the title when it was configured explicitly. The
+                    # commit-derived fallback changes whenever a new commit lands, and
+                    # rewriting the title of an open PR on every run is just churn.
+                    if configuredTitle:
+                        pr.edit(title=configuredTitle, body=body)
+                    else:
+                        pr.edit(body=body)
                     actions_toolkit.info(
                         f"Updated existing PR #{pr.number} for branch {target_branch} → {branch.target_branch}"
                     )

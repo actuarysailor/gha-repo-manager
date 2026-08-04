@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from repo_manager.schemas.file import FileConfig, parse_remote_path
+from repo_manager.schemas.file import BranchFiles, FileConfig, parse_remote_path
 
 
 VALID_CONFIG = {
@@ -76,6 +76,11 @@ def test_example_works():
     assert len(example_data["batch_file_operations"]) > 0
     for file_config_dict in example_data["batch_file_operations"][0]["files"]:
         FileConfig(**file_config_dict)
+
+    # Validate every batch, not just the first, so the example's grouping stays correct.
+    batches = [BranchFiles(**batch) for batch in example_data["batch_file_operations"]]
+    # The example demonstrates two groups sharing one target branch.
+    assert [b.target_branch for b in batches].count("main") > 1
 
 
 # ---------------------------------------------------------------------------
