@@ -4,6 +4,7 @@ from typing import Optional, Self
 
 from pydantic import (
     BaseModel,  # pylint: disable=E0611
+    ConfigDict,
     ValidationInfo,
     Field,
     field_validator,
@@ -72,6 +73,10 @@ def parse_remote_path(value: str) -> Path:
 
 
 class FileConfig(BaseModel):
+    # Unknown keys are rejected rather than ignored: a silently-dropped safety flag
+    # (e.g. a typo'd "overwite: false") would degrade to a destructive copy.
+    model_config = ConfigDict(extra="forbid")
+
     exists: OptBool = Field(True, description="Set to false to delete dest_file")
     remote_src: OptBool = Field(False, description="If true, src_file is a remote file")
     src_file: OptPath = Field(
@@ -86,6 +91,12 @@ class FileConfig(BaseModel):
         False,
         description="If true and dealing with a remote src_file, repo_manager will move the file instead of "
         + "copying it, by removing src_file after copy. If src_file is a local file, this option is ignored.",
+    )
+    overwrite: OptBool = Field(
+        True,
+        description="If true (default), dest_file is replaced with src_file whenever the source has changed. "
+        + "Set to false to seed dest_file only when it is absent in the target repo; an existing dest_file is "
+        + "then left untouched regardless of its contents, and never receives later upstream updates.",
     )
 
     @field_validator("src_file", mode="before")
@@ -108,6 +119,18 @@ class FileConfig(BaseModel):
             raise ValueError("Move requires dest_file to be set")
         if self.exists is False and self.src_file is None and self.dest_file is None:
             raise ValueError("dest_file is required when exists is false and src_file is omitted")
+        if self.overwrite is False and self.exists is False:
+            raise ValueError(
+                "overwrite: false is meaningless with exists: false — "
+                "exists: false deletes dest_file, so there is nothing to seed. "
+                "Drop one of the two options."
+            )
+        if self.overwrite is False and self.move is True:
+            raise ValueError(
+                "overwrite: false cannot be combined with move: true — a skipped move would leave src_file "
+                "in place and copy nothing, so the entry would silently do nothing. Remote moves already skip "
+                "when dest_file exists, so overwrite: false adds no protection there."
+            )
         if self.dest_file is None:
             self.dest_file = self.src_file
         return self
