@@ -73,6 +73,60 @@ def _select_repo_delete_target(repo_root: Path, file_config: FileConfig) -> Path
     return None
 
 
+def __repo_slug__(repo: Repo) -> str:
+    """Best-effort ``owner/name`` slug for log messages.
+
+    ``__check_files__`` only receives a git :class:`~git.Repo`, not the PyGithub
+    ``Repository``, so the slug is derived from the origin remote URL and falls
+    back to the working-tree directory name.
+
+    The remote URL set by :func:`__clone_repo__` embeds ``username:token``
+    credentials, so the userinfo component is dropped before anything is returned —
+    this value goes straight into the run log.
+    """
+    fallback = Path(repo.working_tree_dir).name
+    try:
+        url = repo.remotes[0].url
+    except Exception:  # pragma: no cover - defensive; logging must never fail a run
+        return fallback
+
+    url = url.removesuffix(".git")
+    if "://" in url:
+        # scheme://[user[:token]@]host/owner/name
+        authority = url.split("://", 1)[1]
+        host_and_path = authority.rsplit("@", 1)[-1]  # drop any credentials
+        path = host_and_path.split("/", 1)[1] if "/" in host_and_path else ""
+    else:
+        # scp-style: [user@]host:owner/name
+        host_and_path = url.rsplit("@", 1)[-1]
+        path = host_and_path.split(":", 1)[1] if ":" in host_and_path else ""
+
+    return path.strip("/") or fallback
+
+
+def __skip_existing_dest__(dest_path: Path, dest_file: Path, repo: Repo, reason: str, *, verbose: bool = False) -> bool:
+    """Return True — logging one line per decision — if ``dest_path`` already exists.
+
+    Single source of truth for "leave the destination alone because it is already
+    there", shared by the ``remote_src`` move/copy phase and the content-sync
+    phase.  The two callers differ only in *why* they decline to touch an
+    existing destination (passed in as ``reason``) and in how loudly they say so:
+
+    * ``verbose=True`` for an explicit ``overwrite: false`` policy — a user-facing
+      decision that belongs in the run log.
+    * ``verbose=False`` for the ``remote_src`` idempotency guard, which fires
+      routinely when a sync branch is re-used and stays at debug level.
+    """
+    slug = __repo_slug__(repo)
+    if dest_path.exists():
+        log = actions_toolkit.info if verbose else actions_toolkit.debug
+        log(f"⏭️  {str(dest_file)} — present in {slug}, skipping ({reason})")
+        return True
+    if verbose:
+        actions_toolkit.info(f"🌱 {str(dest_file)} — absent in {slug}, seeding")
+    return False
+
+
 def __aggregate_renamed_git_diff__(pathMap: dict[str, str], diff: dict[str, Files_TD]) -> dict[str, Files_TD]:
     """Get the file differences -- this is used to handle file moves and renames"""
 
@@ -244,23 +298,18 @@ def __check_files__(
             newPath = _safe_path(repo_root, file_config.dest_file)
             if not oldPath.exists():
                 raise FileNotFoundError(f"File {file_config.src_file} does not exist in target repo")  # {repo}
-            if file_config.move and newPath.exists():
+            if file_config.move and __skip_existing_dest__(
+                newPath, file_config.dest_file, repo, "move already applied on this branch"
+            ):
                 # The move was already applied in a prior sync run on this branch — skip it
-                actions_toolkit.debug(
-                    f"Skipping move of {file_config.src_file} → {file_config.dest_file}: "
-                    "destination already exists (already applied on this branch)"
-                )
                 continue
             if oldPath == newPath:
                 continue  # Nothing to do
             if oldPath.exists():
                 if not file_config.move:
-                    if newPath.exists():
-                        # Copy was already applied on this branch — will be re-evaluated in content-sync phase
-                        actions_toolkit.debug(
-                            f"Skipping copy of {file_config.src_file} → {file_config.dest_file}: "
-                            "destination already exists (already applied on this branch)"
-                        )
+                    if __skip_existing_dest__(
+                        newPath, file_config.dest_file, repo, "copy already applied on this branch"
+                    ):
                         continue
                     missing[str(file_config.dest_file)] = {"insertions": 0, "deletions": 0, "lines": 0}
                     newPath.parent.mkdir(parents=True, exist_ok=True)  # Create the directory if it does not exist
@@ -318,14 +367,25 @@ def __check_files__(
             srcPath = Path(github_workspace) / srcPath
         destPath = _safe_path(repo_root, file_config.dest_file)
 
-        # Check if this source file's current commit SHA has already been synced into
-        # this branch's history — if so, skip it (already up to date from source).
         source_sha = __get_source_file_sha__(srcPath)
-        if source_sha and __has_source_sha_in_history__(repo, repo.active_branch.name, source_sha):
-            actions_toolkit.debug(
-                f"Skipping {str(srcPath)} — source SHA {source_sha[:12]} already present in branch history"
-            )
-            continue
+
+        if not file_config.overwrite:
+            # Copy-once ("seed") files are decided on destination existence alone — no
+            # diff, no merge, no content comparison, and deliberately no consultation of
+            # the source-SHA history. A source SHA identifies a *commit*, not a file, so
+            # two files committed together share one SHA; letting the history check run
+            # here would allow a sibling file's marker to suppress a seed that has never
+            # actually been written. Existence is the whole rule.
+            if __skip_existing_dest__(destPath, file_config.dest_file, repo, "overwrite: false", verbose=True):
+                continue
+        else:
+            # Check if this source file's current commit SHA has already been synced into
+            # this branch's history — if so, skip it (already up to date from source).
+            if source_sha and __has_source_sha_in_history__(repo, repo.active_branch.name, source_sha):
+                actions_toolkit.debug(
+                    f"Skipping {str(srcPath)} — source SHA {source_sha[:12]} already present in branch history"
+                )
+                continue
 
         if source_sha:
             source_shas.append(source_sha)

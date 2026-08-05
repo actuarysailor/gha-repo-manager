@@ -31,6 +31,7 @@ Manage all Github repo settings from a YAML file, enabling greater change contro
   - [Variables](#variables)
   - [Environments](#environments)
   - [File Sync (`batch_file_operations`)](#file-sync-batch_file_operations)
+    - [Managed vs seeded files](#managed-vs-seeded-files)
 - [Usage Patterns](#usage-patterns)
   - [Self-managed (single repo)](#self-managed-single-repo)
   - [Centralized governance (many repos)](#centralized-governance-many-repos)
@@ -449,6 +450,8 @@ Copies, moves, renames, or deletes files in a target repo. Changes are committed
 - File operations within a batch are applied in order.
 - **Idempotent** — if a source file's git commit SHA has already been synced into the destination branch's history (tracked via a `[synced-from-sha:<sha>]` marker in commit messages), that file is skipped automatically on re-run.
 - If the sync branch already exists (e.g. a prior PR is still open), new commits are added on top and the PR description is updated — no duplicate PRs are created.
+- `overwrite: false` seeds a file only when it is absent in the target repo. See [Managed vs seeded files](#managed-vs-seeded-files).
+- Unknown keys in a `files:` entry are rejected with a validation error, so typos cannot silently disable an option.
 
 ```yaml
 batch_file_operations:
@@ -469,10 +472,51 @@ batch_file_operations:
         dest_file: NEW_PATH/file.txt
         move: true
 
+      # Seed a starter file only if the target repo does not already have one
+      - src_file: templates/CLAUDE.md
+        dest_file: CLAUDE.md
+        overwrite: false
+
       # Delete a file from the target repo
       - src_file: remote://OLDDOC.md
         exists: false
 ```
+
+**File options:**
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `src_file` | — | Path in the local (runner) repo, or `remote://<path>` for a path in the target repo. Required unless `exists: false`. |
+| `dest_file` | `src_file` | Path in the target repo. |
+| `exists` | `true` | Set to `false` to delete `dest_file` from the target repo. |
+| `move` | `false` | For `remote://` sources, remove `src_file` after the copy. Ignored for local sources. |
+| `overwrite` | `true` | Set to `false` to copy only when `dest_file` is absent in the target repo. |
+
+#### Managed vs seeded files
+
+`overwrite` distinguishes two genuinely different distribution intents:
+
+**Managed files** (`overwrite: true`, the default) are meant to be *identical everywhere*. The action re-copies them whenever the source changes, so an edit in the target repo is replaced on the next sync. Use this for files whose whole purpose is to enforce a standard — shared workflows, linter configs, license headers, `CODEOWNERS`.
+
+**Seeded files** (`overwrite: false`) are *per-repo starting points*. The action writes the file once, when it is absent, and thereafter leaves it alone regardless of its contents. Ownership transfers to the consuming team on first sync. Use this for files each repo necessarily diverges from — a `CLAUDE.md` starter contract each repo extends, or a config carrying that repo's own name, owners, and deployment targets.
+
+```yaml
+batch_file_operations:
+  - target_branch: main
+    commit_msg: 'ci(standards): Seed starter files'
+    files:
+      - src_file: templates/CLAUDE.md
+        dest_file: CLAUDE.md
+        overwrite: false        # seed only; never replace an existing file
+```
+
+**The trade-off is explicit and is the point of the flag: seeded files do not receive later upstream updates.** Once a target repo has the file, improvements to your template will never reach it. There is no diffing, merging, or three-way reconciliation — existence alone decides. If you need upstream changes to propagate, the file is a managed file, not a seeded one.
+
+Notes:
+
+- A seeded file that is already present is the **intended steady state**. With `action: check` it is not reported as `missing`, `extra`, or `diff`; it does not fail the run, and it produces no sync branch or pull request. If every entry in a `files:` block is skipped, nothing is committed and no PR is opened.
+- `overwrite: false` does **not** consult the `[synced-from-sha:<sha>]` history. A source SHA identifies a commit rather than a single file, so files committed together share one marker; gating on history could suppress a seed that had never actually been written. Existence in the target repo is the entire rule.
+- `overwrite: false` cannot be combined with `exists: false` (nothing to seed if the file is being deleted) or with `move: true` (a skipped move would leave the source in place and copy nothing). Both combinations fail validation.
 
 ---
 

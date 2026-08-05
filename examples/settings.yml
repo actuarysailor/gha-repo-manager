@@ -244,7 +244,11 @@ batch_file_operations:
         move: true
       # Copy the readme from the local repo (e.g. the one where the action is running) to the remote repo
       - src_file: README.md
-        commit_msg: update issue template
+      # Seed a starter file only if the target repo does not already have one. If CONTRIBUTING.md
+      # exists there, it is left untouched -- and will not receive later upstream updates.
+      - src_file: CONTRIBUTING.md
+        dest_file: CONTRIBUTING.md
+        overwrite: false
       # This removes OLDDOC.md in the target repo. If OLDDOC.md doesn't exist, the workflow will emit a warning.
       - src_file: OLDDOC.md
         exists: false
