@@ -66,6 +66,5 @@ batch_file_operations:
         dest_file: README.rst
         move: true
       - src_file: README.md
-        commit_msg: update issue template
       - src_file: OLDDOC.md
         exists: false

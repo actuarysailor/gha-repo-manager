@@ -173,7 +173,11 @@ Grant only the permissions you need for the features you use:
 | name | description |
 | --- | --- |
 | `result` | <p>Result of the action</p> |
+| `result_code` | <p>Machine-readable status code. Values: validate<em>passed, check</em>passed, check<em>diff, check</em>failed<em>diff, check</em>failed, apply<em>passed, apply</em>failed</p> |
 | `diff` | <p>Diff of this action, dumped to a json string</p> |
+| `diff_detected` | <p>For check action only: true when diffs are detected, otherwise false</p> |
+| `warning_count` | <p>Total number of warning messages emitted by the action</p> |
+| `permission_warning_count` | <p>Number of permission-related warnings emitted by the action</p> |
 <!-- action-docs-outputs source="action.yml" -->
 
 <!-- action-docs-runs source="action.yml" -->
