@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Determine version to promote
         id: version
@@ -45,7 +45,7 @@ jobs:
           mv .github/.release-please-manifest.json.tmp .github/.release-please-manifest.json
 
       - name: Create pull request to promote RC
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: promote ${{ steps.version.outputs.current_version }} to ${{ steps.version.outputs.final_version }}"
