@@ -151,15 +151,24 @@ class FileConfig(BaseModel):
 
 
 class BranchFiles(BaseModel):
-    # Commit messages and target branches should be set for the set of files, not individually
+    # Commit messages and target branches should be set for the set of files, not individually.
+    # Several BranchFiles entries may share one target_branch: each becomes its own commit,
+    # with its own commit_msg, on that branch's single sync branch and pull request.
     commit_msg: str = Field(
         "chore: Updates from repo_manager",
-        description="Commit message to commit the file(s) with.",
+        description="Commit message to commit the file(s) with. Each entry sharing a target_branch "
+        + "produces a separate commit with its own message, so file groups stay individually described.",
     )
     target_branch: OptStr = Field(
         None,
         description="Target branch to commit this file to. Default(None) "
         + "means to lookup the default branch of the repo",
+    )
+    pr_title: OptStr = Field(
+        None,
+        description="Title for the pull request opened against target_branch, and therefore the "
+        + "merge/squash commit message. Defaults to the first line of the most recent commit on the "
+        + "sync branch. When several entries share a target_branch, set this on one of them.",
     )
     skip: bool = Field(
         False,

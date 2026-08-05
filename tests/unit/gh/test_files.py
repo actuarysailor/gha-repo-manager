@@ -10,7 +10,7 @@ import pytest
 from git import Repo
 
 from repo_manager.gh import files as files_module
-from repo_manager.gh.files import _SYNC_SHA_MARKER, __check_files__, update_files
+from repo_manager.gh.files import _SYNC_SHA_MARKER, __check_files__, check_files, update_files
 from repo_manager.schemas.file import BranchFiles, FileConfig
 
 
@@ -247,6 +247,333 @@ def test_no_push_or_pr_when_branch_absent_from_diffs(tmp_path, monkeypatch):
     assert messages == []
     gh_repo.create_pull.assert_not_called()
     gh_repo.get_pulls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Grouping: several file groups sharing one target branch
+# ---------------------------------------------------------------------------
+
+
+def _self_mode_inputs(monkeypatch, workspace, target_dir):
+    """Point check_files/update_files at a local repo via the repo: self path."""
+    monkeypatch.setattr(
+        files_module,
+        "get_inputs",
+        lambda: {
+            "repo": "self",
+            "workspace_path": str(workspace),
+            "github_server_url": "https://github.com",
+        },
+    )
+    monkeypatch.chdir(target_dir)
+
+
+def _gh_repo(default_branch="main"):
+    gh_repo = MagicMock()
+    gh_repo.name = "target"
+    gh_repo.full_name = "org/target"
+    gh_repo.default_branch = default_branch
+    gh_repo.owner.login = "org"
+    gh_repo.get_pulls.return_value = []
+    gh_repo.create_pull.return_value = MagicMock(number=7, html_url="https://github.com/org/target/pull/7")
+    return gh_repo
+
+
+def test_groups_sharing_target_branch_each_get_own_commit(tmp_path, monkeypatch):
+    """Two groups on one branch produce two commits, each with its own message."""
+    source = tmp_path / "hub"
+    source.mkdir()
+    (source / "CLAUDE.md").write_text("contract\n")
+    (source / "ci.yml").write_text("workflow\n")
+    monkeypatch.setenv("GITHUB_WORKSPACE", str(source))
+
+    target = tmp_path / "target"
+    repo = _init_repo(target)
+    _self_mode_inputs(monkeypatch, tmp_path, target)
+
+    success, diffs = check_files(
+        _gh_repo(),
+        [
+            BranchFiles(
+                target_branch="main",
+                commit_msg="ci(standards): Seed starter files",
+                files=[FileConfig(src_file="CLAUDE.md")],
+            ),
+            BranchFiles(
+                target_branch="main",
+                commit_msg="chore(workflows): Sync shared CI",
+                files=[FileConfig(src_file="ci.yml")],
+            ),
+        ],
+    )
+
+    assert repo.active_branch.name == "repomgr/updates-to-main"
+    subjects = [c.message.splitlines()[0] for c in repo.iter_commits("repomgr/updates-to-main")]
+    assert any("Seed starter files" in s for s in subjects)
+    assert any("Sync shared CI" in s for s in subjects)
+    # Each group is its own commit -- neither message absorbs the other's files.
+    seed_commit = next(c for c in repo.iter_commits() if "Seed starter files" in c.message)
+    ci_commit = next(c for c in repo.iter_commits() if "Sync shared CI" in c.message)
+    assert set(seed_commit.stats.files) == {"CLAUDE.md"}
+    assert set(ci_commit.stats.files) == {"ci.yml"}
+
+    assert success is False
+    assert (target / "CLAUDE.md").exists()
+    assert (target / "ci.yml").exists()
+
+
+def test_group_diffs_are_merged_not_overwritten(tmp_path, monkeypatch):
+    """Both groups' files must appear in the single target branch's diff."""
+    source = tmp_path / "hub"
+    source.mkdir()
+    (source / "CLAUDE.md").write_text("contract\n")
+    (source / "ci.yml").write_text("workflow\n")
+    monkeypatch.setenv("GITHUB_WORKSPACE", str(source))
+
+    target = tmp_path / "target"
+    _init_repo(target)
+    _self_mode_inputs(monkeypatch, tmp_path, target)
+
+    _, diffs = check_files(
+        _gh_repo(),
+        [
+            BranchFiles(target_branch="main", commit_msg="ci(a): one", files=[FileConfig(src_file="CLAUDE.md")]),
+            BranchFiles(target_branch="main", commit_msg="ci(b): two", files=[FileConfig(src_file="ci.yml")]),
+        ],
+    )
+
+    assert set(diffs.keys()) == {"main"}
+    assert "CLAUDE.md" in diffs["main"]["missing"]
+    assert "ci.yml" in diffs["main"]["missing"], "the first group's diff must not be overwritten"
+
+
+def test_groups_targeting_different_branches_stay_separate(tmp_path, monkeypatch):
+    """Regression guard: distinct target branches still get distinct entries."""
+    source = tmp_path / "hub"
+    source.mkdir()
+    (source / "CLAUDE.md").write_text("contract\n")
+    (source / "ci.yml").write_text("workflow\n")
+    monkeypatch.setenv("GITHUB_WORKSPACE", str(source))
+
+    target = tmp_path / "target"
+    repo = _init_repo(target)
+    repo.create_head("develop", repo.heads.main.commit)
+    _self_mode_inputs(monkeypatch, tmp_path, target)
+
+    _, diffs = check_files(
+        _gh_repo(),
+        [
+            BranchFiles(target_branch="main", commit_msg="ci(a): one", files=[FileConfig(src_file="CLAUDE.md")]),
+            BranchFiles(target_branch="develop", commit_msg="ci(b): two", files=[FileConfig(src_file="ci.yml")]),
+        ],
+    )
+
+    assert set(diffs.keys()) == {"main", "develop"}
+    assert "CLAUDE.md" in diffs["main"]["missing"]
+    assert "ci.yml" in diffs["develop"]["missing"]
+
+
+def test_skipped_group_does_not_contribute(tmp_path, monkeypatch):
+    source = tmp_path / "hub"
+    source.mkdir()
+    (source / "CLAUDE.md").write_text("contract\n")
+    (source / "ci.yml").write_text("workflow\n")
+    monkeypatch.setenv("GITHUB_WORKSPACE", str(source))
+
+    target = tmp_path / "target"
+    _init_repo(target)
+    _self_mode_inputs(monkeypatch, tmp_path, target)
+
+    _, diffs = check_files(
+        _gh_repo(),
+        [
+            BranchFiles(target_branch="main", commit_msg="ci(a): one", files=[FileConfig(src_file="CLAUDE.md")]),
+            BranchFiles(
+                target_branch="main", commit_msg="ci(b): two", skip=True, files=[FileConfig(src_file="ci.yml")]
+            ),
+        ],
+    )
+
+    assert "CLAUDE.md" in diffs["main"]["missing"]
+    assert "ci.yml" not in diffs["main"].get("missing", {})
+    assert not (target / "ci.yml").exists()
+
+
+def test_merge_branch_diffs_sums_metrics_for_shared_path():
+    """A path touched by two groups reports the combined change."""
+    existing = {"diff": {"shared.md": {"insertions": 2, "deletions": 1, "lines": 3}}}
+    merged = files_module.__merge_branch_diffs__(
+        existing, {"diff": {"shared.md": {"insertions": 5, "deletions": 0, "lines": 5}}}, "main"
+    )
+    assert merged["diff"]["shared.md"] == {"insertions": 7, "deletions": 1, "lines": 8}
+
+
+def test_merge_branch_diffs_returns_new_when_no_existing():
+    new = {"missing": {"a.md": {"insertions": 1, "deletions": 0, "lines": 1}}}
+    assert files_module.__merge_branch_diffs__(None, new, "main") is new
+
+
+# ---------------------------------------------------------------------------
+# Grouping: one push and one PR per target branch
+# ---------------------------------------------------------------------------
+
+
+def _workspace_with_sync_branch(tmp_path, files=None):
+    """A workspace clone sitting on a sync branch, with a pushable bare origin."""
+    origin = tmp_path / "origin.git"
+    Repo.init(origin, bare=True, initial_branch="main")
+
+    work = tmp_path / "ws" / "target"
+    repo = _init_repo(work, files)
+    repo.create_remote("origin", str(origin))
+    repo.remotes.origin.push("main")
+    repo.create_head("repomgr/updates-to-main").checkout()
+    (work / "CLAUDE.md").write_text("seeded\n")
+    repo.git.add("-A")
+    repo.index.commit("ci(standards-update): Seed starter files")
+    return tmp_path / "ws", repo
+
+
+def test_update_files_opens_one_pr_for_multiple_groups(tmp_path, monkeypatch):
+    workspace, _ = _workspace_with_sync_branch(tmp_path)
+    monkeypatch.setattr(
+        files_module,
+        "get_inputs",
+        lambda: {
+            "repo": "org/target",
+            "workspace_path": str(workspace),
+            "github_server_url": "https://github.com",
+        },
+    )
+    gh_repo = _gh_repo()
+    diffs = {"main": {"missing": {"CLAUDE.md": {"insertions": 1, "deletions": 0, "lines": 1}}}}
+
+    errors, messages = update_files(
+        gh_repo,
+        [
+            BranchFiles(target_branch="main", commit_msg="ci(standards): Seed starter files"),
+            BranchFiles(target_branch="main", commit_msg="chore(workflows): Sync shared CI"),
+        ],
+        diffs,
+    )
+
+    assert errors == []
+    # Two groups, one shared sync branch -> exactly one PR and one summary line.
+    assert gh_repo.create_pull.call_count == 1
+    assert len(messages) == 1
+
+
+def test_pr_title_uses_configured_value(tmp_path, monkeypatch):
+    workspace, _ = _workspace_with_sync_branch(tmp_path)
+    monkeypatch.setattr(
+        files_module,
+        "get_inputs",
+        lambda: {
+            "repo": "org/target",
+            "workspace_path": str(workspace),
+            "github_server_url": "https://github.com",
+        },
+    )
+    gh_repo = _gh_repo()
+    diffs = {"main": {"missing": {"CLAUDE.md": {"insertions": 1, "deletions": 0, "lines": 1}}}}
+
+    update_files(
+        gh_repo,
+        [
+            BranchFiles(target_branch="main", commit_msg="ci(a): one", pr_title="chore(sync): Apply org standards"),
+            BranchFiles(target_branch="main", commit_msg="ci(b): two"),
+        ],
+        diffs,
+    )
+
+    assert gh_repo.create_pull.call_args.kwargs["title"] == "chore(sync): Apply org standards"
+
+
+def test_pr_title_falls_back_to_latest_commit_subject(tmp_path, monkeypatch):
+    workspace, _ = _workspace_with_sync_branch(tmp_path)
+    monkeypatch.setattr(
+        files_module,
+        "get_inputs",
+        lambda: {
+            "repo": "org/target",
+            "workspace_path": str(workspace),
+            "github_server_url": "https://github.com",
+        },
+    )
+    gh_repo = _gh_repo()
+    diffs = {"main": {"missing": {"CLAUDE.md": {"insertions": 1, "deletions": 0, "lines": 1}}}}
+
+    update_files(gh_repo, [BranchFiles(target_branch="main", commit_msg="ci(a): one")], diffs)
+
+    assert gh_repo.create_pull.call_args.kwargs["title"] == "ci(standards-update): Seed starter files"
+
+
+def test_existing_pr_title_only_rewritten_when_configured(tmp_path, monkeypatch):
+    """An unconfigured title must not churn an open PR's title on every run."""
+    workspace, _ = _workspace_with_sync_branch(tmp_path)
+    monkeypatch.setattr(
+        files_module,
+        "get_inputs",
+        lambda: {
+            "repo": "org/target",
+            "workspace_path": str(workspace),
+            "github_server_url": "https://github.com",
+        },
+    )
+    existing_pr = MagicMock(number=3, html_url="https://github.com/org/target/pull/3")
+    gh_repo = _gh_repo()
+    gh_repo.get_pulls.return_value = [existing_pr]
+    diffs = {"main": {"missing": {"CLAUDE.md": {"insertions": 1, "deletions": 0, "lines": 1}}}}
+
+    update_files(gh_repo, [BranchFiles(target_branch="main", commit_msg="ci(a): one")], diffs)
+
+    assert "title" not in existing_pr.edit.call_args.kwargs
+
+
+def test_existing_pr_title_updated_when_configured(tmp_path, monkeypatch):
+    workspace, _ = _workspace_with_sync_branch(tmp_path)
+    monkeypatch.setattr(
+        files_module,
+        "get_inputs",
+        lambda: {
+            "repo": "org/target",
+            "workspace_path": str(workspace),
+            "github_server_url": "https://github.com",
+        },
+    )
+    existing_pr = MagicMock(number=3, html_url="https://github.com/org/target/pull/3")
+    gh_repo = _gh_repo()
+    gh_repo.get_pulls.return_value = [existing_pr]
+    diffs = {"main": {"missing": {"CLAUDE.md": {"insertions": 1, "deletions": 0, "lines": 1}}}}
+
+    update_files(
+        gh_repo,
+        [BranchFiles(target_branch="main", commit_msg="ci(a): one", pr_title="chore(sync): Apply org standards")],
+        diffs,
+    )
+
+    assert existing_pr.edit.call_args.kwargs["title"] == "chore(sync): Apply org standards"
+
+
+def test_configured_pr_title_conflict_warns_and_takes_first(capsys):
+    branches = [
+        BranchFiles(target_branch="main", pr_title="first title"),
+        BranchFiles(target_branch="main", pr_title="second title"),
+    ]
+    assert files_module.__configured_pr_title__(branches, "main") == "first title"
+    out = capsys.readouterr().out
+    assert "::warning::" in out
+    assert "second title" in out
+
+
+def test_configured_pr_title_ignores_skipped_and_other_branches():
+    branches = [
+        BranchFiles(target_branch="main", skip=True, pr_title="skipped title"),
+        BranchFiles(target_branch="develop", pr_title="other branch title"),
+        BranchFiles(target_branch="main", pr_title="wanted title"),
+    ]
+    assert files_module.__configured_pr_title__(branches, "main") == "wanted title"
+    assert files_module.__configured_pr_title__(branches, "release") is None
 
 
 # ---------------------------------------------------------------------------

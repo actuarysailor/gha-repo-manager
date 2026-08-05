@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from repo_manager.schemas.file import FileConfig, parse_remote_path
+from repo_manager.schemas.file import BranchFiles, FileConfig, parse_remote_path
 
 
 VALID_CONFIG = {
@@ -77,6 +77,11 @@ def test_example_works():
     for file_config_dict in example_data["batch_file_operations"][0]["files"]:
         FileConfig(**file_config_dict)
 
+    # Validate every batch, not just the first, so the example's grouping stays correct.
+    batches = [BranchFiles(**batch) for batch in example_data["batch_file_operations"]]
+    # The example demonstrates two groups sharing one target branch.
+    assert [b.target_branch for b in batches].count("main") > 1
+
 
 # ---------------------------------------------------------------------------
 # overwrite / copy-once – unit tests
@@ -125,14 +130,14 @@ def test_overwrite_false_with_move_true_rejected():
 
 def test_overwrite_false_with_move_false_is_fine():
     """The move guard must not reject the ordinary copy-once case."""
-    cfg = FileConfig(src_file="templates/CLAUDE.md", dest_file="CLAUDE.md", overwrite=False)
+    cfg = FileConfig(src_file="CONTRIBUTING.md", dest_file="CONTRIBUTING.md", overwrite=False)
     assert cfg.overwrite is False
     assert cfg.move is False
 
 
 def test_overwrite_false_permitted_on_remote_copy():
     """remote:// copies (not moves) may still be declared copy-once."""
-    cfg = FileConfig(src_file="remote://templates/CLAUDE.md", dest_file="CLAUDE.md", overwrite=False)
+    cfg = FileConfig(src_file="remote://CONTRIBUTING.md", dest_file="CONTRIBUTING.md", overwrite=False)
     assert cfg.remote_src is True
     assert cfg.overwrite is False
 

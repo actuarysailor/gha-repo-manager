@@ -31,6 +31,7 @@ Manage all Github repo settings from a YAML file, enabling greater change contro
   - [Variables](#variables)
   - [Environments](#environments)
   - [File Sync (`batch_file_operations`)](#file-sync-batch_file_operations)
+    - [Grouping files with their own commit messages](#grouping-files-with-their-own-commit-messages)
     - [Managed vs seeded files](#managed-vs-seeded-files)
 - [Usage Patterns](#usage-patterns)
   - [Self-managed (single repo)](#self-managed-single-repo)
@@ -451,6 +452,7 @@ Copies, moves, renames, or deletes files in a target repo. Changes are committed
 - **Idempotent** — if a source file's git commit SHA has already been synced into the destination branch's history (tracked via a `[synced-from-sha:<sha>]` marker in commit messages), that file is skipped automatically on re-run.
 - If the sync branch already exists (e.g. a prior PR is still open), new commits are added on top and the PR description is updated — no duplicate PRs are created.
 - `overwrite: false` seeds a file only when it is absent in the target repo. See [Managed vs seeded files](#managed-vs-seeded-files).
+- Several batches may share a `target_branch`, each committing its own group of files with its own message into one shared PR. See [Grouping files](#grouping-files-with-their-own-commit-messages).
 - Unknown keys in a `files:` entry are rejected with a validation error, so typos cannot silently disable an option.
 
 ```yaml
@@ -481,6 +483,55 @@ batch_file_operations:
       - src_file: remote://OLDDOC.md
         exists: false
 ```
+
+**Batch options:**
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `target_branch` | repo default branch | Branch in the target repo to open a PR against. |
+| `commit_msg` | `chore: Updates from repo_manager` | Commit message for this group of files. |
+| `pr_title` | first line of the newest commit | Title of the pull request, and therefore the squash/merge commit message. |
+| `skip` | `false` | Set to `true` to skip this batch entirely. |
+| `files` | `[]` | The files in this group. |
+
+#### Grouping files with their own commit messages
+
+`batch_file_operations` is a list, and **several entries may share a `target_branch`**. Each entry is a separate group with its own `commit_msg`, and they all land on that branch's single `repomgr/updates-to-<target-branch>` branch and single pull request:
+
+```yaml
+batch_file_operations:
+  - target_branch: main
+    commit_msg: 'ci(standards): Seed starter files'
+    pr_title: 'chore(sync): Apply org standards'
+    files:
+      - src_file: templates/CLAUDE.md
+        dest_file: CLAUDE.md
+        overwrite: false
+
+  - target_branch: main
+    commit_msg: 'chore(workflows): Sync shared CI'
+    files:
+      - src_file: .github/workflows/ci.yml
+```
+
+produces one branch and one PR containing two commits:
+
+```text
+repomgr/updates-to-main
+  chore(workflows-update): Sync shared CI
+  ci(standards-update): Seed starter files
+```
+
+This keeps unrelated changes individually described in history — a reviewer can see which commit seeded standards and which synced workflows — while still reviewing and merging them together.
+
+Notes:
+
+- The PR body reports every group's changes; groups do not overwrite one another.
+- Push and PR creation happen **once per target branch**, however many groups contribute.
+- `pr_title` may be set on any one of the groups sharing a branch. If several set different titles, the first wins and a warning is logged. Without it the title falls back to the newest commit's subject, which with multiple groups is whichever group committed last — so setting it explicitly is worth it.
+- An explicitly configured `pr_title` is re-applied to an already-open PR. The commit-derived fallback is not, to avoid rewriting an open PR's title on every run.
+- Groups are applied in the order listed. If two groups write the same `dest_file` on the same branch, the later one wins and a warning is logged.
+- To give a group its own branch and PR instead, give it a different `target_branch`.
 
 **File options:**
 

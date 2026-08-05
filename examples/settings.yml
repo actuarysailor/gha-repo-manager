@@ -234,14 +234,23 @@ variables:
 batch_file_operations:
   - target_branch: main
     skip: false
-    # You should follow Conventional Commits for commit messages - not required but recommended
-    commit_msg: "chore(docs): Update README"
+    # First batch: perform remote cleanup/rename before copying local files.
+    commit_msg: "chore(docs): Rename README and remove old docs"
     files:
       # This moves README.md to README.rst in the remote (e.g. the repo specified in action input).
       # If README.md doesn't exist, the workflow will fail because without it, there is no file to move so this operation should be omitted
       - src_file: remote://README.md
         dest_file: README.rst
         move: true
+      # This removes OLDDOC.md in the target repo. If OLDDOC.md doesn't exist, the workflow will emit a warning.
+      - src_file: OLDDOC.md
+        exists: false
+
+  - target_branch: main
+    # Second batch: copy local content after remote rename/delete operations are done.
+    commit_msg: "chore(docs): Sync README and seed contributing guide"
+    pr_title: "chore(sync): Apply org standards"
+    files:
       # Copy the readme from the local repo (e.g. the one where the action is running) to the remote repo
       - src_file: README.md
       # Seed a starter file only if the target repo does not already have one. If CONTRIBUTING.md
@@ -249,6 +258,3 @@ batch_file_operations:
       - src_file: CONTRIBUTING.md
         dest_file: CONTRIBUTING.md
         overwrite: false
-      # This removes OLDDOC.md in the target repo. If OLDDOC.md doesn't exist, the workflow will emit a warning.
-      - src_file: OLDDOC.md
-        exists: false
