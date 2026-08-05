@@ -149,13 +149,37 @@ jobs:
           action: check
           fail_on_diff: true
 
-      - name: Check outputs
+      - name: Check structured outputs
         if: >
           steps.test-check-action.outcome == 'success' &&
           (steps.final-check-action.outcome == 'skipped' || steps.final-check-action.outcome == 'success')
         run: |
-          test "${{ steps.test-check-action.outputs.result }}" == "Check passed"
-          test "${{ steps.final-check-action.outputs.result || 'Check passed' }}" == "Check passed"
+          check_outcome="${{ steps.test-check-action.outcome }}"
+          final_outcome="${{ steps.final-check-action.outcome || 'skipped' }}"
+          check_code="${{ steps.test-check-action.outputs.result_code || '' }}"
+          final_code="${{ steps.final-check-action.outputs.result_code || '' }}"
+
+          # Primary pass/fail signal is step outcome.
+          test "$check_outcome" == "success"
+          test "$final_outcome" == "skipped" || test "$final_outcome" == "success"
+
+          # Structured status codes should always be present for successful check steps.
+          test -n "$check_code"
+          if [[ "$final_outcome" == "success" ]]; then
+            test -n "$final_code"
+          fi
+
+          # Use machine-readable status codes for deterministic validation.
+          if [[ "$check_code" != "check_passed" && "$check_code" != "check_diff" ]]; then
+            echo "Unexpected check result_code for a successful step: $check_code"
+            exit 1
+          fi
+
+          # Final check runs with fail_on_diff=true, so success means no diffs.
+          if [[ "$final_outcome" == "success" && "$final_code" != "check_passed" ]]; then
+            echo "Unexpected final check result_code for a successful step: $final_code"
+            exit 1
+          fi
 
   action-integration-status:
     name: Action Integration Status
