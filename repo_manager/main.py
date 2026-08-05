@@ -236,10 +236,27 @@ def main():  # noqa: C901
         actions_toolkit.debug(f"Could not retrieve installation permissions for debug: {exc}")
     if inputs["action"] == "validate":
         actions_toolkit.set_output("result", f"Validated {inputs['settings_file']}")
+        actions_toolkit.set_output("result_code", "validate_passed")
+        actions_toolkit.set_output("warning_count", "0")
+        actions_toolkit.set_output("permission_warning_count", "0")
         actions_toolkit.debug(json_diff := json.dumps({}))
         actions_toolkit.set_output("diff", json_diff)
         sys.exit(0)
     actions_toolkit.info(f"Config from {inputs['settings_file']} validated.")
+
+    # Emit deterministic defaults early so callers never see an empty result
+    # output when execution stops before the final action status is set.
+    if inputs["action"] == "check":
+        actions_toolkit.set_output("result", "Check failed")
+        actions_toolkit.set_output("result_code", "check_failed")
+        actions_toolkit.set_output("diff_detected", "false")
+        actions_toolkit.set_output("warning_count", "0")
+        actions_toolkit.set_output("permission_warning_count", "0")
+    elif inputs["action"] == "apply":
+        actions_toolkit.set_output("result", "Apply failed")
+        actions_toolkit.set_output("result_code", "apply_failed")
+        actions_toolkit.set_output("warning_count", "0")
+        actions_toolkit.set_output("permission_warning_count", "0")
 
     check_result = True
     diffs = {}
@@ -352,18 +369,27 @@ def main():  # noqa: C901
         return "\n".join(lines)
 
     if inputs["action"] == "check":
+        warning_count = str(len(permission_warnings))
+        actions_toolkit.set_output("warning_count", warning_count)
+        actions_toolkit.set_output("permission_warning_count", warning_count)
         if not check_result:
             summary = _permission_warnings_section() + generate(diffs, {"open": "Differences found"})
             _set_step_summary(summary)
+            actions_toolkit.set_output("diff_detected", "true")
             if inputs["fail_on_diff"] == "true":
                 actions_toolkit.set_output("result", "Check failed, diff detected")
+                actions_toolkit.set_output("result_code", "check_failed_diff")
                 actions_toolkit.set_failed("Diff detected")
             else:
+                actions_toolkit.set_output("result", "Check completed, diff detected")
+                actions_toolkit.set_output("result_code", "check_diff")
                 actions_toolkit.warning("Diff detected")
         else:
             summary = _permission_warnings_section() or "# No changes detected"
             _set_step_summary(summary)
             actions_toolkit.set_output("result", "Check passed")
+            actions_toolkit.set_output("result_code", "check_passed")
+            actions_toolkit.set_output("diff_detected", "false")
         sys.exit(0)
 
     if inputs["action"] == "apply":
@@ -482,6 +508,9 @@ def main():  # noqa: C901
                             errors.append({"type": f"{update_name}-update", "error": f"{exc}"})
 
         perm_section = _permission_warnings_section()
+        warning_count = str(len(permission_warnings))
+        actions_toolkit.set_output("warning_count", warning_count)
+        actions_toolkit.set_output("permission_warning_count", warning_count)
         if perm_section and len(messages) > 1:
             _set_step_summary(perm_section + generate(diffs, messages))
         elif len(messages) > 1:
@@ -491,8 +520,12 @@ def main():  # noqa: C901
 
         if len(errors) > 0:
             actions_toolkit.error(json.dumps(errors))
+            actions_toolkit.set_output("result", "Apply failed")
+            actions_toolkit.set_output("result_code", "apply_failed")
             actions_toolkit.set_failed("Errors during apply")
-        actions_toolkit.set_output("result", "Apply successful")
+        else:
+            actions_toolkit.set_output("result", "Apply successful")
+            actions_toolkit.set_output("result_code", "apply_passed")
 
 
 if __name__ == "__main__":
