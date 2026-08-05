@@ -130,73 +130,14 @@ def test_overwrite_false_with_move_true_rejected():
 
 def test_overwrite_false_with_move_false_is_fine():
     """The move guard must not reject the ordinary copy-once case."""
-    cfg = FileConfig(src_file="templates/CLAUDE.md", dest_file="CLAUDE.md", overwrite=False)
+    cfg = FileConfig(src_file="CONTRIBUTING.md", dest_file="CONTRIBUTING.md", overwrite=False)
     assert cfg.overwrite is False
     assert cfg.move is False
 
 
 def test_overwrite_false_permitted_on_remote_copy():
     """remote:// copies (not moves) may still be declared copy-once."""
-    cfg = FileConfig(src_file="remote://templates/CLAUDE.md", dest_file="CLAUDE.md", overwrite=False)
-    assert cfg.remote_src is True
-    assert cfg.overwrite is False
-
-
-# ---------------------------------------------------------------------------
-# overwrite / copy-once – unit tests
-# ---------------------------------------------------------------------------
-
-
-def test_overwrite_defaults_to_true_when_omitted():
-    """Omitting overwrite must preserve the pre-existing destructive-copy default."""
-    assert FileConfig(**VALID_CONFIG).overwrite is True
-
-
-@pytest.mark.parametrize("value", [True, False])
-def test_overwrite_roundtrips(value):
-    config = deepcopy(VALID_CONFIG)
-    config["overwrite"] = value
-    assert FileConfig(**config).overwrite is value
-
-
-def test_unknown_key_rejected():
-    """extra='forbid': an unrecognised key must fail rather than silently degrade."""
-    typo = deepcopy(VALID_CONFIG)
-    typo["overwite"] = False  # note the typo
-    with pytest.raises(ValidationError):
-        FileConfig(**typo)
-
-
-def test_unknown_key_rejected_names_the_offending_field():
-    """The validation error should point at the key so a typo is diagnosable."""
-    typo = deepcopy(VALID_CONFIG)
-    typo["mode"] = "100755"
-    with pytest.raises(ValidationError, match="mode"):
-        FileConfig(**typo)
-
-
-def test_overwrite_false_with_exists_false_rejected():
-    """Seeding a file we are deleting is incoherent."""
-    with pytest.raises(ValidationError, match="meaningless"):
-        FileConfig(exists=False, dest_file="some/file.txt", overwrite=False)
-
-
-def test_overwrite_false_with_move_true_rejected():
-    """A skipped move would leave src_file in place and copy nothing."""
-    with pytest.raises(ValidationError, match="cannot be combined with move"):
-        FileConfig(src_file="remote://old.txt", dest_file="new.txt", move=True, overwrite=False)
-
-
-def test_overwrite_false_with_move_false_is_fine():
-    """The move guard must not reject the ordinary copy-once case."""
-    cfg = FileConfig(src_file="templates/CLAUDE.md", dest_file="CLAUDE.md", overwrite=False)
-    assert cfg.overwrite is False
-    assert cfg.move is False
-
-
-def test_overwrite_false_permitted_on_remote_copy():
-    """remote:// copies (not moves) may still be declared copy-once."""
-    cfg = FileConfig(src_file="remote://templates/CLAUDE.md", dest_file="CLAUDE.md", overwrite=False)
+    cfg = FileConfig(src_file="remote://CONTRIBUTING.md", dest_file="CONTRIBUTING.md", overwrite=False)
     assert cfg.remote_src is True
     assert cfg.overwrite is False
 
