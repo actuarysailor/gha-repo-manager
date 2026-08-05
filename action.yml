@@ -35,8 +35,16 @@ inputs:
 outputs:
   result:
     description: "Result of the action"
+  result_code:
+    description: "Machine-readable status code. Values: validate_passed, check_passed, check_diff, check_failed_diff, check_failed, apply_passed, apply_failed"
   diff:
     description: "Diff of this action, dumped to a json string"
+  diff_detected:
+    description: "For check action only: true when diffs are detected, otherwise false"
+  warning_count:
+    description: "Total number of warning messages emitted by the action"
+  permission_warning_count:
+    description: "Number of permission-related warnings emitted by the action"
 runs:
   using: "docker"
   image: "docker://ghcr.io/actuarysailor/gha-repo-manager:v3.0.4" # x-release-please-version

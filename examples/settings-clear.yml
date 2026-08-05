@@ -4,7 +4,7 @@ settings:
   description: This repo is for testing github actions against without messing up a real repo
   homepage: ""
   topics: []
-  private: true
+  private: false
   has_issues: false
   has_projects: false
   has_wiki: false
