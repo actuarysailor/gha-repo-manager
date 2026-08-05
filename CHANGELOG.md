@@ -1,5 +1,14 @@
 # Changelog
 <!-- Not sure why it is not running -->
+## [3.1.0](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.4...v3.1.0) (2026-08-05)
+
+
+### Features
+
+* add copy-once support to batch_file_operations ([5534cd5](https://github.com/actuarysailor/gha-repo-manager/commit/5534cd592197280aec16e6767b854cc78ccbf293))
+* add copy-once support to batch_file_operations ([#236](https://github.com/actuarysailor/gha-repo-manager/issues/236)) ([922c63a](https://github.com/actuarysailor/gha-repo-manager/commit/922c63aed18896cdccbefb87ca23dadc8bc449e1))
+* support multiple file groups per target branch with their own commit messages ([b2d472c](https://github.com/actuarysailor/gha-repo-manager/commit/b2d472c8ee5d4f79d0765aba79d60e46666be126))
+
 ## [3.0.4](https://github.com/actuarysailor/gha-repo-manager/compare/v3.0.3...v3.0.4) (2026-07-20)
 
 
